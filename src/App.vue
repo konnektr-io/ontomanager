@@ -32,24 +32,6 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
         >
           Orders
         </a>
-        <a
-          href="#"
-          class="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Products
-        </a>
-        <a
-          href="#"
-          class="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Customers
-        </a>
-        <a
-          href="#"
-          class="text-foreground transition-colors hover:text-foreground"
-        >
-          Settings
-        </a>
       </nav>
       <Sheet>
         <SheetTrigger as-child>

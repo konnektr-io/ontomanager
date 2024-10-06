@@ -1,34 +1,77 @@
-import { Store, Parser, DataFactory, NamedNode, Quad_Subject, Quad_Object } from 'n3';
+import axios from 'axios';
+import { Store, Parser, DataFactory, NamedNode, type Quad_Subject, type Quad_Object, Literal, Quad } from 'n3';
 
 const { namedNode, literal, blankNode } = DataFactory;
 
+const builtinVocabularies = [
+  'rdf.ttl','rdfs.ttl','owl.ttl','skos.ttl'
+];
+
 class GraphStoreService {
   private store: Store;
+  private parser: Parser;
 
-  constructor () {
+  public constructor () {
     this.store = new Store();
+    this.parser = new Parser();
+    this.loadDefaultVocabularies();
   }
 
-  loadTurtle (turtleString: string): void {
-    const parser = new Parser();
-    const quads = parser.parse(turtleString);
+  public loadDefaultVocabularies (): void {
+    builtinVocabularies.forEach(async (vocabulary) => {
+      const response = await axios.get(`../vocab/${vocabulary}`);
+      this.loadOntology(response.data);
+    });
+  }
+
+  public loadOntology (ontologyContent: string): void {
+    // const parser = new Parser();
+    const quads = this.parser.parse(ontologyContent);
     this.store.addQuads(quads);
   }
 
-  getClasses (): string[] {
+  public getClasses (): string[] {
     const classes = new Set<string>();
-    const quads = this.store.getQuads(
+    const rdfsClassQuads = this.store.getQuads(
+      null,
+      namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+      namedNode('http://www.w3.org/2000/01/rdf-schema#Class'),
+      null);
+    rdfsClassQuads.forEach((quad) => {
+      classes.add(quad.subject.value);
+    });
+    const owlClassQuads = this.store.getQuads(
       null,
       namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
       namedNode('http://www.w3.org/2002/07/owl#Class'),
       null);
-    quads.forEach((quad) => {
+    owlClassQuads.forEach((quad) => {
       classes.add(quad.subject.value);
     });
+      
     return Array.from(classes);
   }
 
-  getSubClasses (classUri: string): string[] {
+  public getRootClasses (): string[] {
+    const classes = new Set<string>();
+    const allClasses = this.getClasses();
+    const subClasses = new Set<string>();
+
+    allClasses.forEach((classUri) => {
+      const subs = this.getSubClasses(classUri);
+      subs.forEach((sub) => subClasses.add(sub));
+    });
+
+    allClasses.forEach((classUri) => {
+      if (!subClasses.has(classUri)) {
+        classes.add(classUri);
+      }
+    });
+
+    return Array.from(classes);
+  }
+
+  public getSubClasses (classUri: string): string[] {
     const subClasses = new Set<string>();
     const quads = this.store.getQuads(
       null,
@@ -41,43 +84,72 @@ class GraphStoreService {
     return Array.from(subClasses);
   }
 
-  getClassDetails (classUri: string): {
-    label: string;
-    comment: string;
-    properties: { uri: string; label: string; range: string }[];
-    // restrictions: { property: string; type: string; value: string }[];
-  } {
-    const label = this.getObjectValue(classUri, 'http://www.w3.org/2000/01/rdf-schema#label') ||
-      this.getObjectValue(classUri, 'http://www.w3.org/2004/02/skos/core#prefLabel') || '';
-    const comment = this.getObjectValue(classUri, 'http://www.w3.org/2000/01/rdf-schema#comment') ||
-      this.getObjectValue(classUri, 'http://www.w3.org/2004/02/skos/core#definition') || '';
-
-    const properties = this.getProperties(classUri);
-    // const restrictions = this.getRestrictions(classUri);
-
-    return { label, comment, properties/* , restrictions */ };
-  }
-
-  private getObjectValue (subject: string, predicate: string): string | null {
-    const quad = this.store.getQuads(namedNode(subject), namedNode(predicate), null, null)[0];
-    return quad ? quad.object.value : null;
-  }
-
-  private getProperties (classUri: string): { uri: string; label: string; range: string }[] {
-    const properties: { uri: string; label: string; range: string }[] = [];
+  public getProperties (classUri: string): string[] {
+    const properties = new Set<string>();
     const quads = this.store.getQuads(
       null,
       namedNode('http://www.w3.org/2000/01/rdf-schema#domain'),
       namedNode(classUri),
       null);
     quads.forEach((quad) => {
-      const propertyUri = quad.subject.value;
-      const label = this.getObjectValue(propertyUri, 'http://www.w3.org/2000/01/rdf-schema#label') || propertyUri;
-      const range = this.getObjectValue(propertyUri, 'http://www.w3.org/2000/01/rdf-schema#range') || '';
-      properties.push({ uri: propertyUri, label, range });
+      properties.add(quad.subject.value);
     });
-    return properties;
+    return Array.from(properties);
   }
+
+  public getRanges (propertyUri: string): string[] {
+    const ranges = new Set<string>();
+    const quads = this.store.getQuads(
+      namedNode(propertyUri),
+      namedNode('http://www.w3.org/2000/01/rdf-schema#range'),
+      null,
+      null);
+    quads.forEach((quad) => {
+      ranges.add(quad.object.value);
+    });
+    return Array.from(ranges);
+  }
+  
+  public getLabel (uri: string): string {
+    return this.getObjectValue(uri, 'http://www.w3.org/2000/01/rdf-schema#label') ||
+      this.getObjectValue(uri, 'http://www.w3.org/2004/02/skos/core#prefLabel') || uri.split('/').pop()?.split('#').pop() || uri;
+  }
+  public getComment (uri: string): string {
+    return this.getObjectValue(uri, 'http://www.w3.org/2000/01/rdf-schema#comment') ||
+      this.getObjectValue(uri, 'http://www.w3.org/2004/02/skos/core#definition') || uri.split('/').pop()?.split('#').pop() || uri;
+  }
+
+  /** Gets all annotation properties */
+  public getAnnotationProperties (): string[] {
+    const properties = new Set<string>();
+    const quads = this.store.getQuads(
+      null,
+      namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
+      namedNode('http://www.w3.org/2002/07/owl#AnnotationProperty'),
+      null);
+    quads.forEach((quad) => {
+      properties.add(quad.subject.value);
+    });
+    return Array.from(properties);
+  }
+
+  public getSubjectAnnotationQuads (uri: string): Quad[] {
+    // const annotationProperties = this.getAnnotationProperties();
+    return this.store
+      .getQuads(
+        namedNode(uri),
+        null,
+        null,
+        null)
+      // .filter((quad) => annotationProperties.includes(quad.predicate.value));
+  }
+
+  public getObjectValue (subject: string, predicate: string, language = 'en'): string | null {
+    const quads = this.store.getQuads(namedNode(subject), namedNode(predicate), null, null);
+    const quad = quads.find((q) => !language || q.object.termType !== 'Literal' || (q.object as Literal).language === language) || quads[0];
+    return quad ? quad.object.value : null;
+  }
+
 
   /* private getRestrictions (classUri: string): { property: string; type: string; value: string }[] {
     const restrictions: { property: string; type: string; value: string }[] = [];
@@ -202,4 +274,4 @@ class GraphStoreService {
   }
 }
 
-export default GraphStoreService;
+export default new GraphStoreService();
