@@ -33,7 +33,7 @@ const buildTree = (parent: string) => {
 
 onMounted(async () => {
   const turtleContent = (await axios.get<string>('https://w3c-lbd-cg.github.io/bot/bot.ttl')).data;
-  graphStoreService.loadOntology(turtleContent);
+  graphStoreService.loadOntology(turtleContent, 'bot.ttl');
   const rootClasses = graphStoreService.getRootClasses();
   items.value = rootClasses.map<TreeNode>((root) => {
     const children = buildTree(root);

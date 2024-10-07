@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
-import { CircleUser, Menu, Package2, Search } from 'lucide-vue-next'
+import { Menu, Package2, Search } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import UserMenu from './components/UserMenu.vue'
 </script>
 
 <template>
@@ -24,14 +24,8 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
           to="/"
           class="text-muted-foreground transition-colors hover:text-foreground"
         >
-          Ontology
+          Taxonomy
         </RouterLink>
-        <a
-          href="#"
-          class="text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Orders
-        </a>
       </nav>
       <Sheet>
         <SheetTrigger as-child>
@@ -97,26 +91,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
             />
           </div>
         </form>
-        <DropdownMenu>
-          <DropdownMenuTrigger as-child>
-            <Button
-              variant="secondary"
-              size="icon"
-              class="rounded-full"
-            >
-              <CircleUser class="h-5 w-5" />
-              <span class="sr-only">Toggle user menu</span>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>My Account</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>Support</DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <UserMenu />
       </div>
     </header>
 
