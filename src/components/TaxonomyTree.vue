@@ -83,7 +83,8 @@ onMounted(async () => {
         <div
           v-if="item.value.uri"
           class="text-xs text-muted-foreground truncate"
-        >{{ item.value.uri }}</div>
+        >{{
+          graphStoreService.getPrefixedUri(item.value.uri) }}</div>
       </div>
     </TreeItem>
   </TreeRoot>

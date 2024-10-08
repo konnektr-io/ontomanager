@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import graphStoreService from '@/services/GraphStoreService';
 import TaxonomyTree from '@/components/TaxonomyTree.vue'
 import ClassEditor from '@/components/ClassEditor.vue';
+import { storeToRefs } from 'pinia';
+import { useMainStore } from '@/stores/main';
 
-const selected = ref<string>();
+const { selected } = storeToRefs(useMainStore());
 </script>
 
 <template>
