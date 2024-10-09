@@ -1,5 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import OntologyManagerView from '../views/OntologyManagerView.vue'
+import TheOntologyManagerView from '../views/TheOntologyManagerView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,7 +7,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'ontology',
-      component: OntologyManagerView
+      component: TheOntologyManagerView
     }
   ]
 })

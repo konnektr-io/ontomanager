@@ -1,7 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue';
-import { TreeItem, TreeRoot } from 'radix-vue'
-import { ChevronDown, ChevronRight } from 'lucide-vue-next'
 import graphStoreService from '@/services/GraphStoreService';
 import axios from 'axios';
 
@@ -47,7 +45,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <TreeRoot
+  <div>{{ items }}</div>
+  <!-- <TreeRoot
     v-model="selectedNode"
     v-slot="{ flattenItems }"
     class="list-none select-none w-64 bg-white text-blackA11 rounded-lg p-2 text-sm font-medium"
@@ -72,20 +71,14 @@ onMounted(async () => {
           class="h-4 w-4"
         />
       </template>
-      <div
-        v-else
-        class="h-4 w-4"
-      ></div>
-      <div class="pl-2 flex-1 overflow-hidden">
-        <div :class="`truncate ${item.value.uri === selected ? '' : 'text-muted-foreground '}`">{{
-          item.value.title }}
-        </div>
-        <div
-          v-if="item.value.uri"
-          class="text-xs text-muted-foreground truncate"
-        >{{
-          graphStoreService.getPrefixedUri(item.value.uri) }}</div>
-      </div>
-    </TreeItem>
-  </TreeRoot>
+<div v-else class="h-4 w-4"></div>
+<div class="pl-2 flex-1 overflow-hidden">
+  <div :class="`truncate ${item.value.uri === selected ? '' : 'text-muted-foreground '}`">{{
+    item.value.title }}
+  </div>
+  <div v-if="item.value.uri" class="text-xs text-muted-foreground truncate">{{
+    graphStoreService.getPrefixedUri(item.value.uri) }}</div>
+</div>
+</TreeItem>
+</TreeRoot> -->
 </template>
