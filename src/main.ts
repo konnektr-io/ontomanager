@@ -8,9 +8,10 @@ import 'primeicons/primeicons.css'
 import PrimeVue from 'primevue/config'
 import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
+// import Lara from '@primevue/themes/lara'
 // import Konnektr from './presets/Konnektr'
 
-const Noir = definePreset(Aura, {
+const Konnektr = definePreset(Aura, {
   semantic: {
     primary: {
       50: '{slate.50}',
@@ -64,7 +65,15 @@ app.use(createPinia())
 app.use(router)
 
 app.use(PrimeVue, {
-  theme: { preset: Noir }
+  theme: {
+    preset: Konnektr,
+    options: {
+      cssLayer: {
+        name: 'primevue',
+        order: 'tailwind-base, primevue, tailwind-utilities'
+      }
+    }
+  }
 })
 
 app.mount('#app')

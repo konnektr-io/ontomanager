@@ -34,29 +34,60 @@ const labelNodes = [
 ]
 const languages = ['en']
 
+export interface ClassTreeNode {
+  key: string
+  label: string
+  data?: unknown
+  icon?: string
+  children?: ClassTreeNode[]
+}
+
 class GraphStoreService {
   private store: Store
   private parser: Parser
-  private graphs: Literal[] = []
+  private allGraphIds: Literal[] = []
   private graphPrefixes: { [graphId: string]: { [prefix: string]: NamedNode<string> } } = {}
-  private visibleGraphs = ['bot.ttl']
+  private userGraphs = [
+    {
+      url: 'https://w3c-lbd-cg.github.io/bot/bot.ttl',
+      id: 'bot.ttl',
+      githubUrl: 'https://github.com/w3c-lbd-cg/bot/blob/master/bot.ttl',
+      visible: true
+    }
+  ]
 
   public constructor() {
     this.store = new Store()
     this.parser = new Parser()
     this.loadDefaultVocabularies()
+    this.loadUserGraphs()
   }
 
   public loadDefaultVocabularies(): void {
     builtinVocabularies.forEach(async (vocabulary) => {
-      const response = await axios.get(`../vocab/${vocabulary}`)
-      this.loadOntology(response.data, vocabulary)
+      try {
+        const response = await axios.get(`../vocab/${vocabulary}`)
+        this.loadOntology(response.data, vocabulary)
+      } catch (error) {
+        console.error(`Failed to load ${vocabulary}: ${error}`)
+      }
+    })
+  }
+
+  public loadUserGraphs(): void {
+    this.userGraphs.forEach(async (graph) => {
+      try {
+        const response = await axios.get(graph.url)
+        this.loadOntology(response.data, graph.id)
+      } catch (error) {
+        console.error(`Failed to load ${graph.url}: ${error}`)
+      }
     })
   }
 
   public async loadOntology(ontologyContent: string, graphId: string): Promise<void> {
     const graph = literal(graphId)
-    this.graphs.push(graph)
+    this.allGraphIds.push(graph)
     this.graphPrefixes[graphId] = {}
     const quads = this.parser.parse(ontologyContent, null, (prefix, ns) => {
       this.graphPrefixes[graphId][prefix] = ns as NamedNode<string>
@@ -68,8 +99,8 @@ class GraphStoreService {
 
   public getClasses(): string[] {
     const classes = new Set<string>()
-    this.graphs
-      .filter((graph) => this.visibleGraphs.includes(graph.value))
+    this.allGraphIds
+      .filter((graph) => this.userGraphs.find((visibleGraph) => visibleGraph.id === graph.value))
       .forEach((graphId) => {
         classObjectNodes.forEach((classNode) => {
           this.store.getSubjects(vocab.rdf.type, classNode, graphId).forEach((subject) => {
@@ -79,6 +110,31 @@ class GraphStoreService {
       })
 
     return Array.from(classes)
+  }
+
+  private createClassTreeNode(classUri: string): ClassTreeNode {
+    const subClasses = this.getSubClasses(classUri)
+    const children: ClassTreeNode[] = []
+    subClasses.forEach((subClass) => {
+      children.push(this.createClassTreeNode(subClass))
+    })
+    return {
+      key: classUri,
+      label: this.getLabel(classUri),
+      data: this.getPrefixedUri(classUri),
+      children
+    }
+  }
+
+  public getClassesTree(): ClassTreeNode[] {
+    const rootClasses = this.getRootClasses()
+    const tree: ClassTreeNode[] = []
+
+    rootClasses.forEach((rootClass) => {
+      tree.push(this.createClassTreeNode(rootClass))
+    })
+
+    return tree
   }
 
   /**
@@ -175,7 +231,7 @@ class GraphStoreService {
         return label
       }
     }
-    return uri.split('/').pop()?.split('#').pop() || uri
+    return uri?.split('/').pop()?.split('#').pop() || uri
   }
 
   /** Gets all annotation properties */

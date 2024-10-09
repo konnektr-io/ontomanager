@@ -48,101 +48,91 @@ const openImportDialog = () => {
 }
 </script>
 
-
 <template>
-  <div class="flex-col gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6">
-    <!-- Ontology Select -->
-    <Select
-      v-model="selectedOntology"
-      :options="ontologies"
-      optionLabel="name"
-      placeholder="Select Ontology"
-      class="w-128"
+  <div class="flex items-center justify-between w-full">
+    <!-- Title -->
+    <div class="flex items-center gap-2 text-lg font-medium">
+      <i class="pi pi-sitemap"></i>
+      <span>OntoManager</span>
+    </div>
+
+    <!-- Right-aligned content -->
+    <div
+      class="flex items-center gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6"
     >
-      <template #value="slotProps">
-        <div
-          v-if="slotProps.value"
-          class="flex items-center"
-        >
-          <div>{{ slotProps.value.name }}</div>
-        </div>
-        <span v-else>
-          {{ slotProps.placeholder }}
-        </span>
-      </template>
-      <template #option="slotProps">
-        <div class="flex items-center justify-between">
-          <span>{{ slotProps.option.name }}</span>
-          <div class="pl-3">
+      <!-- Ontology Select -->
+      <Select
+        v-model="selectedOntology"
+        :options="ontologies"
+        optionLabel="name"
+        placeholder="Select Ontology"
+        class="w-128"
+      >
+        <template #value="slotProps">
+          <div
+            v-if="slotProps.value"
+            class="flex items-center"
+          >
+            <div>{{ slotProps.value.name }}</div>
+          </div>
+          <span v-else>
+            {{ slotProps.placeholder }}
+          </span>
+        </template>
+        <template #option="slotProps">
+          <div class="flex items-center justify-between">
+            <span>{{ slotProps.option.name }}</span>
+            <div class="pl-3">
+              <Button
+                size="small"
+                icon="pi pi-eye"
+                class="p-button-text p-button-sm"
+                @click.stop="toggleVisibility(slotProps.option)"
+              />
+              <Button
+                size="small"
+                icon="pi pi-github"
+                class="p-button-text p-button-sm"
+                @click.stop="openGitHub(slotProps.option)"
+              />
+            </div>
+          </div>
+        </template>
+        <template #footer>
+          <div class="p-3">
             <Button
+              label="Import Ontology"
+              fluid
+              severity="secondary"
+              text
               size="small"
-              icon="pi pi-eye"
-              class="p-button-text p-button-sm"
-              @click.stop="toggleVisibility(slotProps.option)"
-            />
-            <Button
-              size="small"
-              icon="pi pi-github"
-              class="p-button-text p-button-sm"
-              @click.stop="openGitHub(slotProps.option)"
+              icon="pi pi-plus"
+              @click="openImportDialog"
             />
           </div>
-        </div>
-      </template>
-      <template #footer>
-        <div class="p-3">
-          <Button
-            label="Import Ontology"
-            fluid
-            severity="secondary"
-            text
-            size="small"
-            icon="pi pi-plus"
-            @click="openImportDialog"
-          />
-        </div>
-      </template>
-    </Select>
+        </template>
+      </Select>
 
-    <!-- Menu Bar -->
-    <!-- <div class="flex items-center space-x-2">
-      <Button
-        v-if="pendingChanges"
-        icon="pi pi-undo"
-        class="p-button-text"
+      <!-- Branch Selection (only in edit mode) -->
+      <Select
+        v-if="editMode"
+        v-model="selectedBranch"
+        :options="branches"
+        optionLabel="name"
+        placeholder="Select Branch"
+        class="w-48"
       />
-      <Button
-        v-if="pendingChanges"
-        icon="pi pi-redo"
-        class="p-button-text"
-      />
-      <Button
-        v-if="pendingChanges"
-        icon="pi pi-check"
-        label="Commit"
-      />
-    </div> -->
 
-    <!-- Branch Selection (only in edit mode) -->
-    <Select
-      v-if="editMode"
-      v-model="selectedBranch"
-      :options="branches"
-      optionLabel="name"
-      placeholder="Select Branch"
-      class="w-48"
-    />
+      <!-- Search Box -->
+      <!-- <span class="p-input-icon-left">
+        <InputText
+          v-model="searchQuery"
+          placeholder="Search"
+        />
+      </span> -->
 
-    <!-- Search Box -->
-    <!-- <span class="p-input-icon-left">
-      <InputText
-        v-model="searchQuery"
-        placeholder="Search"
-      />
-    </span> -->
-
-    <!-- User Menu -->
-    <UserMenu />
-
+      <!-- User Menu -->
+      <UserMenu />
+    </div>
   </div>
 </template>

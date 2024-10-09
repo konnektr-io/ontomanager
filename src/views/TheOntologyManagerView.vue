@@ -7,56 +7,64 @@ import TabList from 'primevue/tablist'
 import TabPanel from 'primevue/tabpanel'
 import { storeToRefs } from 'pinia';
 import { useMainStore } from '@/stores/main';
-
-import TaxonomyTree from '@/components/TaxonomyTree.vue'
+import ClassesTree from '@/components/ClassesTree.vue'
 import ClassEditor from '@/components/ClassEditor.vue'
-
 
 const { selected } = storeToRefs(useMainStore());
 
+
+enum TabValue {
+  Classes = 'classes',
+  Properties = 'properties',
+}
+
 const tabs = [
-  { title: 'Classes', value: 'classes' },
-  { title: 'Properties', value: 'properties' },
+  { title: 'Classes', value: TabValue.Classes },
+  { title: 'Properties', value: TabValue.Properties },
 ]
 
 </script>
 
 <template>
-  <div class="h-full">
-    <Splitter class="h-full">
-      <SplitterPanel
-        :size="25"
-        :minSize="10"
-        class="bg-surface-50"
-      >
-        <Tabs value="classes">
-          <TabList>
-            <Tab
-              v-for="tab in tabs"
-              :key="tab.title"
-              :value="tab.value"
-            >{{ tab.title }}</Tab>
-          </TabList>
-          <TabPanel header="Classes">
-            <TaxonomyTree />
-          </TabPanel>
-          <TabPanel header="Properties">
-            Not implemented yet
-          </TabPanel>
-        </Tabs>
-      </SplitterPanel>
-      <SplitterPanel
-        :size="75"
-        class="bg-surface-0"
-      >
-        <ClassEditor
-          v-if="selected"
-          :selected="selected"
-        />
-        <div>
-          Nothing selected
-        </div>
-      </SplitterPanel>
-    </Splitter>
-  </div>
+  <Splitter class="h-full">
+    <SplitterPanel
+      :size="25"
+      :minSize="10"
+      class="bg-surface-0 h-full"
+    >
+      <Tabs :value="TabValue.Classes">
+        <TabList>
+          <Tab
+            v-for="tab in tabs"
+            :key="tab.title"
+            :value="tab.value"
+          >{{ tab.title }}</Tab>
+        </TabList>
+        <TabPanel
+          :value="TabValue.Classes"
+          header="Classes"
+        >
+          <ClassesTree />
+        </TabPanel>
+        <TabPanel
+          :value="TabValue.Properties"
+          header="Properties"
+        >
+          Not implemented yet
+        </TabPanel>
+      </Tabs>
+    </SplitterPanel>
+    <SplitterPanel
+      :size="75"
+      class="bg-surface-0 h-full"
+    >
+      <ClassEditor
+        v-if="selected"
+        :selected="selected"
+      />
+      <div v-else>
+        Nothing selected
+      </div>
+    </SplitterPanel>
+  </Splitter>
 </template>

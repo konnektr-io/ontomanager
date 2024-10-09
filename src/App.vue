@@ -10,8 +10,8 @@ import TheHeader from '@/components/TheHeader.vue';
     </header>
 
     <!-- Main View -->
-    <main class="flex-grow h-full flex flex-col">
-      <RouterView class="flex-grow" />
+    <main class="flex-grow h-[calc(100vh-4rem)] flex flex-col">
+      <RouterView class="flex-grow h-full" />
     </main>
 
   </div>
