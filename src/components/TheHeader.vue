@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import Menu from 'primevue/menu'
+import Dialog from 'primevue/dialog'
 import UserMenu from './UserMenu.vue'
+import { useGraphStore } from '@/stores/graph-store'
+
+const { userGraphs } = storeToRefs(useGraphStore())
+const { toggleOntologyVisibility, addOntology } = useGraphStore()
 
 interface OntologyItem {
   name: string
@@ -13,10 +18,10 @@ interface OntologyItem {
 
 // Sample data (replace with actual data and logic)
 const selectedOntology = ref(null)
-const ontologies = ref<OntologyItem[]>([
-  { name: 'Ontology 1', visible: true },
-  { name: 'Ontology 2', visible: false },
-])
+const ontologies = computed(() => userGraphs.value.map(graph => ({
+  name: graph.url,
+  visible: graph.visible
+})));
 
 const editMode = ref(true)
 const selectedBranch = ref(null)
@@ -24,7 +29,7 @@ const branches = ref([
   { name: 'main' },
   { name: 'develop' },
 ])
-const pendingChanges = ref(0)
+/* const pendingChanges = ref(0)
 
 const searchQuery = ref('')
 
@@ -34,18 +39,27 @@ const userMenuItems = [
   { label: 'Settings', icon: 'pi pi-cog' },
   { label: 'Logout', icon: 'pi pi-power-off' },
 ]
-
+ */
 const toggleVisibility = (ontology: OntologyItem) => {
-  ontology.visible = !ontology.visible
+  toggleOntologyVisibility(ontology.name);
 }
 
 const openGitHub = (ontology: OntologyItem) => {
   // Implement GitHub link opening logic
 }
 
+const importDialogVisible = ref(false);
+const newOntologyUrl = ref('');
+
 const openImportDialog = () => {
-  // Implement import dialog logic
+  importDialogVisible.value = true;
 }
+
+const importOntology = () => {
+  addOntology(newOntologyUrl.value);
+  importDialogVisible.value = false;
+  newOntologyUrl.value = '';
+};
 </script>
 
 <template>
@@ -80,19 +94,21 @@ const openImportDialog = () => {
           </span>
         </template>
         <template #option="slotProps">
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between w-full">
             <span>{{ slotProps.option.name }}</span>
             <div class="pl-3">
               <Button
-                size="small"
-                icon="pi pi-eye"
-                class="p-button-text p-button-sm"
+                :icon="`pi pi-eye${slotProps.option.visible ? '' : '-slash'}`"
+                size="info"
+                text
+                rounded
                 @click.stop="toggleVisibility(slotProps.option)"
               />
               <Button
-                size="small"
                 icon="pi pi-github"
-                class="p-button-text p-button-sm"
+                size="small"
+                text
+                rounded
                 @click.stop="openGitHub(slotProps.option)"
               />
             </div>
@@ -134,5 +150,30 @@ const openImportDialog = () => {
       <!-- User Menu -->
       <UserMenu />
     </div>
+
+
+    <!-- Import Ontology Dialog -->
+    <Dialog
+      header="Import Ontology"
+      v-model:visible="importDialogVisible"
+      modal
+    >
+      <div class="p-fluid">
+        <div class="field">
+          <label for="ontologyUrl">Ontology URL</label>
+          <InputText
+            id="ontologyUrl"
+            v-model="newOntologyUrl"
+          />
+        </div>
+        <div class="field">
+          <Button
+            label="Import"
+            icon="pi pi-check"
+            @click="importOntology"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>

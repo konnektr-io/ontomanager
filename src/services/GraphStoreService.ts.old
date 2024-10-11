@@ -1,3 +1,4 @@
+import { ref } from 'vue'
 import axios from 'axios'
 import {
   Store,
@@ -42,25 +43,46 @@ export interface ClassTreeNode {
   children?: ClassTreeNode[]
 }
 
+export interface UserGraph {
+  url: string
+  githubUrl?: string
+  visible: boolean
+  loaded?: boolean
+}
+
 class GraphStoreService {
   private store: Store
   private parser: Parser
   private allGraphIds: Literal[] = []
   private graphPrefixes: { [graphId: string]: { [prefix: string]: NamedNode<string> } } = {}
-  private userGraphs = [
+  public userGraphs = ref<UserGraph[]>([
+    /* 
     {
       url: 'https://w3c-lbd-cg.github.io/bot/bot.ttl',
-      id: 'bot.ttl',
       githubUrl: 'https://github.com/w3c-lbd-cg/bot/blob/master/bot.ttl',
       visible: true
     }
-  ]
+   */
+  ])
+  public classesTree = ref<ClassTreeNode[]>([])
 
   public constructor() {
     this.store = new Store()
     this.parser = new Parser()
     this.loadDefaultVocabularies()
+    this.getUserGraphsFromLocalStorage()
     this.loadUserGraphs()
+  }
+
+  private saveUserGraphsToLocalStorage(): void {
+    localStorage.setItem('userGraphs', JSON.stringify(this.userGraphs.value))
+  }
+
+  private getUserGraphsFromLocalStorage(): void {
+    const storedGraphs = localStorage.getItem('userGraphs')
+    if (storedGraphs) {
+      this.userGraphs.value.push(...JSON.parse(storedGraphs))
+    }
   }
 
   public loadDefaultVocabularies(): void {
@@ -74,18 +96,44 @@ class GraphStoreService {
     })
   }
 
-  public loadUserGraphs(): void {
-    this.userGraphs.forEach(async (graph) => {
+  public async loadUserGraphs(): Promise<void> {
+    for (let i = 0; i < this.userGraphs.value.length; i++) {
+      const graph = this.userGraphs.value[i]
       try {
         const response = await axios.get(graph.url)
-        this.loadOntology(response.data, graph.id)
+        this.loadOntology(response.data, graph.url)
+        if (!this.userGraphs.value[i].loaded) {
+          this.userGraphs.value[i].loaded = true
+        }
       } catch (error) {
         console.error(`Failed to load ${graph.url}: ${error}`)
       }
-    })
+    }
   }
 
+  /**
+   * Loads an ontology into the graph store.
+   *
+   * @param ontologyContent - The content of the ontology to be loaded.
+   * @param graphId - The identifier of the graph where the ontology will be stored.
+   * @returns A promise that resolves when the ontology has been successfully loaded.
+   *
+   * @remarks
+   * This method performs the following steps:
+   * 1. Checks if the graphId exists in the list of all graph IDs.
+   * 2. If the graphId exists, it removes it from the list.
+   * 3. Deletes the existing graph from the store.
+   * 4. Creates a new graph with the given graphId and adds it to the list of all graph IDs.
+   * 5. Parses the ontology content and extracts prefixes.
+   * 6. Adds the parsed quads to the store, associating them with the new graph.
+   */
   public async loadOntology(ontologyContent: string, graphId: string): Promise<void> {
+    const graphIdIndex = this.allGraphIds.findIndex((gIdLiteral) => gIdLiteral.value === graphId)
+    if (graphIdIndex === -1) {
+      this.allGraphIds.splice(graphIdIndex, 1)
+    }
+    this.store.deleteGraph(graphId)
+
     const graph = literal(graphId)
     this.allGraphIds.push(graph)
     this.graphPrefixes[graphId] = {}
@@ -97,10 +145,35 @@ class GraphStoreService {
     )
   }
 
+  public toggleOntologyVisibility(url: string): void {
+    const ontologyIndex = this.userGraphs.value.findIndex((graph) => graph.url === url)
+    if (ontologyIndex !== -1) {
+      this.userGraphs.value[ontologyIndex] = {
+        ...this.userGraphs.value[ontologyIndex],
+        visible: !this.userGraphs.value[ontologyIndex].visible
+      }
+      this.saveUserGraphsToLocalStorage()
+    }
+  }
+
+  public addOntology(url: string): void {
+    const existingUserGraphIndex = this.userGraphs.value.findIndex((g) => g.url === url)
+    if (existingUserGraphIndex !== -1) {
+      this.userGraphs.value.splice(existingUserGraphIndex, 1)
+    }
+
+    const githubUrl = url.includes('github') ? url : undefined
+    this.userGraphs.value.push({ url, githubUrl, visible: true, loaded: false })
+    this.saveUserGraphsToLocalStorage()
+    this.loadUserGraphs() // Reload user graphs to include the new one
+  }
+
   public getClasses(): string[] {
     const classes = new Set<string>()
     this.allGraphIds
-      .filter((graph) => this.userGraphs.find((visibleGraph) => visibleGraph.id === graph.value))
+      .filter((graph) =>
+        this.userGraphs.value.find((visibleGraph) => visibleGraph.url === graph.value)
+      )
       .forEach((graphId) => {
         classObjectNodes.forEach((classNode) => {
           this.store.getSubjects(vocab.rdf.type, classNode, graphId).forEach((subject) => {
@@ -127,6 +200,7 @@ class GraphStoreService {
   }
 
   public getClassesTree(): ClassTreeNode[] {
+    console.log('getClassesTree', this.userGraphs.value)
     const rootClasses = this.getRootClasses()
     const tree: ClassTreeNode[] = []
 
@@ -134,6 +208,7 @@ class GraphStoreService {
       tree.push(this.createClassTreeNode(rootClass))
     })
 
+    this.classesTree.value = tree
     return tree
   }
 

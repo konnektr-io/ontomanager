@@ -8,8 +8,7 @@ import 'primeicons/primeicons.css'
 import PrimeVue from 'primevue/config'
 import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
-// import Lara from '@primevue/themes/lara'
-// import Konnektr from './presets/Konnektr'
+import Tooltip from 'primevue/tooltip'
 
 const Konnektr = definePreset(Aura, {
   semantic: {
@@ -31,28 +30,28 @@ const Konnektr = definePreset(Aura, {
         primary: {
           color: '{slate.950}',
           inverseColor: '#ffffff',
-          hoverColor: '{slate.900}',
-          activeColor: '{slate.800}'
+          hoverColor: '{primary.800}',
+          activeColor: '{primary.700}'
         },
         highlight: {
-          background: '{slate.950}',
-          focusBackground: '{slate.700}',
+          background: '{primary.950}',
+          focusBackground: '{primary.700}',
           color: '#ffffff',
           focusColor: '#ffffff'
         }
       },
       dark: {
         primary: {
-          color: '{slate.50}',
-          inverseColor: '{slate.950}',
-          hoverColor: '{slate.100}',
-          activeColor: '{slate.200}'
+          color: '{primary.50}',
+          inverseColor: '{primary.950}',
+          hoverColor: '{primary.200}',
+          activeColor: '{primary.300}'
         },
         highlight: {
-          background: 'rgba(250, 250, 250, .16)',
-          focusBackground: 'rgba(250, 250, 250, .24)',
-          color: 'rgba(255,255,255,.87)',
-          focusColor: 'rgba(255,255,255,.87)'
+          background: '{primary.50}',
+          focusBackground: '{primary.300}',
+          color: '{primary.950}',
+          focusColor: '{primary.950}'
         }
       }
     }
@@ -68,6 +67,7 @@ app.use(PrimeVue, {
   theme: {
     preset: Konnektr,
     options: {
+      darkModeSelector: '.p-dark',
       cssLayer: {
         name: 'primevue',
         order: 'tailwind-base, primevue, tailwind-utilities'
@@ -75,5 +75,7 @@ app.use(PrimeVue, {
     }
   }
 })
+
+app.directive('tooltip', Tooltip)
 
 app.mount('#app')

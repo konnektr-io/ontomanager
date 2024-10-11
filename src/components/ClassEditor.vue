@@ -1,37 +1,41 @@
 <script setup lang="ts">
 import { computed } from 'vue';
-import Card from 'primevue/card';
-import Tag from 'primevue/tag';
 import Panel from 'primevue/panel';
-import graphStoreService from '@/services/GraphStoreService';
-// import AnnotationPropertyList from './AnnotationPropertyList.vue.old'
+import Tag from 'primevue/tag';
+import AnnotationPropertyList from './AnnotationPropertyList.vue';
+import { useMainStore } from '@/stores/main';
+import { storeToRefs } from 'pinia';
+import { useGraphStore } from '@/stores/graph-store';
 
-const props = defineProps<{
-  selected: string
-}>();
+const { selected } = storeToRefs(useMainStore());
+const { getProperties, getRestrictions, getLabel, getPrefixedUri } = useGraphStore();
 
 const properties = computed(() => {
-  return graphStoreService.getProperties(props.selected);
+  if (!selected.value) return [];
+  return getProperties(selected.value);
 });
 const restrictions = computed(() => {
-  return graphStoreService.getRestrictions(props.selected);
+  if (!selected.value) return [];
+  return getRestrictions(selected.value);
 });
 
 </script>
 
 <template>
-  <Card class="w-full">
-    <template #title>{{ graphStoreService.getLabel(selected) }}</template>
-    <template #subtitle>
-      <Tag
-        severity="info"
-        class="mr-2"
-      >
-        {{ graphStoreService.getPrefixedUri(selected) }}
-      </Tag>
-    </template>
-    <template #content>
-      <!-- <AnnotationPropertyList :subject="selected" /> -->
+  <div
+    v-if="selected"
+    class="w-full p-4"
+  >
+    <div class="flex items-center gap-2 mb-4">
+      <p class="text-lg font-semibold">{{ getLabel(selected) }}</p>
+      <div class="flex flex-wrap gap-1">
+        <Tag :value="getPrefixedUri(selected)"></Tag>
+      </div>
+    </div>
+    <div>
+      <div class="mb-6">
+        <AnnotationPropertyList :subject="selected" />
+      </div>
       <div class="space-y-6">
         <div>
           <h3 class="text-lg font-semibold mb-4">Properties</h3>
@@ -50,23 +54,14 @@ const restrictions = computed(() => {
             >
               <template #header>
                 <div class="flex items-center gap-2">
-                  <p class="font-semibold">{{ graphStoreService.getLabel(property) }}</p>
-                  <div class="flex flex-wrap gap-1">
-                    <Badge
-                      variant="outline"
-                      class="flex flex-wrap gap-1"
-                    >{{ property }}</Badge>
-                  </div>
+                  <div
+                    v-tooltip="getPrefixedUri(property)"
+                    class="font-semibold cursor-pointer"
+                    @click="selected = property"
+                  >{{ getLabel(property) }}</div>
                 </div>
               </template>
-              <template #icons>
-                <Menu
-                  ref="menu"
-                  id="config_menu"
-                  popup
-                />
-              </template>
-              <!-- <AnnotationPropertyList :subject="property" /> -->
+              <AnnotationPropertyList :subject="property" />
             </Panel>
           </div>
         </div>
@@ -88,23 +83,14 @@ const restrictions = computed(() => {
             >
               <template #header>
                 <div class="flex items-center gap-2">
-                  <p class="font-semibold">{{ graphStoreService.getLabel(property) }}</p>
-                  <div class="flex flex-wrap gap-1">
-                    <Badge
-                      variant="outline"
-                      class="flex flex-wrap gap-1"
-                    >{{ property }}</Badge>
-                  </div>
+                  <div
+                    v-tooltip="getPrefixedUri(property)"
+                    class="font-semibold cursor-pointer"
+                    @click="selected = property"
+                  >{{ getLabel(property) }}</div>
                 </div>
               </template>
-              <template #icons>
-                <Menu
-                  ref="menu"
-                  id="config_menu"
-                  popup
-                />
-              </template>
-              <!-- <AnnotationPropertyList :subject="property" /> -->
+              <AnnotationPropertyList :subject="property" />
             </Panel>
           </div>
         </div>
@@ -114,6 +100,6 @@ const restrictions = computed(() => {
           <p class="text-muted-foreground">No individuals listed.</p>
         </div>
       </div>
-    </template>
-  </Card>
+    </div>
+  </div>
 </template>

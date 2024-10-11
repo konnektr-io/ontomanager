@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import graphStoreService from '@/services/GraphStoreService';
-import { useMainStore } from '@/stores/main';
-import { Badge } from '@/components/ui/badge'
 import type { Quad_Object } from 'n3';
+import { useMainStore } from '@/stores/main';
 import TermValue from './TermValue.vue';
+import { useGraphStore } from '@/stores/graph-store';
 
 const props = defineProps<{
   subject: string;
 }>()
 
 const { selected } = storeToRefs(useMainStore());
+const { getSubjectQuads, getLabel, getPrefixedUri } = useGraphStore();
 
 const groupedAnnotations = computed(() => {
-  const annotations = graphStoreService.getSubjectQuads(props.subject);
+  const annotations = getSubjectQuads(props.subject);
   return annotations.reduce((acc, annotation) => {
     const predicate = annotation.predicate.value;
     if (!acc[predicate]) {
@@ -30,14 +30,14 @@ const groupedAnnotations = computed(() => {
   <div
     v-for="(objects, predicate) in groupedAnnotations"
     :key="`${predicate}`"
-    class="mb-2"
+    class="text-sm mb-2"
   >
-    <div class="text-sm font-medium text-muted-foreground">
-      {{ graphStoreService.getLabel(predicate) }}
-      <Badge
-        variant="outline"
-        class="text-xs"
-      >{{ graphStoreService.getPrefixedUri(predicate) }}</Badge>
+    <div
+      v-tooltip="getPrefixedUri(predicate)"
+      class="text-sm font-medium text-muted-foreground cursor-pointer"
+      @click="selected = predicate"
+    >
+      {{ getLabel(predicate) }}
     </div>
     <TermValue
       v-for="object of objects"
