@@ -12,6 +12,7 @@ const selectedKeys = computed({
 });
 
 const { classesTree } = storeToRefs(useGraphStore());
+const { getPrefixedUri } = useGraphStore();
 
 </script>
 
@@ -22,5 +23,8 @@ const { classesTree } = storeToRefs(useGraphStore());
     selectionMode="single"
     class="w-full"
   >
+    <template #default="slotProps">
+      <div v-tooltip="slotProps.node.key">{{ slotProps.node.label }}</div>
+    </template>
   </Tree>
 </template>

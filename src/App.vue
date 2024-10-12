@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import DynamicDialog from 'primevue/dynamicdialog';
 import TheHeader from '@/components/TheHeader.vue';
 </script>
 
@@ -14,5 +15,6 @@ import TheHeader from '@/components/TheHeader.vue';
       <RouterView class="flex-grow h-full" />
     </main>
 
+    <DynamicDialog />
   </div>
 </template>

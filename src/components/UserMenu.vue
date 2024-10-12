@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
+import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
 import Dialog from 'primevue/dialog';
@@ -48,6 +49,7 @@ const loadToken = () => {
   if (token) {
     pat.value = atob(token);
     saveChanges();
+    isSignedIn.value = true;
   }
 };
 
@@ -55,7 +57,7 @@ const loadToken = () => {
 const menu = ref<typeof Menu>();
 const dialogVisible = ref(false);
 
-const menuItems = ref([
+const menuItems = computed(() => [
   {
     label: 'GitHub account',
     items: [
@@ -64,6 +66,11 @@ const menuItems = ref([
         icon: 'pi pi-sign-in',
         command: () => dialogVisible.value = true,
         visible: !isSignedIn.value
+      },
+      {
+        label: name.value,
+        visible: isSignedIn.value && name.value,
+        class: "text-sm"
       },
       {
         label: 'Sign out',
@@ -75,23 +82,23 @@ const menuItems = ref([
   }
 ]);
 
-
-
 onMounted(() => {
   loadToken();
 });
 
 </script>
 <template>
-  <div>
-    <Button
-      type="button"
-      icon="pi pi-user"
-      class="p-button-rounded p-button-secondary"
+  <div class="flex items-center">
+    <Avatar
+      :image="isSignedIn && avatarUrl ? avatarUrl : undefined"
+      :icon="!isSignedIn || !avatarUrl ? 'pi pi-user' : undefined"
+      shape="circle"
       aria-haspopup="true"
       aria-controls="overlay_menu"
+      class="cursor-pointer"
       @click="menu?.toggle"
-    />
+    >
+    </Avatar>
     <Menu
       ref="menu"
       id="overlay_menu"

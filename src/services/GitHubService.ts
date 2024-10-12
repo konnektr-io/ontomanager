@@ -1,4 +1,5 @@
 import { Octokit } from '@octokit/rest'
+// import { Buffer } from 'buffer'
 
 class GitHubService {
   private octokit: Octokit
@@ -41,7 +42,7 @@ class GitHubService {
       throw new Error('File not found or is a directory')
     }
 
-    return Buffer.from(response.data.content, 'base64').toString('utf-8')
+    return atob(response.data.content)
   }
 
   // Add more methods for creating commits, pull requests, etc.

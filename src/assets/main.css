@@ -14,6 +14,10 @@
   @tailwind utilities;
 }
 
+html {
+  font-size: 14px;
+}
+
 /* Customizations */
 :root {
   --p-tabs-tab-padding: 0.5rem 1rem;

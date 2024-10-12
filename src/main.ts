@@ -9,6 +9,7 @@ import PrimeVue from 'primevue/config'
 import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
 import Tooltip from 'primevue/tooltip'
+import DialogService from 'primevue/dialogservice'
 
 const Konnektr = definePreset(Aura, {
   semantic: {
@@ -75,7 +76,7 @@ app.use(PrimeVue, {
     }
   }
 })
-
+app.use(DialogService)
 app.directive('tooltip', Tooltip)
 
 app.mount('#app')
