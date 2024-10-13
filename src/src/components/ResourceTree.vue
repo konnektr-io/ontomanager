@@ -9,14 +9,19 @@ const props = defineProps<{
   type: TreeType;
 }>()
 
-const { classesTree, selectedResource } = storeToRefs(useGraphStore())
-const { getSubClasses } = useGraphStore()
+const {
+  classesTree,
+  propertiesTree,
+  selectedResource } = storeToRefs(useGraphStore())
 
 const selectedKeys = computed({
   get: () => ({ ...selectedResource.value && { [selectedResource.value]: true } }),
   set: (value: { [uri: string]: boolean }) => selectedResource.value = Object.keys(value)[0],
 })
-const treeData = computed(() => classesTree.value)
+const treeData = computed(() => {
+  if (props.type === TreeType.Properties) return propertiesTree.value
+  return classesTree.value
+})
 
 </script>
 

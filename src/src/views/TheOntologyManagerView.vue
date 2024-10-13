@@ -63,7 +63,6 @@ onMounted(initialize)
           :value="TreeType.Properties"
           header="Properties"
         >
-          Not implemented yet
           <ResourceTree :type="TreeType.Properties" />
         </TabPanel>
       </Tabs>

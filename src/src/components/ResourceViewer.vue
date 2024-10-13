@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
 import AnnotationPropertyList from './AnnotationPropertyList.vue'
 import { storeToRefs } from 'pinia'
-import { useGraphStore } from '@/stores/graph-store'; import TermValue from './TermValue.vue'
+import { useGraphStore } from '@/stores/graph-store'
+import TermValue from './TermValue.vue'
 
 
-const { selectedResource } = storeToRefs(useGraphStore())
+const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const {
   getProperties,
   getShaclPropertyQuads,
@@ -18,10 +19,10 @@ const {
 } = useGraphStore()
 
 const properties = ref<string[]>([])
-watch(selectedResource, async (value, oldValue) => {
-  if (!value || value === oldValue) return
-  properties.value = await getProperties(value)
-}, { immediate: true })
+watch([selectedResource, userGraphs], async () => {
+  if (!selectedResource.value) return
+  properties.value = await getProperties(selectedResource.value)
+}, { immediate: true, deep: true })
 
 
 

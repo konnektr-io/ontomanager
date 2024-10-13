@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { watch, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { OTerm, Quad_Object } from 'n3'
 import { useDialog } from 'primevue/usedialog'
@@ -13,12 +13,18 @@ const props = defineProps<{
 }>()
 
 const dialog = useDialog()
-const { selectedOntology, selectedResource, editMode } = storeToRefs(useGraphStore())
+const { userGraphs, selectedOntology, selectedResource, editMode } = storeToRefs(useGraphStore())
 const { getQuads, getSubjectQuads, getLabel } = useGraphStore()
 
-const groupedAnnotations = computed(() => {
+type GroupedAnnotations = Record<string, {
+  editable: boolean;
+  objects: Quad_Object[];
+}>
+
+const groupedAnnotations = ref<GroupedAnnotations>({})
+const getGroupedAnnotations = () => {
   const annotations = getSubjectQuads(props.subject)
-  return annotations.reduce((acc, annotation) => {
+  return annotations.reduce<GroupedAnnotations>((acc, annotation) => {
     const graphId = annotation.graph.value
     const editable = (selectedOntology.value && graphId === selectedOntology.value.url) ?? false
     const predicate = annotation.predicate.value
@@ -31,7 +37,10 @@ const groupedAnnotations = computed(() => {
     acc[predicate].objects.push(annotation.object)
     return acc
   }, {} as Record<string, { editable: boolean, objects: Quad_Object[] }>)
-})
+}
+watch([userGraphs, () => props.subject], async () => {
+  groupedAnnotations.value = getGroupedAnnotations()
+}, { immediate: true })
 
 const openDialog = (predicate: string) => {
   if (!selectedOntology.value) return
@@ -79,7 +88,7 @@ const openDialog = (predicate: string) => {
         @click="() => openDialog(predicate)"
       />
     </div>
-    <div class="flex items-center gap-2">
+    <div class="flex flex-wrap items-center gap-2">
       <TermValue
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'NamedNode')"
         :key="object.id"

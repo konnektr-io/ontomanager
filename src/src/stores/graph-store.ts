@@ -9,7 +9,10 @@ import {
   Literal,
   Quad,
   type Quad_Object,
-  type OTerm
+  type OTerm,
+  Writer,
+  BlankNode,
+  type BlankTriple
 } from 'n3'
 import gitHubService from '@/services/GitHubService'
 import { vocab } from './vocab'
@@ -17,6 +20,12 @@ import { vocab } from './vocab'
 const { namedNode, literal /* , blankNode */ } = DataFactory
 
 const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
+const propertyObjectNodes = [
+  vocab.rdfs.Property,
+  vocab.owl.ObjectProperty,
+  vocab.owl.DatatypeProperty
+]
+const annotationPropertyNodes = [vocab.owl.AnnotationProperty]
 const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
 export enum TreeType {
@@ -24,7 +33,7 @@ export enum TreeType {
   Properties = 'properties'
 }
 
-export interface ClassTreeNode {
+export interface ResourceTreeNode {
   key: string
   label: string
   data?: {
@@ -32,7 +41,7 @@ export interface ClassTreeNode {
     prefixedUri: string
   }
   icon?: string
-  children: ClassTreeNode[]
+  children: ResourceTreeNode[]
 }
 
 export interface GraphDetails {
@@ -90,6 +99,7 @@ export const useGraphStore = defineStore('graph', () => {
       await loadGraph(graph)
     }
     await getClassesTree()
+    await getPropertiesTree()
   }
 
   const getUserGraphsFromLocalStorage = () => {
@@ -176,6 +186,7 @@ export const useGraphStore = defineStore('graph', () => {
       }
       saveUserGraphsToLocalStorage()
       await getClassesTree()
+      await getPropertiesTree()
     }
   }
 
@@ -195,6 +206,7 @@ export const useGraphStore = defineStore('graph', () => {
     userGraphs.value.push(graph)
     saveUserGraphsToLocalStorage()
     await getClassesTree()
+    await getPropertiesTree()
   }
 
   const removeOntology = async (url: string): Promise<void> => {
@@ -204,6 +216,7 @@ export const useGraphStore = defineStore('graph', () => {
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
       await getClassesTree()
+      await getPropertiesTree()
     }
   }
 
@@ -227,7 +240,10 @@ export const useGraphStore = defineStore('graph', () => {
                   subjects.add(quad.subject.value)
                 } else if (
                   subQuad.object.termType === 'BlankNode' &&
-                  subQuad.predicate.value === vocab.owl.intersectionOf.value // This only makes sense for intersection of
+                  // This only makes sense for these predicates
+                  (subQuad.predicate.value === vocab.owl.intersectionOf.value ||
+                    subQuad.predicate.value === vocab.owl.unionOf.value ||
+                    subQuad.predicate.value === vocab.owl.complementOf.value)
                 ) {
                   const subSubQuads = store.value.getQuads(subQuad.object, null, null, graphId)
                   for (const subSubQuad of subSubQuads) {
@@ -247,72 +263,9 @@ export const useGraphStore = defineStore('graph', () => {
     return Array.from(subjects)
   }
 
-  const getVisibleSubjectsSync = (
-    predicate: NamedNode<string>,
-    object: NamedNode<string>
-  ): string[] => {
-    const subjects = new Set<string>()
-    for (const graphId of visibleGraphIds.value) {
-      const quads = store.value.getQuads(null, predicate, null, graphId)
-      for (const quad of quads) {
-        if (quad.subject.termType !== 'NamedNode') continue
-        if (quad.object.equals(object)) {
-          subjects.add(quad.subject.value)
-        } else if (quad.object.termType === 'BlankNode') {
-          const subQuads = store.value.getQuads(quad.object, null, null, graphId)
-          for (const subQuad of subQuads) {
-            if (subQuad.object.equals(object)) {
-              subjects.add(quad.subject.value)
-            } else if (
-              subQuad.object.termType === 'BlankNode' &&
-              subQuad.predicate.value === vocab.owl.intersectionOf.value // This only makes sense for intersection of
-            ) {
-              const subSubQuads = store.value.getQuads(subQuad.object, null, null, graphId)
-              for (const subSubQuad of subSubQuads) {
-                if (subSubQuad.object.equals(object)) {
-                  subjects.add(quad.subject.value)
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-    return Array.from(subjects)
-  }
-
-  /* const createClassTreeNode = async (classUri: string): Promise<ClassTreeNode> => {
-    const subClasses = await getSubClasses(classUri)
-    const children: ClassTreeNode[] = []
-    for (const subClass of subClasses) {
-      children.push(await createClassTreeNode(subClass))
-    }
-    return {
-      key: classUri,
-      label: getLabel(classUri),
-      data: getPrefixedUri(classUri),
-      children
-    }
-  } */
-
-  /* const createClassTreeNode = async (
-    quad: Quad,
-    allQuads: Quad[]
-  ): Promise<ClassTreeNode> => {
-
-
-    return {
-      key: classUri,
-      label: getLabel(classUri),
-      data: getPrefixedUri(classUri),
-      graph: graphId,
-      children
-    }
-  } */
-
-  const classesTree = ref<ClassTreeNode[]>([])
+  const classesTree = ref<ResourceTreeNode[]>([])
   const getClassesTree = async () => {
-    const allClassTreeNodesMap: { [classUri: string]: ClassTreeNode } = {}
+    const allClassTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
     const allClassTypeQuads: Quad[] = []
     for (const graph of visibleGraphIds.value) {
       for (const classNode of classObjectNodes) {
@@ -326,7 +279,7 @@ export const useGraphStore = defineStore('graph', () => {
     /** Holds the class uris for all classes that are a subclass of another class (to filter the root classes) */
     const allSubClasses = new Set<string>()
 
-    const createClassTreeNodeRecursive = async (classTypeQuad: Quad): Promise<ClassTreeNode> => {
+    const createClassTreeNodeRecursive = async (classTypeQuad: Quad): Promise<ResourceTreeNode> => {
       const classUri = classTypeQuad.subject.value
       // Get all subclasses
       const subClassQuads: Quad[] = []
@@ -342,7 +295,7 @@ export const useGraphStore = defineStore('graph', () => {
             }
           })
       }
-      const children: ClassTreeNode[] = []
+      const children: ResourceTreeNode[] = []
       for (const subClassQuad of subClassQuads) {
         const subClass = subClassQuad.subject.value
         allSubClasses.add(subClass)
@@ -397,79 +350,115 @@ export const useGraphStore = defineStore('graph', () => {
     return classesTree.value
   }
 
-  /*   const classesTree = ref<ClassTreeNode[]>([])
-  const getClassesTree = async () => {
-    const rootClasses = getRootClasses()
-    const tree: ClassTreeNode[] = []
-
-    for (const rootClass of rootClasses) {
-      tree.push(await createClassTreeNode(rootClass))
-    }
-
-    classesTree.value = tree
-  } */
-
-  /*   const getRootClasses = async (): string[] => {
-    const classes = new Set<string>()
-    const allClasses = getAllClasses()
-    const subClasses = new Set<string>()
-
-    for (const classUri of allClasses) {
-      const subs = await getSubClasses(classUri)
-      subs.forEach((sub) => subClasses.add(sub))
-    }
-
-    
-    allClasses.forEach((classUri) => {
-      if (!subClasses.has(classUri)) {
-        classes.add(classUri)
-      }
-    })
-
-    return Array.from(classes)
-  } */
-
-  /*   const getRootClasses = async (): Promise<string[]> => {
-    const classes = new Set<string>()
-    visibleGraphIds.value.forEach((graphId) => {
-      classObjectNodes.forEach((classNode) => {
-        store.value.getSubjects(vocab.rdf.type, classNode, graphId).forEach((subject) => {
-          if (
-            subject.termType !== 'BlankNode' &&
-            // Check whether the class is not a subclass of another class
-            store.value
-              .getObjects(subject, vocab.rdfs.subClassOf, graphId)
-              .filter(
-                (o) =>
-                  o.termType === 'NamedNode' ||
-                  (!o.equals(vocab.owl.Class) &&
-                    !o.equals(vocab.rdfs.Class) &&
-                    !o.equals(vocab.owl.Thing))
-              ).length === 0
-          ) {
-            classes.add(subject.value)
+  const propertiesTree = ref<ResourceTreeNode[]>([])
+  const getPropertiesTree = async () => {
+    const allPropertyTreeNodesMap: { [propertyUri: string]: ResourceTreeNode } = {}
+    const allPropertyTypeQuads: Quad[] = []
+    for (const graph of visibleGraphIds.value) {
+      for (const propertyNode of propertyObjectNodes) {
+        store.value.getQuads(null, vocab.rdf.type, propertyNode, graph).forEach((quad) => {
+          if (quad.subject.termType === 'NamedNode') {
+            allPropertyTypeQuads.push(quad)
           }
         })
-      })
-    })
+      }
+    }
 
-    return Array.from(classes)
-  } */
+    const allSubProperties = new Set<string>()
 
-  const getSubClasses = async (classUri: string): Promise<string[]> => {
-    return getVisibleSubjects(vocab.rdfs.subClassOf, namedNode(classUri))
+    const createPropertyTreeNodeRecursive = async (
+      propertyTypeQuad: Quad
+    ): Promise<ResourceTreeNode> => {
+      const propertyUri = propertyTypeQuad.subject.value
+      const subPropertyQuads: Quad[] = []
+      for (const graph of visibleGraphIds.value) {
+        store.value.getQuads(null, vocab.rdfs.subPropertyOf, propertyUri, graph).forEach((quad) => {
+          if (
+            // Make sure it's a property
+            allPropertyTypeQuads.find((q) => q.subject.value === quad.subject.value)
+          ) {
+            subPropertyQuads.push(quad)
+          }
+        })
+      }
+
+      const children: ResourceTreeNode[] = []
+      for (const subPropertyQuad of subPropertyQuads) {
+        const subProperty = subPropertyQuad.subject.value
+        allSubProperties.add(subProperty)
+        if (allPropertyTreeNodesMap[subProperty]) {
+          children.push(allPropertyTreeNodesMap[subProperty])
+        } else {
+          allPropertyTreeNodesMap[subProperty] =
+            await createPropertyTreeNodeRecursive(subPropertyQuad)
+          children.push(allPropertyTreeNodesMap[subProperty])
+        }
+      }
+
+      return {
+        key: propertyUri,
+        label: getLabel(propertyUri),
+        data: {
+          prefixedUri: getPrefixedUri(propertyUri),
+          graph: propertyTypeQuad.graph.value
+        },
+        children
+      }
+    }
+
+    for (const quad of allPropertyTypeQuads) {
+      const propertyUri = quad.subject.value
+      if (allPropertyTreeNodesMap[propertyUri]) continue
+      allPropertyTreeNodesMap[propertyUri] = await createPropertyTreeNodeRecursive(quad)
+    }
+
+    propertiesTree.value = Object.values(allPropertyTreeNodesMap).filter(
+      (node) => !allSubProperties.has(node.key)
+    )
+    return propertiesTree.value
   }
 
   const getProperties = (classUri: string): Promise<string[]> => {
     return getVisibleSubjects(vocab.rdfs.domain, namedNode(classUri))
   }
 
-  const getVisibleRanges = (propertyUri: string): Quad_Object[] => {
+  const getRanges = (propertyUri: string): Quad_Object[] => {
     const ranges = new Set<Quad_Object>()
     store.value.getObjects(namedNode(propertyUri), vocab.rdfs.range, null).forEach((object) => {
       ranges.add(object)
     })
     return Array.from(ranges)
+  }
+
+  const getPropertyRangeValueRestrictions = (propertyRangeObjectUri: BlankNode) => {
+    const restrictions: BlankTriple[] = []
+    const restrictionQuads = store.value.getQuads(propertyRangeObjectUri, null, null, null)
+    if (
+      restrictionQuads.some(
+        (q) =>
+          q.predicate.value === vocab.rdf.type.value &&
+          q.object.value === vocab.owl.Restriction.value
+      ) &&
+      restrictionQuads.some(
+        (q) =>
+          q.predicate.value === vocab.owl.onProperty.value &&
+          q.object.value === vocab.rdf.value.value
+      )
+    ) {
+      const restrictionValueQuad = restrictionQuads.find(
+        (q) =>
+          q.predicate.value === vocab.owl.allValuesFrom.value ||
+          q.predicate.value === vocab.owl.someValuesFrom.value ||
+          q.predicate.value === vocab.owl.hasValue.value
+      )
+      if (restrictionValueQuad) {
+        restrictions.push({
+          predicate: restrictionValueQuad.predicate,
+          object: restrictionValueQuad.object
+        })
+      }
+    }
+    return restrictions
   }
 
   const getRestrictions = (classUri: string): string[] => {
@@ -565,6 +554,76 @@ export const useGraphStore = defineStore('graph', () => {
     store.value.removeQuad(subject, predicate, object, namedNode(graphUrl))
   }
 
+  const writeGraph = async (graphUrl: string) => {
+    const userGraph = userGraphs.value.find((g) => g.url === graphUrl)
+    const writer = new Writer({
+      end: false,
+      prefixes: userGraph?.prefixes
+    })
+
+    const retrieveBlankNodeContentRecursive = (blankNode: BlankNode) => {
+      const blankNodeQuads = store.value.getQuads(blankNode, null, null, literal(graphUrl))
+      if (
+        blankNodeQuads.every(
+          (q) =>
+            q.predicate.value === vocab.rdf.first.value ||
+            q.predicate.value === vocab.rdf.rest.value
+        )
+      ) {
+        return writer.list(
+          blankNodeQuads.map((q) => {
+            if (q.object.termType === 'BlankNode') {
+              return retrieveBlankNodeContentRecursive(q.object)
+            } else {
+              return q.object
+            }
+          })
+        )
+      } else {
+        return writer.blank(
+          blankNodeQuads.map((q) => ({
+            predicate: q.predicate,
+            object:
+              q.object.termType === 'BlankNode'
+                ? retrieveBlankNodeContentRecursive(q.object)
+                : q.object
+          }))
+        )
+      }
+    }
+
+    const allQuads = store.value.getQuads(null, null, null, literal(graphUrl))
+    console.log(allQuads.length, allQuads.filter((q) => q.subject.termType !== 'BlankNode').length)
+    let count = 0
+
+    for (const quad of allQuads) {
+      console.log(count, quad)
+      if (quad.subject.termType === 'BlankNode') {
+        // Skip writing quads with blank node subjects
+        continue
+      }
+
+      if (quad.object.termType === 'BlankNode') {
+        // Recursively retrieve and write quads for blank node objects
+        const blankNodeContent = retrieveBlankNodeContentRecursive(quad.object)
+        const writeQuad = new Quad(quad.subject, quad.predicate, blankNodeContent)
+        writer.addQuad(writeQuad)
+      } else {
+        writer.addQuad(new Quad(quad.subject, quad.predicate, quad.object))
+      }
+      count++
+      console.log(count, quad)
+    }
+
+    writer.end((error, result) => {
+      if (error) {
+        console.error(`Failed to write graph: ${error}`)
+      } else {
+        console.log(result)
+      }
+    })
+  }
+
   return {
     userGraphs,
     selectedOntology,
@@ -576,12 +635,11 @@ export const useGraphStore = defineStore('graph', () => {
     addOntology,
     removeOntology,
     classesTree,
+    propertiesTree,
 
-    // getRootClasses,
-    getSubClasses,
-
-    getProperties: getProperties,
-    getRanges: getVisibleRanges,
+    getProperties,
+    getRanges,
+    getPropertyRangeValueRestrictions,
     getRestrictions,
     getLabel,
     getSubjectQuads,
@@ -593,6 +651,8 @@ export const useGraphStore = defineStore('graph', () => {
     getQuads,
     addQuad,
     editQuad,
-    removeQuad
+    removeQuad,
+
+    writeGraph
   }
 })

@@ -14,6 +14,7 @@ const {
   toggleOntologyVisibility,
   addOntology,
   removeOntology,
+  writeGraph
 } = useGraphStore()
 
 const openUrl = (url: string) => {
@@ -42,6 +43,12 @@ const fetchBranches = async (graph: GraphDetails) => {
   }
 }
 
+watch(selectedOntology, async (graph) => {
+  if (graph && graph.owner && graph.repo && !graph.branches?.length) {
+    await fetchBranches(graph)
+  }
+})
+
 const changeBranch = async (graph: GraphDetails, branch: string) => {
   if (!graph.branch || !branch) return
   const newUrl = graph.url.replace(graph.branch, branch)
@@ -49,11 +56,12 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
   addOntology(newUrl)
 }
 
-watch(selectedOntology, async (graph) => {
-  if (graph && graph.owner && graph.repo && !graph.branches?.length) {
-    await fetchBranches(graph)
-  }
-})
+const commitChanges = async () => {
+  // Implement commit changes logic
+  // For now just export and download the file
+  if (selectedOntology.value) writeGraph(selectedOntology.value.url)
+}
+
 </script>
 
 <template>
@@ -140,6 +148,11 @@ watch(selectedOntology, async (graph) => {
         @focus="fetchBranches(selectedOntology)"
         @change="changeBranch(selectedOntology, $event.value)"
       />
+      <Button
+        v-if="selectedOntology && selectedOntology.branch"
+        label="Commit"
+        @click="commitChanges"
+      ></Button>
     </div>
     <!-- Right-aligned content -->
     <div

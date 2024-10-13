@@ -42,10 +42,52 @@ class GitHubService {
       throw new Error('File not found or is a directory')
     }
 
-    return atob(response.data.content)
+    const content = response.data.content
+    const decodedContent = atob(content)
+    const uint8Array = new Uint8Array(decodedContent.split('').map((char) => char.charCodeAt(0)))
+    const textDecoder = new TextDecoder('utf-8')
+    return textDecoder.decode(uint8Array)
   }
 
-  // Add more methods for creating commits, pull requests, etc.
+  public async commitFile(
+    owner: string,
+    repo: string,
+    path: string,
+    content: string,
+    message: string,
+    branch: string
+  ) {
+    const response = await this.octokit.repos
+      .getContent({
+        owner,
+        repo,
+        path,
+        ref: branch
+      })
+      .catch(() => null)
+
+    const sha =
+      response && !Array.isArray(response.data) && 'sha' in response.data
+        ? response.data.sha
+        : undefined
+
+    const encodedContent = new TextEncoder()
+      .encode(content)
+      .reduce((acc, byte) => acc + String.fromCharCode(byte), '')
+    const base64EncodedContent = btoa(encodedContent)
+
+    const commitResponse = await this.octokit.repos.createOrUpdateFileContents({
+      owner,
+      repo,
+      path,
+      message,
+      content: base64EncodedContent,
+      sha,
+      branch
+    })
+
+    return commitResponse.data
+  }
 }
 
 export default new GitHubService()
