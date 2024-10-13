@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useGraphStore } from '@/stores/graph-store';
-import type { Term } from 'n3';
-import Tag from 'primevue/tag';
+import { useGraphStore } from '@/stores/graph-store'
+import type { Term } from 'n3'
+import Tag from 'primevue/tag'
 
 defineProps<{
   term: Term;
@@ -10,7 +10,7 @@ const emit = defineEmits<{
   (e: 'clickUri', value: string): void
 }>()
 
-const { getPrefixedUri } = useGraphStore();
+const { getPrefixedUri } = useGraphStore()
 </script>
 
 <template>

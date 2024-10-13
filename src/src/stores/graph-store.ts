@@ -1,4 +1,4 @@
-import { /* computed,  */ computed, ref } from 'vue'
+import { /* computed,  */ computed, ref, shallowRef } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import {
@@ -12,50 +12,27 @@ import {
   type OTerm
 } from 'n3'
 import gitHubService from '@/services/GitHubService'
+import { vocab } from './vocab'
 
 const { namedNode, literal /* , blankNode */ } = DataFactory
 
-const vocab = {
-  rdf: {
-    type: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type')
-  },
-  rdfs: {
-    domain: namedNode('http://www.w3.org/2000/01/rdf-schema#domain'),
-    range: namedNode('http://www.w3.org/2000/01/rdf-schema#range'),
-    subClassOf: namedNode('http://www.w3.org/2000/01/rdf-schema#subClassOf'),
-    subPropertyOf: namedNode('http://www.w3.org/2000/01/rdf-schema#subPropertyOf')
-  },
-  owl: {
-    AnnotationProperty: namedNode('http://www.w3.org/2002/07/owl#AnnotationProperty'),
-    Ontology: namedNode('http://www.w3.org/2002/07/owl#Ontology'),
-    Restriction: namedNode('http://www.w3.org/2002/07/owl#Restriction'),
-    intersectionOf: namedNode('http://www.w3.org/2002/07/owl#intersectionOf')
-  },
-  sh: {
-    name: namedNode('http://www.w3.org/ns/shacl#name'),
-    property: namedNode('http://www.w3.org/ns/shacl#property'),
-    rule: namedNode('http://www.w3.org/ns/shacl#rule')
-  },
-  vann: {
-    preferredNamespacePrefix: namedNode('http://purl.org/vocab/vann/preferredNamespacePrefix')
-  }
+const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
+const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
+
+export enum TreeType {
+  Classes = 'classes',
+  Properties = 'properties'
 }
-const classObjectNodes = [
-  namedNode('http://www.w3.org/2000/01/rdf-schema#Class'),
-  namedNode('http://www.w3.org/2002/07/owl#Class')
-]
-const labelNodes = [
-  namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
-  namedNode('http://www.w3.org/2004/02/skos/core#prefLabel')
-]
-const languages = ['en']
 
 export interface ClassTreeNode {
   key: string
   label: string
-  data?: unknown
+  data?: {
+    graph: string
+    prefixedUri: string
+  }
   icon?: string
-  children?: ClassTreeNode[]
+  children: ClassTreeNode[]
 }
 
 export interface GraphDetails {
@@ -95,6 +72,8 @@ export const useGraphStore = defineStore('graph', () => {
   )
 
   const selectedOntology = ref<GraphDetails | null>(null)
+  const selectedResource = ref<string>()
+
   const editMode = computed(
     () =>
       selectedOntology.value?.loaded &&
@@ -110,7 +89,7 @@ export const useGraphStore = defineStore('graph', () => {
     for (const graph of allGraphs.value) {
       await loadGraph(graph)
     }
-    getClassesTree()
+    await getClassesTree()
   }
 
   const getUserGraphsFromLocalStorage = () => {
@@ -188,7 +167,7 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  const toggleOntologyVisibility = (url: string): void => {
+  const toggleOntologyVisibility = async (url: string): Promise<void> => {
     const ontologyIndex = userGraphs.value.findIndex((graph) => graph.url === url)
     if (ontologyIndex !== -1) {
       userGraphs.value[ontologyIndex] = {
@@ -196,7 +175,7 @@ export const useGraphStore = defineStore('graph', () => {
         visible: !userGraphs.value[ontologyIndex].visible
       }
       saveUserGraphsToLocalStorage()
-      getClassesTree()
+      await getClassesTree()
     }
   }
 
@@ -215,55 +194,232 @@ export const useGraphStore = defineStore('graph', () => {
     await loadGraph(graph)
     userGraphs.value.push(graph)
     saveUserGraphsToLocalStorage()
-    getClassesTree()
+    await getClassesTree()
   }
 
-  const removeOntology = (url: string): void => {
+  const removeOntology = async (url: string): Promise<void> => {
     const graphIndex = userGraphs.value.findIndex((graph) => graph.url === url)
     if (graphIndex !== -1) {
       store.value.deleteGraph(url)
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
-      getClassesTree()
+      await getClassesTree()
     }
   }
 
-  const createClassTreeNode = (classUri: string): ClassTreeNode => {
-    const subClasses = getVisibleSubClasses(classUri)
-    const children: ClassTreeNode[] = []
-    subClasses.forEach((subClass) => {
-      children.push(createClassTreeNode(subClass))
+  const getVisibleSubjects = async (
+    predicate: NamedNode<string>,
+    object: NamedNode<string>
+  ): Promise<string[]> => {
+    const subjects = new Set<string>()
+    const promises = visibleGraphIds.value.map(async (graphId) => {
+      await new Promise<void>((resolve) =>
+        setTimeout(() => {
+          const quads = store.value.getQuads(null, predicate, null, graphId)
+          for (const quad of quads) {
+            if (quad.subject.termType !== 'NamedNode') continue
+            if (quad.object.equals(object)) {
+              subjects.add(quad.subject.value)
+            } else if (quad.object.termType === 'BlankNode') {
+              const subQuads = store.value.getQuads(quad.object, null, null, graphId)
+              for (const subQuad of subQuads) {
+                if (subQuad.object.equals(object)) {
+                  subjects.add(quad.subject.value)
+                } else if (
+                  subQuad.object.termType === 'BlankNode' &&
+                  subQuad.predicate.value === vocab.owl.intersectionOf.value // This only makes sense for intersection of
+                ) {
+                  const subSubQuads = store.value.getQuads(subQuad.object, null, null, graphId)
+                  for (const subSubQuad of subSubQuads) {
+                    if (subSubQuad.object.equals(object)) {
+                      subjects.add(quad.subject.value)
+                    }
+                  }
+                }
+              }
+            }
+          }
+          resolve()
+        }, 0)
+      )
     })
+    await Promise.all(promises)
+    return Array.from(subjects)
+  }
+
+  const getVisibleSubjectsSync = (
+    predicate: NamedNode<string>,
+    object: NamedNode<string>
+  ): string[] => {
+    const subjects = new Set<string>()
+    for (const graphId of visibleGraphIds.value) {
+      const quads = store.value.getQuads(null, predicate, null, graphId)
+      for (const quad of quads) {
+        if (quad.subject.termType !== 'NamedNode') continue
+        if (quad.object.equals(object)) {
+          subjects.add(quad.subject.value)
+        } else if (quad.object.termType === 'BlankNode') {
+          const subQuads = store.value.getQuads(quad.object, null, null, graphId)
+          for (const subQuad of subQuads) {
+            if (subQuad.object.equals(object)) {
+              subjects.add(quad.subject.value)
+            } else if (
+              subQuad.object.termType === 'BlankNode' &&
+              subQuad.predicate.value === vocab.owl.intersectionOf.value // This only makes sense for intersection of
+            ) {
+              const subSubQuads = store.value.getQuads(subQuad.object, null, null, graphId)
+              for (const subSubQuad of subSubQuads) {
+                if (subSubQuad.object.equals(object)) {
+                  subjects.add(quad.subject.value)
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    return Array.from(subjects)
+  }
+
+  /* const createClassTreeNode = async (classUri: string): Promise<ClassTreeNode> => {
+    const subClasses = await getSubClasses(classUri)
+    const children: ClassTreeNode[] = []
+    for (const subClass of subClasses) {
+      children.push(await createClassTreeNode(subClass))
+    }
     return {
       key: classUri,
       label: getLabel(classUri),
       data: getPrefixedUri(classUri),
       children
     }
-  }
+  } */
+
+  /* const createClassTreeNode = async (
+    quad: Quad,
+    allQuads: Quad[]
+  ): Promise<ClassTreeNode> => {
+
+
+    return {
+      key: classUri,
+      label: getLabel(classUri),
+      data: getPrefixedUri(classUri),
+      graph: graphId,
+      children
+    }
+  } */
 
   const classesTree = ref<ClassTreeNode[]>([])
-  const getClassesTree = () => {
+  const getClassesTree = async () => {
+    const allClassTreeNodesMap: { [classUri: string]: ClassTreeNode } = {}
+    const allClassTypeQuads: Quad[] = []
+    for (const graph of visibleGraphIds.value) {
+      for (const classNode of classObjectNodes) {
+        store.value.getQuads(null, vocab.rdf.type, classNode, graph).forEach((quad) => {
+          if (quad.subject.termType === 'NamedNode') {
+            allClassTypeQuads.push(quad)
+          }
+        })
+      }
+    }
+    /** Holds the class uris for all classes that are a subclass of another class (to filter the root classes) */
+    const allSubClasses = new Set<string>()
+
+    const createClassTreeNodeRecursive = async (classTypeQuad: Quad): Promise<ClassTreeNode> => {
+      const classUri = classTypeQuad.subject.value
+      // Get all subclasses
+      const subClassQuads: Quad[] = []
+      for (const graph of visibleGraphIds.value) {
+        store.value
+          .getQuads(null, vocab.rdfs.subClassOf, namedNode(classUri), graph)
+          .forEach((quad) => {
+            if (
+              // Make sure it's a class
+              allClassTypeQuads.find((q) => q.subject.value === quad.subject.value)
+            ) {
+              subClassQuads.push(quad)
+            }
+          })
+      }
+      const children: ClassTreeNode[] = []
+      for (const subClassQuad of subClassQuads) {
+        const subClass = subClassQuad.subject.value
+        allSubClasses.add(subClass)
+        if (allClassTreeNodesMap[subClass]) {
+          children.push(allClassTreeNodesMap[subClass])
+        } else {
+          allClassTreeNodesMap[subClass] = await createClassTreeNodeRecursive(subClassQuad)
+          children.push(allClassTreeNodesMap[subClass])
+        }
+      }
+      return {
+        key: classUri,
+        label: getLabel(classUri),
+        data: {
+          prefixedUri: getPrefixedUri(classUri),
+          graph: classTypeQuad.graph.value
+        },
+        children
+      }
+    }
+
+    for (const quad of allClassTypeQuads) {
+      const classUri = quad.subject.value
+      if (allSubClasses.has(classUri) || allClassTreeNodesMap[classUri]) continue
+      allClassTreeNodesMap[classUri] = await createClassTreeNodeRecursive(quad)
+    }
+
+    // Get subclasses from intersections
+    // This needs to be done after all the other class tree nodes have been created
+    store.value.getQuads(null, vocab.owl.intersectionOf, null, null).forEach((quad) => {
+      let subClass: string | null = null
+      store.value.getQuads(null, null, quad.subject, null).forEach((quad) => {
+        if (allClassTreeNodesMap[quad.subject.value]) {
+          // Found child class (there should only be one in this case)
+          subClass = quad.subject.value
+          allSubClasses.add(subClass)
+        }
+      })
+
+      if (!subClass) return
+      store.value.getQuads(quad.object, null, null, null).forEach((quad) => {
+        // Now push the children
+        if (allClassTreeNodesMap[quad.object.value] && subClass && allClassTreeNodesMap[subClass]) {
+          allClassTreeNodesMap[quad.object.value].children.push(allClassTreeNodesMap[subClass])
+        }
+      })
+    })
+
+    classesTree.value = Object.values(allClassTreeNodesMap).filter(
+      (node) => !allSubClasses.has(node.key)
+    )
+    return classesTree.value
+  }
+
+  /*   const classesTree = ref<ClassTreeNode[]>([])
+  const getClassesTree = async () => {
     const rootClasses = getRootClasses()
     const tree: ClassTreeNode[] = []
 
-    rootClasses.forEach((rootClass) => {
-      tree.push(createClassTreeNode(rootClass))
-    })
+    for (const rootClass of rootClasses) {
+      tree.push(await createClassTreeNode(rootClass))
+    }
 
     classesTree.value = tree
-  }
+  } */
 
-  const getRootClasses = (): string[] => {
+  /*   const getRootClasses = async (): string[] => {
     const classes = new Set<string>()
-    const allClasses = getAllVisibleClasses()
+    const allClasses = getAllClasses()
     const subClasses = new Set<string>()
 
-    allClasses.forEach((classUri) => {
-      const subs = getVisibleSubClasses(classUri)
+    for (const classUri of allClasses) {
+      const subs = await getSubClasses(classUri)
       subs.forEach((sub) => subClasses.add(sub))
-    })
+    }
 
+    
     allClasses.forEach((classUri) => {
       if (!subClasses.has(classUri)) {
         classes.add(classUri)
@@ -271,57 +427,40 @@ export const useGraphStore = defineStore('graph', () => {
     })
 
     return Array.from(classes)
-  }
+  } */
 
-  const getAllVisibleClasses = (): string[] => {
+  /*   const getRootClasses = async (): Promise<string[]> => {
     const classes = new Set<string>()
     visibleGraphIds.value.forEach((graphId) => {
       classObjectNodes.forEach((classNode) => {
         store.value.getSubjects(vocab.rdf.type, classNode, graphId).forEach((subject) => {
-          if (subject.termType !== 'BlankNode') classes.add(subject.value)
+          if (
+            subject.termType !== 'BlankNode' &&
+            // Check whether the class is not a subclass of another class
+            store.value
+              .getObjects(subject, vocab.rdfs.subClassOf, graphId)
+              .filter(
+                (o) =>
+                  o.termType === 'NamedNode' ||
+                  (!o.equals(vocab.owl.Class) &&
+                    !o.equals(vocab.rdfs.Class) &&
+                    !o.equals(vocab.owl.Thing))
+              ).length === 0
+          ) {
+            classes.add(subject.value)
+          }
         })
       })
     })
 
     return Array.from(classes)
-  }
+  } */
 
-  const getVisibleSubjects = (
-    predicate: NamedNode<string>,
-    object: NamedNode<string>
-  ): string[] => {
-    const subjects = new Set<string>()
-    visibleGraphIds.value.forEach((graphId) => {
-      store.value.getQuads(null, predicate, null, graphId).forEach((quad) => {
-        if (quad.object.equals(object)) subjects.add(quad.subject.value)
-        // TODO: This is crazy inefficient if shacl is used, this is only useful for owl:intersectionOf
-        // TODO: do this separately in the shacl properties and restrictions
-        else if (quad.object.termType === 'BlankNode') {
-          store.value.getQuads(quad.object, null, null, graphId).forEach((subQuad) => {
-            if (subQuad.object.equals(object)) {
-              subjects.add(subQuad.subject.value)
-            } else if (
-              subQuad.object.termType === 'BlankNode' &&
-              subQuad.predicate.value === vocab.owl.intersectionOf.value
-            ) {
-              store.value.getQuads(subQuad.object, null, null, graphId).forEach((subSubQuad) => {
-                if (subSubQuad.object.equals(object)) {
-                  subjects.add(quad.subject.value)
-                }
-              })
-            }
-          })
-        }
-      })
-    })
-    return Array.from(subjects)
-  }
-
-  const getVisibleSubClasses = (classUri: string): string[] => {
+  const getSubClasses = async (classUri: string): Promise<string[]> => {
     return getVisibleSubjects(vocab.rdfs.subClassOf, namedNode(classUri))
   }
 
-  const getVisibleProperties = (classUri: string): string[] => {
+  const getProperties = (classUri: string): Promise<string[]> => {
     return getVisibleSubjects(vocab.rdfs.domain, namedNode(classUri))
   }
 
@@ -357,46 +496,19 @@ export const useGraphStore = defineStore('graph', () => {
     return uri?.split('/').pop()?.split('#').pop() || uri
   }
 
-  /*   const getAnnotationProperties = (): string[] => {
-    const properties = new Set<string>()
-    const quads = store.value.getQuads(
-      null,
-      vocab.rdf.type,
-      namedNode('http://www.w3.org/2002/07/owl#AnnotationProperty'),
-      null
-    )
-    quads.forEach((quad) => {
-      properties.add(quad.subject.value)
-    })
-    return Array.from(properties)
-  } */
-
-  const getSubjectQuads = (uri: string): Quad[] => {
-    return store.value.getQuads(namedNode(uri), null, null, null)
+  const getSubjectQuads = (uri: OTerm): Quad[] => {
+    return store.value.getQuads(uri, null, null, null)
   }
 
   const getShaclPropertyQuads = (uri: string): Quad[] => {
     return store.value.getQuads(namedNode(uri), vocab.sh.property, null, null)
-
-    /*     const quads = store.value.getQuads(namedNode(uri), vocab.sh.property, null, null)
-    const expandedQuads: Quad[] = []
-
-    quads.forEach((quad) => {
-      if (quad.object.termType === 'BlankNode') {
-        const blankNodeQuads = store.value.getQuads(quad.object, null, null, null)
-        expandedQuads.push(...blankNodeQuads)
-      } else {
-        expandedQuads.push(quad)
-      }
-    })
-    return expandedQuads */
   }
 
   const getObjectValue = (subject: string, predicate: string): string | null => {
     const quads = store.value.getQuads(namedNode(subject), namedNode(predicate), null, null)
     const quad =
       quads.find(
-        (q) => q.object.termType !== 'Literal' || languages.includes((q.object as Literal).language)
+        (q) => q.object.termType !== 'Literal' || ['en'].includes((q.object as Literal).language)
       ) || quads[0]
     return quad ? quad.object.value : null
   }
@@ -413,6 +525,11 @@ export const useGraphStore = defineStore('graph', () => {
       }
     }
     return uri
+  }
+
+  const getRdfTypes = (uri: string): string[] => {
+    const quads = store.value.getQuads(namedNode(uri), vocab.rdf.type, null, null)
+    return quads.map((quad) => getPrefixedUri(quad.object.value))
   }
 
   const getQuads = (subject: OTerm, predicate: OTerm, object: OTerm | OTerm[], graph: OTerm) => {
@@ -451,6 +568,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     userGraphs,
     selectedOntology,
+    selectedResource,
     editMode,
 
     initialize,
@@ -459,13 +577,18 @@ export const useGraphStore = defineStore('graph', () => {
     removeOntology,
     classesTree,
 
-    getProperties: getVisibleProperties,
+    // getRootClasses,
+    getSubClasses,
+
+    getProperties: getProperties,
     getRanges: getVisibleRanges,
     getRestrictions,
     getLabel,
     getSubjectQuads,
     getShaclPropertyQuads,
     getPrefixedUri,
+
+    getRdfTypes,
 
     getQuads,
     addQuad,

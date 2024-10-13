@@ -1,46 +1,40 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { storeToRefs } from 'pinia';
-import { useGraphStore } from '@/stores/graph-store';
-import { useMainStore } from '@/stores/main';
+import { storeToRefs } from 'pinia'
+import { TreeType, useGraphStore } from '@/stores/graph-store'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import Tabs from 'primevue/tabs'
 import Tab from 'primevue/tab'
 import TabList from 'primevue/tablist'
 import TabPanel from 'primevue/tabpanel'
-import ClassesTree from '@/components/ClassesTree.vue'
-import ClassEditor from '@/components/ClassEditor.vue'
+import ResourceTree from '@/components/ResourceTree.vue'
+import ResourceViewer from '@/components/ResourceViewer.vue'
 
-const { selected } = storeToRefs(useMainStore());
-const route = useRoute();
-const router = useRouter();
+const { selectedResource } = storeToRefs(useGraphStore())
+const route = useRoute()
+const router = useRouter()
 watch(() => route.params, () => {
   if (!route.query.uri) {
-    selected.value = undefined;
+    selectedResource.value = undefined
   } else {
-    selected.value = route.query.uri.toString();
+    selectedResource.value = route.query.uri.toString()
   }
-}, { immediate: true });
-watch(selected, (value, oldValue) => {
+}, { immediate: true })
+watch(selectedResource, (value, oldValue) => {
   if (value !== oldValue && route.query.uri !== value) {
-    router.push({ query: { uri: value } });
+    router.push({ query: { uri: value } })
   }
-});
-
-enum TabValue {
-  Classes = 'classes',
-  Properties = 'properties',
-}
+})
 
 const tabs = [
-  { title: 'Classes', value: TabValue.Classes },
-  { title: 'Properties', value: TabValue.Properties },
+  { title: 'Classes', value: TreeType.Classes },
+  { title: 'Properties', value: TreeType.Properties },
 ]
 
-const { initialize } = useGraphStore();
-onMounted(initialize);
+const { initialize } = useGraphStore()
+onMounted(initialize)
 
 </script>
 
@@ -51,7 +45,7 @@ onMounted(initialize);
       :minSize="10"
       class="bg-surface-0 h-full overflow-auto"
     >
-      <Tabs :value="TabValue.Classes">
+      <Tabs :value="TreeType.Classes">
         <TabList>
           <Tab
             v-for="tab in tabs"
@@ -60,16 +54,17 @@ onMounted(initialize);
           >{{ tab.title }}</Tab>
         </TabList>
         <TabPanel
-          :value="TabValue.Classes"
+          :value="TreeType.Classes"
           header="Classes"
         >
-          <ClassesTree />
+          <ResourceTree :type="TreeType.Classes" />
         </TabPanel>
         <TabPanel
-          :value="TabValue.Properties"
+          :value="TreeType.Properties"
           header="Properties"
         >
           Not implemented yet
+          <ResourceTree :type="TreeType.Properties" />
         </TabPanel>
       </Tabs>
     </SplitterPanel>
@@ -77,7 +72,7 @@ onMounted(initialize);
       :size="75"
       class="bg-surface-0 h-full overflow-auto"
     >
-      <ClassEditor v-if="selected" />
+      <ResourceViewer v-if="selectedResource" />
       <div v-else>
         Nothing selected
       </div>

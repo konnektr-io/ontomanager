@@ -19,39 +19,39 @@ const {
 const openUrl = (url: string) => {
   // Implement GitHub link opening logic
   if (url) {
-    window.open(url, '_blank');
+    window.open(url, '_blank')
   }
 }
 
-const importDialogVisible = ref(false);
-const newOntologyUrl = ref('');
+const importDialogVisible = ref(false)
+const newOntologyUrl = ref('')
 
 const openImportDialog = () => {
-  importDialogVisible.value = true;
+  importDialogVisible.value = true
 }
 
 const importOntology = async () => {
-  await addOntology(newOntologyUrl.value);
-  importDialogVisible.value = false;
-  newOntologyUrl.value = '';
-};
+  await addOntology(newOntologyUrl.value)
+  importDialogVisible.value = false
+  newOntologyUrl.value = ''
+}
 
 const fetchBranches = async (graph: GraphDetails) => {
   if (graph.owner && graph.repo && !graph.branches?.length) {
-    graph.branches = (await gitHubService.getBranches(graph.owner, graph.repo)).map(b => b.name);
+    graph.branches = (await gitHubService.getBranches(graph.owner, graph.repo)).map(b => b.name)
   }
 }
 
 const changeBranch = async (graph: GraphDetails, branch: string) => {
-  if (!graph.branch || !branch) return;
-  const newUrl = graph.url.replace(graph.branch, branch);
-  removeOntology(graph.url);
+  if (!graph.branch || !branch) return
+  const newUrl = graph.url.replace(graph.branch, branch)
+  removeOntology(graph.url)
   addOntology(newUrl)
 }
 
 watch(selectedOntology, async (graph) => {
   if (graph && graph.owner && graph.repo && !graph.branches?.length) {
-    await fetchBranches(graph);
+    await fetchBranches(graph)
   }
 })
 </script>

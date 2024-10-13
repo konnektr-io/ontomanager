@@ -1,39 +1,40 @@
 <script setup lang="ts">
-import { computed } from 'vue';
-import { storeToRefs } from 'pinia';
-import type { Quad_Object } from 'n3';
-import { useDialog } from 'primevue/usedialog';
-import Button from 'primevue/button';
-import { useMainStore } from '@/stores/main';
-import { useGraphStore } from '@/stores/graph-store';
-import TermValue from './TermValue.vue';
-import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue';
+import { computed } from 'vue'
+import { storeToRefs } from 'pinia'
+import type { OTerm, Quad_Object } from 'n3'
+import { useDialog } from 'primevue/usedialog'
+import Button from 'primevue/button'
+import { useGraphStore } from '@/stores/graph-store'
+import TermValue from './TermValue.vue'
+import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
 
 const props = defineProps<{
-  subject: string;
+  subject: OTerm;
 }>()
 
-const dialog = useDialog();
-const { selected } = storeToRefs(useMainStore());
-const { selectedOntology, editMode } = storeToRefs(useGraphStore());
-const { getQuads, getSubjectQuads, getLabel } = useGraphStore();
+const dialog = useDialog()
+const { selectedOntology, selectedResource, editMode } = storeToRefs(useGraphStore())
+const { getQuads, getSubjectQuads, getLabel } = useGraphStore()
 
 const groupedAnnotations = computed(() => {
-  const annotations = getSubjectQuads(props.subject);
+  const annotations = getSubjectQuads(props.subject)
   return annotations.reduce((acc, annotation) => {
-    const graphId = annotation.graph.value;
-    const editable = (selectedOntology.value && graphId === selectedOntology.value.url) ?? false;
-    const predicate = annotation.predicate.value;
+    const graphId = annotation.graph.value
+    const editable = (selectedOntology.value && graphId === selectedOntology.value.url) ?? false
+    const predicate = annotation.predicate.value
     if (!acc[predicate]) {
-      acc[predicate] = { objects: [], editable };
+      acc[predicate] = {
+        objects: [],
+        editable
+      }
     }
-    acc[predicate].objects.push(annotation.object);
-    return acc;
-  }, {} as Record<string, { editable: boolean, objects: Quad_Object[] }>);
-});
+    acc[predicate].objects.push(annotation.object)
+    return acc
+  }, {} as Record<string, { editable: boolean, objects: Quad_Object[] }>)
+})
 
 const openDialog = (predicate: string) => {
-  if (!selectedOntology.value) return;
+  if (!selectedOntology.value) return
   dialog.open(EditPredicateObjectsDialog, {
     props: {
       header: 'Edit Objects',
@@ -51,8 +52,8 @@ const openDialog = (predicate: string) => {
       predicate,
       graphId: selectedOntology.value.url
     }
-  });
-};
+  })
+}
 </script>
 
 <template>
@@ -65,7 +66,7 @@ const openDialog = (predicate: string) => {
       <div
         v-tooltip="predicate"
         class="text-sm font-medium !text-muted-foreground cursor-pointer"
-        @click="selected = predicate"
+        @click="selectedResource = predicate"
       >
         {{ getLabel(predicate) }}
       </div>
@@ -81,27 +82,32 @@ const openDialog = (predicate: string) => {
     <div class="flex items-center gap-2">
       <TermValue
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'NamedNode')"
-        :key="object.value"
+        :key="object.id"
         :term="object"
         class="text-sm"
-        @click-uri="selected = object.value"
+        @click-uri="selectedResource = object.value"
       >
       </TermValue>
     </div>
     <div>
       <TermValue
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'Literal')"
-        :key="object.value"
+        :key="object.id"
         :term="object"
         class="text-sm"
-        @click-uri="selected = object.value"
+        @click-uri="selectedResource = object.value"
       >
       </TermValue>
     </div>
     <div class="pl-6">
-      <div
+      <AnnotationPropertyList
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
-        :key="object.value"
+        :key="object.id"
+        :subject="object"
+      />
+      <!-- <div
+        v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
+        :key="object.id"
       >
         <div
           v-for="quad of getQuads(object, null, null, null)"
@@ -111,7 +117,7 @@ const openDialog = (predicate: string) => {
             <div
               v-tooltip="quad.predicate.value"
               class="text-sm font-medium text-muted-foreground cursor-pointer"
-              @click="selected = quad.predicate.value"
+              @click="selectedResource = quad.predicate.value"
             >
               {{ getLabel(quad.predicate.value) }}
             </div>
@@ -124,7 +130,7 @@ const openDialog = (predicate: string) => {
             </TermValue>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
