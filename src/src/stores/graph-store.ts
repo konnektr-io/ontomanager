@@ -295,6 +295,7 @@ export const useGraphStore = defineStore('graph', () => {
       store.value.getQuads(null, predicate, null, graphId).forEach((quad) => {
         if (quad.object.equals(object)) subjects.add(quad.subject.value)
         // TODO: This is crazy inefficient if shacl is used, this is only useful for owl:intersectionOf
+        // TODO: do this separately in the shacl properties and restrictions
         else if (quad.object.termType === 'BlankNode') {
           store.value.getQuads(quad.object, null, null, graphId).forEach((subQuad) => {
             if (subQuad.object.equals(object)) {

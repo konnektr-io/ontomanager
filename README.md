@@ -1,45 +1,88 @@
-# ontomanager
+# OntoManager
 
-This template should help get you started developing with Vue 3 in Vite.
+OntoManager is a web-based application designed to manage and visualize ontologies. It supports importing, editing, and visualizing ontologies from various sources, including GitHub repositories.
 
-## Recommended IDE Setup
+## Features
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur).
+- **Import Ontologies**: Import ontologies from URLs or GitHub repositories.
+- **Edit Ontologies**: Edit ontology details and manage their visibility.
+- **Visualize Ontologies**: Visualize ontology classes and relationships.
+- **Local Storage**: Save and load user-specific ontology configurations from local storage.
 
-## Type Support for `.vue` Imports in TS
+## Getting Started
 
-TypeScript cannot handle type information for `.vue` imports by default, so we replace the `tsc` CLI with `vue-tsc` for type checking. In editors, we need [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) to make the TypeScript language service aware of `.vue` types.
+### Prerequisites
 
-## Customize configuration
+- Node.js (version ^18.18.0 or >=20.0.0)
+- pnpm (version 7 or higher)
 
-See [Vite Configuration Reference](https://vitejs.dev/config/).
+### Installation
 
-## Project Setup
+1. Clone the repository:
 
-```sh
-pnpm install
-```
+   ```sh
+   git clone https://github.com/yourusername/ontomanager.git
+   cd ontomanager
+   ```
 
-### Compile and Hot-Reload for Development
+2. Install dependencies:
 
-```sh
-pnpm dev
-```
+   ```sh
+   pnpm install
+   ```
 
-### Type-Check, Compile and Minify for Production
+### Running the Application
 
-```sh
-pnpm build
-```
-
-### Run Unit Tests with [Vitest](https://vitest.dev/)
-
-```sh
-pnpm test:unit
-```
-
-### Lint with [ESLint](https://eslint.org/)
+To start the development server, run:
 
 ```sh
-pnpm lint
+pnpm run dev
 ```
+
+The application will be available at <http://localhost:5173>.
+
+### Building for Production
+
+To build the application for production, run:
+
+```sh
+pnpm run build
+
+```
+
+The built files will be in the dist directory.
+
+### Running Tests
+
+To run unit tests, use:
+
+```sh
+pnpm run test:unit
+
+```
+
+## Usage
+
+### Importing Ontologies
+
+- Click on the "Import Ontology" button in the header.
+- Enter the URL of the ontology or the GitHub repository.
+- Click "Import" to add the ontology to the list.
+
+### Managing Ontologies
+
+- Toggle Visibility: Click the eye icon next to an ontology to show or hide it.
+- Remove Ontology: Click the trash icon to remove an ontology from the list.
+- Change Branch: Select a different branch for GitHub-hosted ontologies.
+
+### Visualizing Ontologies
+
+- The ontology classes and relationships are visualized in a tree structure.
+- Click on a class to view its details and relationships.
+
+## Contact
+
+For any questions or support, please contact:
+
+- **Email**: <niko.raes@gmail.com>
+- **GitHub Issues**: [OntoManager Issues](https://github.com/nikoraes/ontomanager/issues)
