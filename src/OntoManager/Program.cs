@@ -9,7 +9,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Endpoint to exchange GitHub authorization code for access token
-app.MapGet("/api/github/oauth/exchange", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
+app.MapPost("/api/github/oauth/exchange", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
     var clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
     var clientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
