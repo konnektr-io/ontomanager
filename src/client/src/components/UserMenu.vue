@@ -5,9 +5,6 @@ import Avatar from 'primevue/avatar'
 import Menu from 'primevue/menu'
 import githubService from '@/services/GitHubService'
 
-
-const pat = ref('')
-
 const isSignedIn = ref(false)
 const username = ref<string | null>(null)
 const name = ref<string | null>(null)
@@ -16,43 +13,8 @@ const signOut = () => {
   isSignedIn.value = false
   username.value = ''
 }
-const rememberMe = ref(false)
-
-const saveChanges = async () => {
-  try {
-    const result = await githubService.authenticate(pat.value)
-    if (result) {
-      isSignedIn.value = true
-      username.value = result.login
-      name.value = result.name || result.login
-      avatarUrl.value = result.avatar_url
-
-      if (rememberMe.value) {
-        localStorage.setItem('githubToken', btoa(pat.value))
-      }
-
-      dialogVisible.value = false
-    } else {
-      // Handle authentication failure
-      console.error('Authentication failed')
-    }
-  } catch (error) {
-    console.error('Error during authentication', error)
-  }
-}
-
-const loadToken = () => {
-  const token = localStorage.getItem('githubToken')
-  if (token) {
-    pat.value = atob(token)
-    saveChanges()
-    isSignedIn.value = true
-  }
-}
-
 
 const menu = ref<InstanceType<typeof Menu>>()
-const dialogVisible = ref(false)
 
 const menuItems = computed(() => [
   {
