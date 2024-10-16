@@ -2,6 +2,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddHttpClient();
 var app = builder.Build();
 
+app.UseHttpsRedirection();
+
 // Serve static files
 app.UseDefaultFiles();
 app.UseStaticFiles();

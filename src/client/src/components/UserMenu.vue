@@ -84,10 +84,11 @@ const menuItems = computed(() => [
 ]);
 
 const redirectToGitHub = () => {
+  localStorage.removeItem('githubToken');
   const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-  const redirectUri = `${window.location.origin}/callback`;
+  const redirectUri = `${window.location.origin}`;
   const state = encodeURIComponent(window.location.pathname);
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=repo,user&state=${state}`;
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
   window.location.href = githubAuthUrl;
 };
 

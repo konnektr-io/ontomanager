@@ -18,7 +18,7 @@ RUN pnpm run build
 # Stage 2: Build the backend
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 80
+EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
@@ -35,4 +35,12 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 COPY --from=frontend-builder /app/client/build ./wwwroot
+
+# Create a non-root user and switch to it
+RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
+USER appuser
+
+# Set environment variables for the backend
+ENV ASPNETCORE_URLS=http://+:8080
+
 ENTRYPOINT ["dotnet", "OntoManager.dll"]
