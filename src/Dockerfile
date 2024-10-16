@@ -10,8 +10,14 @@ ARG VITE_GITHUB_REDIRECT_URI
 ENV VITE_GITHUB_CLIENT_ID=$VITE_GITHUB_CLIENT_ID
 ENV VITE_GITHUB_REDIRECT_URI=$VITE_GITHUB_REDIRECT_URI
 
+# Install pnpm globally
+RUN npm install -g pnpm
+
+# Copy package files and install dependencies
 COPY client/package*.json ./
 RUN pnpm install
+
+# Copy the rest of the frontend code and build it
 COPY client/ ./
 RUN pnpm run build
 
