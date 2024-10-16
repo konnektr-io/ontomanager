@@ -56,7 +56,7 @@ const handleGitHubCallback = async () => {
 
   if (code) {
     try {
-      const response = await axios.post('/api/github/oauth/exchange', new URLSearchParams({ code }), {
+      const response = await axios.post('/api/github/oauth/exchange_code', new URLSearchParams({ code }), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -64,6 +64,8 @@ const handleGitHubCallback = async () => {
 
       const data = response.data
       const token = data.access_token
+      // TODO: store entire object in localStorage
+      // as well as the absolute expiry time of access and refresh tokens (maybe in the same object)
 
       if (token) {
         localStorage.setItem('githubToken', token)
@@ -73,25 +75,32 @@ const handleGitHubCallback = async () => {
         username.value = user.login
         name.value = user.name || user.login
         avatarUrl.value = user.avatar_url
+
+        return true
       }
     } catch (error) {
       console.error('Error during GitHub OAuth callback', error)
+      return false
     }
   }
+  return false
 }
 
 onMounted(() => {
-  const token = localStorage.getItem('githubToken')
-  if (token) {
-    githubService.authenticate(token).then(async () => {
-      const user = await githubService.getUser()
-      isSignedIn.value = true
-      username.value = user.login
-      name.value = user.name || user.login
-      avatarUrl.value = user.avatar_url
-    })
-  } else {
-    handleGitHubCallback()
+  if (!handleGitHubCallback()) {
+    // TODO: get entire object, including absolute expiry of access and refresh tokens
+    // If the access token is expired, use the refresh token to get a new one /api/github/oauth/refresh_token
+    // If the refresh token is expired, don't do anything
+    const token = localStorage.getItem('githubToken')
+    if (token) {
+      githubService.authenticate(token).then(async () => {
+        const user = await githubService.getUser()
+        isSignedIn.value = true
+        username.value = user.login
+        name.value = user.name || user.login
+        avatarUrl.value = user.avatar_url
+      })
+    }
   }
 })
 
