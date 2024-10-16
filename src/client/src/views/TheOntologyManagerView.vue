@@ -39,7 +39,11 @@ onMounted(initialize)
 </script>
 
 <template>
-  <Splitter class="h-full">
+  <Splitter
+    :gutter-size="1"
+    class="h-full"
+    style="border: 0px;"
+  >
     <SplitterPanel
       :size="25"
       :minSize="10"
