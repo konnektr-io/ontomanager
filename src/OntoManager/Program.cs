@@ -44,7 +44,7 @@ app.MapPost("/api/github/oauth/exchange_code", async (HttpContext context, IHttp
 
     var responseContent = await response.Content.ReadAsStringAsync();
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsJsonAsync(responseContent);
+    await context.Response.WriteAsync(responseContent);
 });
 
 // Endpoint to retrieve a new authentication token using a refresh token
