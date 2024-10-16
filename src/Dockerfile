@@ -40,7 +40,7 @@ RUN dotnet publish -c Release -o /app/publish
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-COPY --from=frontend-builder /app/client/build ./wwwroot
+COPY --from=frontend-builder /app/client/dist ./wwwroot
 
 # Create a non-root user and switch to it
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
