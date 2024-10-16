@@ -32,17 +32,19 @@ app.MapPost("/api/github/oauth/exchange", async (HttpContext context, IHttpClien
     }
 
     var client = httpClientFactory.CreateClient();
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
     var response = await client.PostAsync("https://github.com/login/oauth/access_token", new FormUrlEncodedContent(
-    [
+    new[]
+    {
         new KeyValuePair<string, string>("client_id", clientId),
         new KeyValuePair<string, string>("client_secret", clientSecret),
         new KeyValuePair<string, string>("code", code.ToString()),
         new KeyValuePair<string, string>("redirect_uri", redirectUri)
-    ]));
+    }));
 
     var responseContent = await response.Content.ReadAsStringAsync();
     context.Response.ContentType = "application/json";
-    await context.Response.WriteAsync(responseContent);
+    await context.Response.WriteAsJsonAsync(responseContent);
 });
 
 app.Run();
