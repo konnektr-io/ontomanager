@@ -1,19 +1,8 @@
-import { /* computed,  */ computed, ref, shallowRef } from 'vue'
+import { /* computed,  */ computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import {
-  Store,
-  Parser,
-  DataFactory,
-  NamedNode,
-  Literal,
-  Quad,
-  type Quad_Object,
-  type OTerm,
-  Writer,
-  BlankNode,
-  type BlankTriple
-} from 'n3'
+import { Store, Parser, DataFactory, NamedNode, Literal, Quad, Writer, BlankNode } from 'n3'
+import type { Quad_Object, OTerm, BlankTriple } from 'n3'
 import gitHubService from '@/services/GitHubService'
 import { vocab } from './vocab'
 
@@ -25,7 +14,7 @@ const propertyObjectNodes = [
   vocab.owl.ObjectProperty,
   vocab.owl.DatatypeProperty
 ]
-const annotationPropertyNodes = [vocab.owl.AnnotationProperty]
+// const annotationPropertyNodes = [vocab.owl.AnnotationProperty]
 const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
 export enum TreeType {
@@ -62,16 +51,16 @@ export const useGraphStore = defineStore('graph', () => {
 
   const builtinVocabularyGraphs = ref<GraphDetails[]>([
     {
-      url: '../vocab/rdf.ttl'
+      url: 'public/vocab/rdf.ttl'
     },
     {
-      url: '../vocab/rdfs.ttl'
+      url: 'public/vocab/rdfs.ttl'
     },
     {
-      url: '../vocab/owl.ttl'
+      url: 'public/vocab/owl.ttl'
     },
     {
-      url: '../vocab/skos.ttl'
+      url: 'public/vocab/skos.ttl'
     }
   ])
   const userGraphs = ref<GraphDetails[]>([])
