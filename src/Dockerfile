@@ -39,6 +39,7 @@ FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 COPY --from=frontend-builder /app/client/dist ./wwwroot
+COPY --from=frontend-builder /app/client/vocab ./wwwroot/vocab
 
 # Create a non-root user and switch to it
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
