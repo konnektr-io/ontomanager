@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"name": "client",
+			"path": "src/client"
+		},
+		{
+			"name": "OntoManager",
+			"path": "src/OntoManager"
+		},
+		{
+			"name": "ontomanager",
+			"path": "."
+		}
+	],
+	"settings": {
+		"dotnet.defaultSolution": "OntoManager.sln"
+	}
+}

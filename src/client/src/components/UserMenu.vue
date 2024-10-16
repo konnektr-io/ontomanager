@@ -1,13 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
-import axios from 'axios';
-import Avatar from 'primevue/avatar';
-import Button from 'primevue/button';
-import Checkbox from 'primevue/checkbox';
-import Dialog from 'primevue/dialog';
-import InputText from 'primevue/inputtext';
-import Menu from 'primevue/menu';
-import githubService from '@/services/GitHubService';
+import { computed, onMounted, ref } from 'vue'
+import axios from 'axios'
+import Avatar from 'primevue/avatar'
+import Menu from 'primevue/menu'
+import githubService from '@/services/GitHubService'
 
 
 const pat = ref('')
@@ -20,43 +16,43 @@ const signOut = () => {
   isSignedIn.value = false
   username.value = ''
 }
-const rememberMe = ref(false);
+const rememberMe = ref(false)
 
 const saveChanges = async () => {
   try {
-    const result = await githubService.authenticate(pat.value);
+    const result = await githubService.authenticate(pat.value)
     if (result) {
-      isSignedIn.value = true;
-      username.value = result.login;
-      name.value = result.name || result.login;
-      avatarUrl.value = result.avatar_url;
+      isSignedIn.value = true
+      username.value = result.login
+      name.value = result.name || result.login
+      avatarUrl.value = result.avatar_url
 
       if (rememberMe.value) {
-        localStorage.setItem('githubToken', btoa(pat.value));
+        localStorage.setItem('githubToken', btoa(pat.value))
       }
 
       dialogVisible.value = false
     } else {
       // Handle authentication failure
-      console.error('Authentication failed');
+      console.error('Authentication failed')
     }
   } catch (error) {
-    console.error('Error during authentication', error);
+    console.error('Error during authentication', error)
   }
-};
+}
 
 const loadToken = () => {
-  const token = localStorage.getItem('githubToken');
+  const token = localStorage.getItem('githubToken')
   if (token) {
-    pat.value = atob(token);
-    saveChanges();
-    isSignedIn.value = true;
+    pat.value = atob(token)
+    saveChanges()
+    isSignedIn.value = true
   }
-};
+}
 
 
-const menu = ref<typeof Menu>();
-const dialogVisible = ref(false);
+const menu = ref<InstanceType<typeof Menu>>()
+const dialogVisible = ref(false)
 
 const menuItems = computed(() => [
   {
@@ -65,12 +61,12 @@ const menuItems = computed(() => [
       {
         label: 'Sign in',
         icon: 'pi pi-sign-in',
-        command: () => redirectToGitHub(),
+        command: redirectToGitHub,
         visible: !isSignedIn.value
       },
       {
-        label: name.value,
-        visible: isSignedIn.value && name.value,
+        label: `${name.value}`,
+        visible: !!(isSignedIn.value && name.value),
         class: "text-sm"
       },
       {
@@ -81,20 +77,20 @@ const menuItems = computed(() => [
       }
     ]
   }
-]);
+])
 
 const redirectToGitHub = () => {
-  localStorage.removeItem('githubToken');
-  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
-  const redirectUri = `${window.location.origin}`;
-  const state = encodeURIComponent(window.location.pathname);
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`;
-  window.location.href = githubAuthUrl;
-};
+  localStorage.removeItem('githubToken')
+  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
+  const redirectUri = `${window.location.origin}`
+  const state = encodeURIComponent(window.location.pathname)
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`
+  window.location.href = githubAuthUrl
+}
 
 const handleGitHubCallback = async () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const code = urlParams.get('code');
+  const urlParams = new URLSearchParams(window.location.search)
+  const code = urlParams.get('code')
 
   if (code) {
     try {
@@ -102,40 +98,40 @@ const handleGitHubCallback = async () => {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
-      });
+      })
 
-      const data = response.data;
-      const token = data.access_token;
+      const data = response.data
+      const token = data.access_token
 
       if (token) {
-        localStorage.setItem('githubToken', token);
-        await githubService.authenticate(token);
-        const user = await githubService.getUser();
-        isSignedIn.value = true;
-        username.value = user.login;
-        name.value = user.name || user.login;
-        avatarUrl.value = user.avatar_url;
+        localStorage.setItem('githubToken', token)
+        await githubService.authenticate(token)
+        const user = await githubService.getUser()
+        isSignedIn.value = true
+        username.value = user.login
+        name.value = user.name || user.login
+        avatarUrl.value = user.avatar_url
       }
     } catch (error) {
-      console.error('Error during GitHub OAuth callback', error);
+      console.error('Error during GitHub OAuth callback', error)
     }
   }
-};
+}
 
 onMounted(() => {
-  const token = localStorage.getItem('githubToken');
+  const token = localStorage.getItem('githubToken')
   if (token) {
     githubService.authenticate(token).then(async () => {
-      const user = await githubService.getUser();
-      isSignedIn.value = true;
-      username.value = user.login;
-      name.value = user.name || user.login;
-      avatarUrl.value = user.avatar_url;
-    });
+      const user = await githubService.getUser()
+      isSignedIn.value = true
+      username.value = user.login
+      name.value = user.name || user.login
+      avatarUrl.value = user.avatar_url
+    })
   } else {
-    handleGitHubCallback();
+    handleGitHubCallback()
   }
-});
+})
 
 </script>
 <template>

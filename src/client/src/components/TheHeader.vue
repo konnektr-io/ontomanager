@@ -102,15 +102,13 @@ const commitChanges = async () => {
                 size="small"
                 text
                 rounded
-                class="h-4"
                 @click.stop="openUrl(slotProps.option.url)"
               />
               <Button
                 :icon="`pi pi-eye${slotProps.option.visible ? '' : '-slash'}`"
-                size="info"
+                size="small"
                 text
                 rounded
-                class="h-4"
                 @click.stop="toggleOntologyVisibility(slotProps.option.url)"
               />
               <Button
@@ -118,7 +116,6 @@ const commitChanges = async () => {
                 size="small"
                 text
                 rounded
-                class="h-4"
                 @click.stop="removeOntology(slotProps.option.url)"
               />
             </div>
