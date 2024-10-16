@@ -7,7 +7,7 @@ app.UseDefaultFiles();
 app.UseStaticFiles();
 
 // Endpoint to exchange GitHub authorization code for access token
-app.MapGet("/api/github/oauth/token", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
+app.MapGet("/api/github/oauth/exchange", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
     var clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
     var clientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
@@ -20,7 +20,8 @@ app.MapGet("/api/github/oauth/token", async (HttpContext context, IHttpClientFac
         return;
     }
 
-    var code = context.Request.Query["code"];
+    var form = await context.Request.ReadFormAsync();
+    var code = form["code"];
     if (string.IsNullOrEmpty(code))
     {
         context.Response.StatusCode = 400;

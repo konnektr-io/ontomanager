@@ -1,6 +1,15 @@
 # Stage 1: Build the frontend
 FROM node:20 AS frontend-builder
 WORKDIR /app/client
+
+# Set environment variables for the frontend build
+ARG VITE_GITHUB_CLIENT_ID
+ARG VITE_GITHUB_REDIRECT_URI
+
+# Pass the environment variables to the build process
+ENV VITE_GITHUB_CLIENT_ID=$VITE_GITHUB_CLIENT_ID
+ENV VITE_GITHUB_REDIRECT_URI=$VITE_GITHUB_REDIRECT_URI
+
 COPY client/package*.json ./
 RUN pnpm install
 COPY client/ ./

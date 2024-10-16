@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
+import axios from 'axios';
 import Avatar from 'primevue/avatar';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
@@ -64,7 +65,7 @@ const menuItems = computed(() => [
       {
         label: 'Sign in',
         icon: 'pi pi-sign-in',
-        command: () => dialogVisible.value = true,
+        command: () => redirectToGitHub(),
         visible: !isSignedIn.value
       },
       {
@@ -82,8 +83,57 @@ const menuItems = computed(() => [
   }
 ]);
 
+const redirectToGitHub = () => {
+  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID;
+  const redirectUri = `${window.location.origin}/callback`;
+  const state = encodeURIComponent(window.location.pathname);
+  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=repo,user&state=${state}`;
+  window.location.href = githubAuthUrl;
+};
+
+const handleGitHubCallback = async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const code = urlParams.get('code');
+
+  if (code) {
+    try {
+      const response = await axios.post('/api/github/oauth/exchange', new URLSearchParams({ code }), {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+
+      const data = response.data;
+      const token = data.access_token;
+
+      if (token) {
+        localStorage.setItem('githubToken', token);
+        await githubService.authenticate(token);
+        const user = await githubService.getUser();
+        isSignedIn.value = true;
+        username.value = user.login;
+        name.value = user.name || user.login;
+        avatarUrl.value = user.avatar_url;
+      }
+    } catch (error) {
+      console.error('Error during GitHub OAuth callback', error);
+    }
+  }
+};
+
 onMounted(() => {
-  loadToken();
+  const token = localStorage.getItem('githubToken');
+  if (token) {
+    githubService.authenticate(token).then(async () => {
+      const user = await githubService.getUser();
+      isSignedIn.value = true;
+      username.value = user.login;
+      name.value = user.name || user.login;
+      avatarUrl.value = user.avatar_url;
+    });
+  } else {
+    handleGitHubCallback();
+  }
 });
 
 </script>
@@ -105,54 +155,5 @@ onMounted(() => {
       :model="menuItems"
       popup
     />
-
-    <Dialog
-      v-model:visible="dialogVisible"
-      header="Sign in"
-      modal
-      :style="{ width: '25rem' }"
-    >
-      <span class="text-surface-500 dark:text-surface-400 block mb-8">
-        Use a personal access token to authenticate with GitHub.
-      </span>
-      <div class="flex items-center gap-4 mb-4">
-        <label
-          for="pat"
-          class="font-semibold w-24"
-        >Personal access token</label>
-        <InputText
-          id="pat"
-          v-model="pat"
-          class="flex-auto"
-          autocomplete="off"
-        />
-      </div>
-      <div class="flex items-center gap-4 mb-8">
-        <Checkbox
-          id="remember"
-          v-model="rememberMe"
-          binary
-        />
-        <label
-          for="remember"
-          class="text-sm font-medium leading-none"
-        >
-          Remember me
-        </label>
-      </div>
-      <div class="flex justify-end gap-2">
-        <Button
-          type="button"
-          label="Cancel"
-          severity="secondary"
-          @click="dialogVisible = false"
-        />
-        <Button
-          type="button"
-          label="Save changes"
-          @click="saveChanges"
-        />
-      </div>
-    </Dialog>
   </div>
 </template>
