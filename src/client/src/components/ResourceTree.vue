@@ -12,7 +12,8 @@ const props = defineProps<{
 const {
   classesTree,
   propertiesTree,
-  selectedResource } = storeToRefs(useGraphStore())
+  selectedResource
+} = storeToRefs(useGraphStore())
 
 const selectedKeys = computed({
   get: () => ({ ...selectedResource.value && { [selectedResource.value]: true } }),

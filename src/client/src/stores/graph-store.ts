@@ -42,7 +42,7 @@ export interface GraphDetails {
   visible?: boolean
   loaded?: boolean
   namespace?: string
-  prefixes?: { [prefix: string]: NamedNode<string> }
+  prefixes: { [prefix: string]: NamedNode<string> }
 }
 
 export const useGraphStore = defineStore('graph', () => {
@@ -51,16 +51,20 @@ export const useGraphStore = defineStore('graph', () => {
 
   const builtinVocabularyGraphs = ref<GraphDetails[]>([
     {
-      url: 'public/vocab/rdf.ttl'
+      url: 'public/vocab/rdf.ttl',
+      prefixes: {}
     },
     {
-      url: 'public/vocab/rdfs.ttl'
+      url: 'public/vocab/rdfs.ttl',
+      prefixes: {}
     },
     {
-      url: 'public/vocab/owl.ttl'
+      url: 'public/vocab/owl.ttl',
+      prefixes: {}
     },
     {
-      url: 'public/vocab/skos.ttl'
+      url: 'public/vocab/skos.ttl',
+      prefixes: {}
     }
   ])
   const userGraphs = ref<GraphDetails[]>([])
@@ -189,6 +193,7 @@ export const useGraphStore = defineStore('graph', () => {
       url,
       visible: true,
       loaded: false,
+      prefixes: {},
       ...(url.includes('github') && { gitHubUrl: url })
     }
     await loadGraph(graph)
