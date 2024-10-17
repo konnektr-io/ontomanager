@@ -18,5 +18,10 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
+  },
+  server: {
+    proxy: {
+      '/api': 'https://ontomanager-720202460313.europe-west1.run.app'
+    }
   }
 })
