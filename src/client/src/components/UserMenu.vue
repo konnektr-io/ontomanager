@@ -23,7 +23,7 @@ const menuItems = computed(() => [
       {
         label: 'Sign in',
         icon: 'pi pi-sign-in',
-        command: redirectToGitHub,
+        command: loginToGitHub,
         visible: !isSignedIn.value
       },
       {
@@ -41,12 +41,11 @@ const menuItems = computed(() => [
   }
 ])
 
-const redirectToGitHub = () => {
+const loginToGitHub = async () => {
   localStorage.removeItem('githubToken')
-  const clientId = import.meta.env.VITE_GITHUB_CLIENT_ID
   const redirectUri = `${window.location.origin}`
-  const state = encodeURIComponent(window.location.pathname)
-  const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&state=${state}`
+  const state = encodeURIComponent(window.location.pathname + window.location.hash)
+  const githubAuthUrl = `/api/github/oauth/login?redirect_uri=${redirectUri}&state=${state}`
   window.location.href = githubAuthUrl
 }
 
@@ -56,7 +55,7 @@ const handleGitHubCallback = async () => {
 
   if (code) {
     try {
-      const response = await axios.post('/api/github/oauth/exchange_code', new URLSearchParams({ code }), {
+      const response = await axios.post('/api/github/oauth/token', new URLSearchParams({ code }), {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }

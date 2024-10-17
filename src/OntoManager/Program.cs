@@ -8,8 +8,46 @@ app.UseHttpsRedirection();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// Endpoint to get the github authorization URL and redirect the user
+app.MapGet("/api/github/oauth/login", (HttpContext context) =>
+{
+    var clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
+
+    if (string.IsNullOrEmpty(clientId))
+    {
+        context.Response.StatusCode = 500;
+        return Task.CompletedTask;
+    }
+
+    var state = context.Request.Query["state"];
+    var scopes = context.Request.Query["scopes"];
+    var redirectUri = context.Request.Query["redirect_uri"];
+
+    if (string.IsNullOrEmpty(redirectUri))
+    {
+        redirectUri = Environment.GetEnvironmentVariable("GITHUB_REDIRECT_URI");
+        if (string.IsNullOrEmpty(redirectUri))
+        {
+            context.Response.StatusCode = 400;
+            return Task.CompletedTask;
+        }
+    }
+
+    // Generate the GitHub authorization URL
+    var url = $"https://github.com/login/oauth/authorize" +
+        $"?client_id={clientId}" +
+        $"&redirect_uri={redirectUri}" +
+        (!string.IsNullOrEmpty(state) ? $"&state={state}" : string.Empty) +
+        (!string.IsNullOrEmpty(scopes) ? $"&scope={scopes}" : string.Empty);
+
+    // Return a redirect response to the GitHub authorization URL
+    context.Response.Redirect(url);
+
+    return Task.CompletedTask;
+});
+
 // Endpoint to exchange GitHub authorization code for access token
-app.MapPost("/api/github/oauth/exchange_code", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
+app.MapPost("/api/github/oauth/token", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
     var clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
     var clientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
@@ -48,7 +86,7 @@ app.MapPost("/api/github/oauth/exchange_code", async (HttpContext context, IHttp
 });
 
 // Endpoint to retrieve a new authentication token using a refresh token
-app.MapPost("/api/github/oauth/refresh_token", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
+app.MapPost("/api/github/oauth/refresh-token", async (HttpContext context, IHttpClientFactory httpClientFactory) =>
 {
     var clientId = Environment.GetEnvironmentVariable("GITHUB_CLIENT_ID");
     var clientSecret = Environment.GetEnvironmentVariable("GITHUB_CLIENT_SECRET");
