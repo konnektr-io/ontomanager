@@ -15,6 +15,7 @@ const signOut = () => {
   username.value = ''
 }
 
+const router = useRouter()
 const menu = ref<InstanceType<typeof Menu>>()
 
 const menuItems = computed(() => [
@@ -75,12 +76,13 @@ const handleGitHubCallback = async () => {
         username.value = user.login
         name.value = user.name || user.login
 
-        const router = useRouter()
 
         // If a state param is provided, redirect to it
         const stateParam = urlParams.get('state')
         if (stateParam) {
           router.replace(stateParam)
+        } else {
+          router.replace('/')
         }
 
         return true
