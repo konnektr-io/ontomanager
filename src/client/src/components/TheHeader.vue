@@ -78,6 +78,7 @@ const commitChanges = async () => {
         v-model="selectedOntology"
         :options="userGraphs"
         optionLabel="name"
+        showClear
         placeholder="Select Ontology"
         class="w-96 text-sm"
       >
