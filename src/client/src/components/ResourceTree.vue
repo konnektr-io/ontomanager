@@ -12,6 +12,7 @@ const props = defineProps<{
 const {
   classesTree,
   propertiesTree,
+  selectedOntology,
   selectedResource
 } = storeToRefs(useGraphStore())
 
@@ -34,7 +35,11 @@ const treeData = computed(() => {
     class="w-full"
   >
     <template #default="slotProps">
-      <div v-tooltip="slotProps.node.key">{{ slotProps.node.label }}</div>
+      <div v-tooltip="slotProps.node.key">
+        <span :class="{ 'font-bold': slotProps.node.data.graph === selectedOntology?.url }">
+          {{ slotProps.node.label }}
+        </span>
+      </div>
     </template>
   </Tree>
 </template>

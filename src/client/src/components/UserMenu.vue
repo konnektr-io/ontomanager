@@ -75,6 +75,17 @@ const handleGitHubCallback = async () => {
         name.value = user.name || user.login
         avatarUrl.value = user.avatar_url
 
+        // Remove the code query param from the current URL
+        const newUrl = new URL(window.location.href)
+        newUrl.searchParams.delete('code')
+        window.history.replaceState({}, document.title, newUrl.toString())
+
+        // If a state param is provided, redirect to it
+        const stateParam = urlParams.get('state')
+        if (stateParam) {
+          window.location.href = stateParam
+        }
+
         return true
       }
     } catch (error) {
@@ -82,6 +93,8 @@ const handleGitHubCallback = async () => {
       return false
     }
   }
+
+
   return false
 }
 
