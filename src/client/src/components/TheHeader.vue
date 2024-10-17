@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted } from 'vue'
+import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
@@ -9,7 +9,7 @@ import UserMenu from './UserMenu.vue'
 import { useGraphStore, type GraphDetails } from '@/stores/graph-store'
 import gitHubService from '@/services/GitHubService'
 
-const { userGraphs, selectedOntology, editMode } = storeToRefs(useGraphStore())
+const { userGraphs, selectedOntology } = storeToRefs(useGraphStore())
 const {
   toggleOntologyVisibility,
   addOntology,

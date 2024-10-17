@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
 import Avatar from 'primevue/avatar'
 import Menu from 'primevue/menu'
@@ -73,17 +74,13 @@ const handleGitHubCallback = async () => {
         isSignedIn.value = true
         username.value = user.login
         name.value = user.name || user.login
-        avatarUrl.value = user.avatar_url
 
-        // Remove the code query param from the current URL
-        const newUrl = new URL(window.location.href)
-        newUrl.searchParams.delete('code')
-        window.history.replaceState({}, document.title, newUrl.toString())
+        const router = useRouter()
 
         // If a state param is provided, redirect to it
         const stateParam = urlParams.get('state')
         if (stateParam) {
-          window.location.href = stateParam
+          router.replace(stateParam)
         }
 
         return true
