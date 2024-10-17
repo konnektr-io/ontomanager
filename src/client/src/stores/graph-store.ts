@@ -5,6 +5,10 @@ import { Store, Parser, DataFactory, NamedNode, Literal, Quad, Writer, BlankNode
 import type { Quad_Object, OTerm, BlankTriple } from 'n3'
 import gitHubService from '@/services/GitHubService'
 import { vocab } from './vocab'
+import rdfVocab from '../assets/vocab/rdf.ttl?raw'
+import rdfsVocab from '../assets/vocab/rdfs.ttl?raw'
+import owlVocab from '../assets/vocab/owl.ttl?raw'
+import skosVocab from '../assets/vocab/skos.ttl?raw'
 
 const { namedNode, literal /* , blankNode */ } = DataFactory
 
@@ -42,33 +46,50 @@ export interface GraphDetails {
   visible?: boolean
   loaded?: boolean
   namespace?: string
-  prefixes: { [prefix: string]: NamedNode<string> }
+  prefixes?: { [prefix: string]: NamedNode<string> }
 }
+
+interface BuiltinGraphDetails extends GraphDetails {
+  content: string
+}
+
+const builtinGraphs: BuiltinGraphDetails[] = [
+  {
+    content: owlVocab,
+    url: 'https://www.w3.org/2002/07/owl',
+    visible: false,
+    loaded: false,
+    prefixes: {}
+  },
+  {
+    content: rdfVocab,
+    url: 'https://www.w3.org/2000/01/rdf-schema',
+    visible: false,
+    loaded: false,
+    prefixes: {}
+  },
+  {
+    content: rdfsVocab,
+    url: 'https://www.w3.org/1999/02/22-rdf-syntax-ns',
+    visible: false,
+    loaded: false,
+    prefixes: {}
+  },
+  {
+    content: skosVocab,
+    url: 'http://www.w3.org/2004/02/skos/core',
+    visible: false,
+    loaded: false,
+    prefixes: {}
+  }
+]
 
 export const useGraphStore = defineStore('graph', () => {
   const store = ref<Store>(new Store())
   const parser = new Parser()
 
-  const builtinVocabularyGraphs = ref<GraphDetails[]>([
-    {
-      url: 'public/vocab/rdf.ttl',
-      prefixes: {}
-    },
-    {
-      url: 'public/vocab/rdfs.ttl',
-      prefixes: {}
-    },
-    {
-      url: 'public/vocab/owl.ttl',
-      prefixes: {}
-    },
-    {
-      url: 'public/vocab/skos.ttl',
-      prefixes: {}
-    }
-  ])
   const userGraphs = ref<GraphDetails[]>([])
-  const allGraphs = computed(() => [...builtinVocabularyGraphs.value, ...userGraphs.value])
+
   const visibleGraphIds = computed(() =>
     userGraphs.value.filter((graph) => graph.visible).map((graph) => literal(graph.url))
   )
@@ -86,9 +107,13 @@ export const useGraphStore = defineStore('graph', () => {
   )
 
   const initialize = async () => {
+    for (const graph of builtinGraphs) {
+      loadOntology(graph.content, graph)
+    }
+
     // TODO: Get config from local storage
     getUserGraphsFromLocalStorage()
-    for (const graph of allGraphs.value) {
+    for (const graph of userGraphs.value) {
       await loadGraph(graph)
     }
     await getClassesTree()
