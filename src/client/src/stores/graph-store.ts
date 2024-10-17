@@ -523,7 +523,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   const getPrefixedUri = (uri: string): string => {
     // TODO pass the correct graph id
-    for (const graph of allGraphs.value) {
+    for (const graph of [...builtinGraphs, ...userGraphs.value]) {
       const prefixes = graph.prefixes
       for (const prefix in prefixes) {
         const ns = prefixes[prefix].value
