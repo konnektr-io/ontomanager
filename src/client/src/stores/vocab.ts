@@ -3,11 +3,22 @@ import { DataFactory } from 'n3'
 const { namedNode } = DataFactory
 
 export const vocab = {
+  xsd: {
+    string: namedNode('http://www.w3.org/2001/XMLSchema#string'),
+    integer: namedNode('http://www.w3.org/2001/XMLSchema#integer'),
+    decimal: namedNode('http://www.w3.org/2001/XMLSchema#decimal'),
+    boolean: namedNode('http://www.w3.org/2001/XMLSchema#boolean'),
+    dateTime: namedNode('http://www.w3.org/2001/XMLSchema#dateTime'),
+    date: namedNode('http://www.w3.org/2001/XMLSchema#date'),
+    time: namedNode('http://www.w3.org/2001/XMLSchema#time')
+  },
   rdf: {
     type: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
     value: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#value'),
     first: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
-    rest: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest')
+    rest: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#rest'),
+    nil: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#nil'),
+    langString: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#langString')
   },
   rdfs: {
     Class: namedNode('http://www.w3.org/2000/01/rdf-schema#Class'),

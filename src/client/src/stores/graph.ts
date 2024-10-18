@@ -84,6 +84,17 @@ const builtinGraphs: BuiltinGraphDetails[] = [
   }
 ]
 
+export const commonDataTypes = [
+  vocab.rdf.langString,
+  vocab.xsd.string,
+  vocab.xsd.integer,
+  vocab.xsd.decimal,
+  vocab.xsd.boolean,
+  vocab.xsd.dateTime,
+  vocab.xsd.date,
+  vocab.xsd.time
+]
+
 export const useGraphStore = defineStore('graph', () => {
   const store = ref<Store>(new Store())
   const parser = new Parser()
@@ -441,6 +452,15 @@ export const useGraphStore = defineStore('graph', () => {
     return getVisibleSubjects(vocab.rdfs.domain, namedNode(classUri))
   }
 
+  const getAllNamedNodes = (): NamedNode<string>[] => {
+    const namedNodeSet = store.value.getQuads(null, null, null, null).reduce((acc, quad) => {
+      if (quad.subject.termType === 'NamedNode') acc.add(quad.subject)
+      if (quad.object.termType === 'NamedNode') acc.add(quad.object)
+      return acc
+    }, new Set<NamedNode<string>>())
+    return Array.from(namedNodeSet)
+  }
+
   const getRanges = (propertyUri: string): Quad_Object[] => {
     const ranges = new Set<Quad_Object>()
     store.value.getObjects(namedNode(propertyUri), vocab.rdfs.range, null).forEach((object) => {
@@ -658,6 +678,7 @@ export const useGraphStore = defineStore('graph', () => {
 
     getProperties,
     getRanges,
+    getAllNamedNodes,
     getPropertyRangeValueRestrictions,
     getRestrictions,
     getLabel,
