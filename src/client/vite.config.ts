@@ -22,7 +22,11 @@ export default defineConfig({
   assetsInclude: ['**/*.ttl'],
   server: {
     proxy: {
-      '/api': 'https://ontomanager-720202460313.europe-west1.run.app'
+      '/api': {
+        target: 'https://ontomanager-720202460313.europe-west1.run.app',
+        secure: false,
+        changeOrigin: true
+      }
     }
   }
 })

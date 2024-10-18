@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import type { OTerm, Quad_Object } from 'n3'
 import { useDialog } from 'primevue/usedialog'
 import Button from 'primevue/button'
-import { useGraphStore } from '@/stores/graph-store'
+import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'
 import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
 

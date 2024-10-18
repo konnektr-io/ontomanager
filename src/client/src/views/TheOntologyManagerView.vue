@@ -2,7 +2,7 @@
 import { onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
-import { TreeType, useGraphStore } from '@/stores/graph-store'
+import { TreeType, useGraphStore } from '@/stores/graph'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import Tabs from 'primevue/tabs'

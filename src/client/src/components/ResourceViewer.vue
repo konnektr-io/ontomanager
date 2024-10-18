@@ -4,7 +4,7 @@ import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
 import AnnotationPropertyList from './AnnotationPropertyList.vue'
 import { storeToRefs } from 'pinia'
-import { useGraphStore } from '@/stores/graph-store'
+import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'
 
 

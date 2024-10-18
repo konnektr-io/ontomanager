@@ -1,18 +1,64 @@
 import { Octokit } from '@octokit/rest'
-// import { Buffer } from 'buffer'
+import axios from 'axios'
 
 class GitHubService {
   private octokit: Octokit
+  private tokenData: any = null
 
   public constructor() {
     this.octokit = new Octokit()
+    this.loadTokenData()
+  }
+
+  private loadTokenData() {
+    const tokenData = localStorage.getItem('githubTokenData')
+    if (tokenData) {
+      this.tokenData = JSON.parse(tokenData)
+      this.octokit = new Octokit({ auth: this.tokenData.access_token })
+    }
+  }
+
+  public saveTokenData(tokenData: any) {
+    this.tokenData = tokenData
+    localStorage.setItem('githubTokenData', JSON.stringify(tokenData))
+    this.octokit = new Octokit({ auth: tokenData.access_token })
+  }
+
+  private async refreshToken() {
+    try {
+      const response = await axios.post('/api/github/oauth/refresh_token', {
+        refresh_token: this.tokenData.refresh_token
+      })
+      this.saveTokenData(response.data)
+    } catch (error) {
+      console.error('Error refreshing token', error)
+    }
+  }
+
+  private isTokenExpired(tokenExpiry: number) {
+    return Date.now() > tokenExpiry
   }
 
   public async authenticate(token: string) {
-    this.octokit = new Octokit({
-      auth: token
-    })
-    return await this.getUser()
+    this.octokit = new Octokit({ auth: token })
+    const user = await this.getUser()
+    return user
+  }
+
+  public async silentLogin() {
+    if (this.tokenData) {
+      if (this.isTokenExpired(this.tokenData.access_token_expiry)) {
+        if (this.isTokenExpired(this.tokenData.refresh_token_expiry)) {
+          console.warn('Refresh token expired')
+          return false
+        } else {
+          await this.refreshToken()
+        }
+      }
+      const user = await this.getUser()
+      return user
+    }
+    return null
   }
 
   public async getUser() {
@@ -35,7 +81,8 @@ class GitHubService {
       owner,
       repo,
       path,
-      ref
+      ref,
+      mediaType: { format: 'application/vnd.github.raw+json' }
     })
 
     if (Array.isArray(response.data) || !('content' in response.data)) {

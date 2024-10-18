@@ -6,7 +6,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
 import UserMenu from './UserMenu.vue'
-import { useGraphStore, type GraphDetails } from '@/stores/graph-store'
+import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import gitHubService from '@/services/GitHubService'
 
 const { userGraphs, selectedOntology } = storeToRefs(useGraphStore())

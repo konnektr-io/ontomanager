@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useGitHubStore } from '@/stores/github'
 import TheOntologyManagerView from '../views/TheOntologyManagerView.vue'
 
 const router = createRouter({
@@ -10,6 +11,14 @@ const router = createRouter({
       component: TheOntologyManagerView
     }
   ]
+})
+
+router.beforeEach(async (to, from, next) => {
+  const githubStore = useGitHubStore()
+  if (!githubStore.isSignedIn && !(await githubStore.handleGitHubCallback())) {
+    await githubStore.silentLogin()
+  }
+  next()
 })
 
 export default router

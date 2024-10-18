@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import Tree from 'primevue/tree'
 import { storeToRefs } from 'pinia'
-import { TreeType, useGraphStore } from '@/stores/graph-store'
+import { TreeType, useGraphStore } from '@/stores/graph'
 
 
 const props = defineProps<{

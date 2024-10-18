@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, inject, type Ref } from 'vue'
-import { useGraphStore } from '@/stores/graph-store'
+import { useGraphStore } from '@/stores/graph'
 import { NamedNode, Literal, DataFactory } from 'n3'
 import Dialog from 'primevue/dialog'
 import TermValue from './TermValue.vue'
