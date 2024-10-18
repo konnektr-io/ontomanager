@@ -453,12 +453,12 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const getAllNamedNodes = (): NamedNode<string>[] => {
-    const namedNodeSet = store.value.getQuads(null, null, null, null).reduce((acc, quad) => {
-      if (quad.subject.termType === 'NamedNode') acc.add(quad.subject)
-      if (quad.object.termType === 'NamedNode') acc.add(quad.object)
+    const namedNodeMap = store.value.getQuads(null, null, null, null).reduce((acc, quad) => {
+      if (quad.subject.termType === 'NamedNode') acc.set(quad.subject.value, quad.subject)
+      if (quad.object.termType === 'NamedNode') acc.set(quad.object.value, quad.object)
       return acc
-    }, new Set<NamedNode<string>>())
-    return Array.from(namedNodeSet)
+    }, new Map<string, NamedNode<string>>())
+    return Array.from(namedNodeMap.values())
   }
 
   const getRanges = (propertyUri: string): Quad_Object[] => {

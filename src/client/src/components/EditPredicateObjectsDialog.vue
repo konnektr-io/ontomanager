@@ -1,17 +1,16 @@
 <script setup lang="ts">
 import { ref, computed, inject, type Ref, onMounted } from 'vue'
 import { useGraphStore, commonDataTypes } from '@/stores/graph'
-import { NamedNode, Literal, DataFactory, Quad } from 'n3'
-import Dialog from 'primevue/dialog'
+import { DataFactory, Literal, Quad } from 'n3'
 import AutoComplete, { type AutoCompleteCompleteEvent } from 'primevue/autocomplete'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
-import TermValue from './TermValue.vue'
+import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
 
 const { namedNode, literal } = DataFactory
 
-const dialogRef = inject<Ref<{
+const dialogRef = inject<Ref<DynamicDialogInstance & {
   data: { subject: string, predicate: string, graphId: string }
 }>>('dialogRef')
 
@@ -22,38 +21,69 @@ const graphId = computed(() => dialogRef?.value.data.graphId)
 const { getQuads, getLabel, getAllNamedNodes } = useGraphStore()
 
 const originalQuads: Quad[] = []
-const quads = ref<Quad[]>([])
+interface EditableObject {
+  termType: string;
+  value: string;
+  language?: string;
+  datatype?: { value: string };
+}
+const objects = ref<EditableObject[]>([])
 const namedNodeSuggestions = ref<string[]>([])
 
 // Language options
-const languageOptions = ['en', 'fr', 'de', 'nl', 'es', 'it']
+const languageOptions = ['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']
 
 // Get quads on mount
 onMounted(() => {
   if (!subject.value || !predicate.value || !graphId.value) return
   const qs = getQuads(namedNode(subject.value), namedNode(predicate.value), null, literal(graphId.value))
   originalQuads.push(...qs)
-  quads.value = [...qs]
+  objects.value = qs
+    .filter(q => q.object.termType === 'NamedNode' || q.object.termType === 'Literal')
+    .map<EditableObject>(q => {
+      if (q.object.termType === 'NamedNode') {
+        return {
+          termType: 'NamedNode',
+          value: q.object.value
+        } as EditableObject
+      } else {
+        return {
+          termType: 'Literal',
+          value: q.object.value,
+          language: (q.object as Literal).language,
+          datatype: { value: (q.object as Literal).datatype.value }
+        } as EditableObject
+      }
+    })
 })
 
 // Fetch suggestions for NamedNode URIs
 const fetchNamedNodeSuggestions = (event: AutoCompleteCompleteEvent) => {
-  namedNodeSuggestions.value = getAllNamedNodes().filter(node =>
-    node.value.includes(event.query)
-  ).map(node => node.value)
+  const allNamedNodes = getAllNamedNodes().map(node => node.value)
+  namedNodeSuggestions.value = [...new Set(allNamedNodes.filter(value =>
+    value.includes(event.query)
+  ))]
 }
 
 const addObject = (type: 'NamedNode' | 'Literal') => {
   if (!subject.value || !predicate.value || !graphId.value) return
   if (type === 'NamedNode') {
-    quads.value.push(new Quad(namedNode(subject.value), namedNode(predicate.value), namedNode(''), literal(graphId.value)))
+    objects.value.push({
+      termType: 'NamedNode',
+      value: ''
+    })
   } else {
-    quads.value.push(new Quad(namedNode(subject.value), namedNode(predicate.value), literal(''), literal(graphId.value)))
+    objects.value.push({
+      termType: 'Literal',
+      value: '',
+      language: languageOptions.find(lang => !objects.value.some(obj => obj.language === lang)) || '',
+      datatype: commonDataTypes[0],
+    })
   }
 }
 
 const removeObject = (index: number) => {
-  quads.value.splice(index, 1)
+  objects.value.splice(index, 1)
 }
 
 const confirmChanges = () => {
@@ -61,23 +91,22 @@ const confirmChanges = () => {
 }
 
 const cancelChanges = () => {
-  dialogRef.value.close()
+  dialogRef?.value.close()
 }
 </script>
 
 <template>
   <div>
-    <h3>{{ predicate && getLabel(predicate) }}</h3>
-
+    <div class="font-medium mb-4">{{ predicate && getLabel(predicate) }}</div>
     <div
-      v-for="(quad, index) in quads"
+      v-for="(object, index) in objects"
       :key="index"
       class="flex items-center space-x-4"
     >
       <!-- Named Node URI with AutoComplete -->
       <AutoComplete
-        v-if="quad.object.termType === 'NamedNode'"
-        v-model="quad.object.value"
+        v-if="object.termType === 'NamedNode'"
+        v-model="object.value"
         :suggestions="namedNodeSuggestions"
         @complete="fetchNamedNodeSuggestions"
         placeholder="Edit URI"
@@ -86,18 +115,18 @@ const cancelChanges = () => {
 
       <!-- Literal Value -->
       <div
-        v-if="quad.object.termType === 'Literal'"
+        v-if="object.termType === 'Literal'"
         class="flex items-center space-x-2 w-full"
       >
         <InputText
-          v-model="quad.object.value"
+          v-model="object.value"
           placeholder="Edit literal value"
           class="w-1/3"
         />
 
         <!-- Language and Datatype fields for literals -->
         <Select
-          v-model="quad.object.language"
+          v-model="object.language"
           :options="languageOptions"
           placeholder="Select Language"
           class="w-1/3"
@@ -105,8 +134,11 @@ const cancelChanges = () => {
         />
 
         <Select
-          v-model="quad.object.datatype.value"
-          :options="commonDataTypes.map(type => ({ label: getLabel(type.value), value: type }))"
+          v-if="object.termType === 'Literal' && object.datatype"
+          v-model="object.datatype.value"
+          :options="commonDataTypes"
+          :option-label="type => getLabel(type.value)"
+          :option-value="type => type.value"
           placeholder="Select Datatype"
           class="w-1/3"
         />
