@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { watch, ref, computed } from 'vue'
+import { computed } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { OTerm, Quad_Object } from 'n3'
 import { useDialog } from 'primevue/usedialog'
 import Button from 'primevue/button'
+import Panel from 'primevue/panel'
 import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'
 import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
@@ -65,7 +66,7 @@ const openDialog = (predicate: string) => {
   <div
     v-for="(predicateObjects, predicate) in groupedAnnotations"
     :key="`${predicate}`"
-    class="text-sm mb-2"
+    class="text-sm mb-1"
   >
     <div class="flex items-center gap-2">
       <div
@@ -94,7 +95,7 @@ const openDialog = (predicate: string) => {
       >
       </TermValue>
     </div>
-    <div class="space-y-1">
+    <div class="gap-1">
       <TermValue
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'Literal')"
         :key="object.id"
@@ -104,12 +105,16 @@ const openDialog = (predicate: string) => {
       >
       </TermValue>
     </div>
-    <div class="pl-6">
-      <AnnotationPropertyList
+    <div class="pl-6 pt-1 flex flex-col gap-1">
+      <Panel
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
         :key="object.id"
-        :subject="object"
-      />
+        :pt:header:class="`pb-0 pt-2`"
+        :pt:content:class="`pb-2`"
+        class="py-0"
+      >
+        <AnnotationPropertyList :subject="object" />
+      </Panel>
       <!-- <div
         v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
         :key="object.id"

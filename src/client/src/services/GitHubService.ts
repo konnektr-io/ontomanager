@@ -147,11 +147,22 @@ class GitHubService {
       throw new Error('File not found or is a directory')
     }
 
-    const content = response.data.content
-    const decodedContent = atob(content)
-    const uint8Array = new Uint8Array(decodedContent.split('').map((char) => char.charCodeAt(0)))
-    const textDecoder = new TextDecoder('utf-8')
-    return textDecoder.decode(uint8Array)
+    if (typeof response.data.content === 'string' && response.data.encoding === 'base64') {
+      const content = response.data.content
+      const decodedContent = atob(content)
+      const uint8Array = new Uint8Array(decodedContent.split('').map((char) => char.charCodeAt(0)))
+      const textDecoder = new TextDecoder('utf-8')
+      return textDecoder.decode(uint8Array)
+    } else if (response.data.git_url) {
+      // Get the raw content from the git URL usinc octokit
+      const rawDataResponse = await this.octokit.request('GET ' + response.data.git_url, {
+        headers: {
+          Accept: 'application/vnd.github.v3.raw'
+        }
+      })
+
+      return rawDataResponse.data
+    }
   }
 
   public async commitFile(
@@ -162,6 +173,7 @@ class GitHubService {
     message: string,
     branch: string
   ) {
+    // TODO: store sha in user graph
     const response = await this.octokit.repos
       .getContent({
         owner,
@@ -176,11 +188,12 @@ class GitHubService {
         ? response.data.sha
         : undefined
 
+    console.log(sha)
     const encodedContent = new TextEncoder()
       .encode(content)
       .reduce((acc, byte) => acc + String.fromCharCode(byte), '')
     const base64EncodedContent = btoa(encodedContent)
-
+    console.log(base64EncodedContent)
     const commitResponse = await this.octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
@@ -190,6 +203,7 @@ class GitHubService {
       sha,
       branch
     })
+    console.log(commitResponse)
 
     return commitResponse.data
   }

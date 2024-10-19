@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import type { Term } from 'n3'
 import Tag from 'primevue/tag'
 import { useGraphStore } from '@/stores/graph'
+import { vocab } from '@/stores/vocab'
 
 const props = defineProps<{
   term: Term;
@@ -40,6 +41,7 @@ const restrictionRangeValues = computed(() => {
         class="text-xs"
       />
       <Tag
+        v-if="term.datatypeString && !term.datatype.equals(vocab.rdf.langString)"
         :value="getPrefixedUri(term.datatypeString)"
         v-tooltip="term.datatypeString"
         class="text-xs"

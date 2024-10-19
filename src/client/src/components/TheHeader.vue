@@ -9,13 +9,18 @@ import Textarea from 'primevue/textarea'
 import UserMenu from './UserMenu.vue'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import gitHubService from '@/services/GitHubService'
+import { useConfirm } from 'primevue/useconfirm'
 
+
+const confirm = useConfirm()
 const { userGraphs, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
 const {
   toggleOntologyVisibility,
   addOntology,
   removeOntology,
-  writeGraph
+  writeGraph,
+  loadGraph,
+  clearUndoRedoStacks
 } = useGraphStore()
 
 const openUrl = (url: string) => {
@@ -50,19 +55,112 @@ watch(selectedOntology, async (graph) => {
   }
 })
 
+const changeSelectedOntology = async (graph: GraphDetails | null) => {
+  // If the undo stack is not empty, ask for confirmation
+  if (undoStackSize.value) {
+    confirm.require({
+      header: 'Change Ontology',
+      message: 'Changing ontologies will remove all unsaved changes. Do you want to proceed?',
+      icon: 'pi pi-exclamation-triangle',
+      modal: false,
+      rejectProps: {
+        label: 'Cancel',
+        severity: 'secondary',
+        text: true
+      },
+      acceptProps: {
+        label: 'Change Branch',
+        severity: 'secondary',
+        outlined: true
+      },
+      accept: () => {
+        clearUndoRedoStacks()
+        selectedOntology.value = graph
+      },
+      reject: () => {
+      }
+    })
+  } else {
+    selectedOntology.value = graph
+  }
+}
+
 const changeBranch = async (graph: GraphDetails, branch: string) => {
   if (!graph.branch || !branch) return
-  const newUrl = graph.url.replace(graph.branch, branch)
-  removeOntology(graph.url)
-  addOntology(newUrl)
+
+  // If the undo stack is not empty, ask for confirmation
+  if (undoStackSize.value) {
+    confirm.require({
+      header: 'Change Branch',
+      message: 'Changing branches will remove all unsaved changes. Do you want to proceed?',
+      icon: 'pi pi-exclamation-triangle',
+      modal: false,
+      rejectProps: {
+        label: 'Cancel',
+        severity: 'secondary',
+        text: true
+      },
+      acceptProps: {
+        label: 'Change Branch',
+        severity: 'secondary',
+        outlined: true
+      },
+      accept: () => {
+        if (graph.branch && branch) {
+          clearUndoRedoStacks()
+          const newUrl = graph.url.replace(graph.branch, branch)
+          removeOntology(graph.url)
+          addOntology(newUrl)
+          graph.branch = branch
+        }
+      },
+      reject: () => {
+      }
+    })
+  } else {
+    if (graph.branch && branch) {
+      const newUrl = graph.url.replace(graph.branch, branch)
+      removeOntology(graph.url)
+      addOntology(newUrl)
+      graph.branch = branch
+    }
+  }
 }
 
 const commitDialogVisible = ref(false)
 const commitMessage = ref('')
+const cancelChanges = () => {
+  // reload the graph
+
+  if (selectedOntology.value) {
+    loadGraph(selectedOntology.value)
+  }
+  commitDialogVisible.value = false
+  commitMessage.value = ''
+}
 const commitChanges = async () => {
   // Implement commit changes logic
   // For now just export and download the file
-  if (selectedOntology.value) writeGraph(selectedOntology.value.url)
+  if (selectedOntology.value) {
+    const content = await writeGraph(selectedOntology.value.url)
+    if (!content ||
+      !selectedOntology.value.owner ||
+      !selectedOntology.value.repo ||
+      !selectedOntology.value.path ||
+      !selectedOntology.value.branch ||
+      !commitMessage.value
+    ) return
+    await gitHubService.commitFile(
+      selectedOntology.value.owner,
+      selectedOntology.value.repo,
+      selectedOntology.value.path,
+      content,
+      commitMessage.value,
+      selectedOntology.value.branch)
+    clearUndoRedoStacks()
+    commitDialogVisible.value = false
+    commitMessage.value = ''
+  }
 }
 
 </script>
@@ -78,12 +176,14 @@ const commitChanges = async () => {
     <!-- Ontology Select -->
     <div class="flex items-center gap-6 md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 w-240">
       <Select
-        v-model="selectedOntology"
+        :model-value="selectedOntology"
         :options="userGraphs"
         optionLabel="name"
         showClear
         placeholder="Select Ontology"
         class="w-96 text-sm"
+        :pt:clearIcon:onClick="() => changeSelectedOntology(null)"
+        @change="changeSelectedOntology($event.value)"
       >
         <template #value="slotProps">
           <div
@@ -141,14 +241,26 @@ const commitChanges = async () => {
       </Select>
       <Select
         v-if="selectedOntology && selectedOntology.branch"
-        v-model="selectedOntology.branch"
+        :model-value="selectedOntology.branch"
         :options="selectedOntology.branches ?? []"
         placeholder="Select Branch"
         class="w-36"
         pt:option:class="text-sm"
         @focus="fetchBranches(selectedOntology)"
         @change="changeBranch(selectedOntology, $event.value)"
-      />
+      >
+        <template #footer>
+          <div class="p-3">
+            <Button
+              label="New Branch"
+              fluid
+              severity="secondary"
+              text
+              size="small"
+              icon="pi pi-plus"
+            />
+          </div>
+        </template></Select>
       <Button
         v-if="selectedOntology && selectedOntology.branch && undoStackSize"
         label="Commit"
@@ -248,13 +360,13 @@ const commitChanges = async () => {
       </div>
 
       <template #footer>
-        <!-- <Button
+        <Button
           label="Cancel"
           text
           severity="secondary"
-          @click="importDialogVisible = false"
+          @click="cancelChanges"
           autofocus
-        /> -->
+        />
         <Button
           label="Commit"
           outlined

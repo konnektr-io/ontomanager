@@ -30,7 +30,8 @@ const drawerPinned = ref(false)
 const activeTreeType = ref(TreeType.Classes)
 
 const navigationItems = [
-  { icon: 'pi pi-sitemap', title: 'Classes', value: TreeType.Classes },
+  { icon: 'pi pi-box', title: 'Classes', value: TreeType.Classes },
+  { icon: 'pi pi-sitemap', title: 'Decomposition', value: TreeType.Decomposition },
   { icon: 'pi pi-link', title: 'Properties', value: TreeType.Properties },
   { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
 ]
@@ -78,8 +79,12 @@ onMounted(initialize)
             :icon="item.icon"
             :label="drawerExpanded ? item.title : ''"
             text
+            :pt:label:class="{
+              'font-semibold': activeTreeType === item.value,
+              'font-normal': activeTreeType !== item.value
+            }"
             :class="{
-              'font-semibold': activeTreeType !== item.value
+              'text-slate-700': activeTreeType === item.value
             }"
             @click="selectTreeType(item.value)"
           />
@@ -123,7 +128,7 @@ onMounted(initialize)
 </template>
 <style scoped>
 .p-button.p-button-text:not(.p-disabled):hover {
-  background: rgba(var(--primary-color), 0.04);
+  background: rgba(var(--p-primary-color), 0);
   color: var(--primary-color);
 }
 </style>

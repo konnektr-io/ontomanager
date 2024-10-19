@@ -36,7 +36,7 @@ const treeData = computed(() => {
   >
     <template #default="slotProps">
       <div v-tooltip="slotProps.node.key">
-        <span :class="{ 'font-medium': slotProps.node.data.graph === selectedOntology?.url }">
+        <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.url }">
           {{ slotProps.node.label }}
         </span>
       </div>

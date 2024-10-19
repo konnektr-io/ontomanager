@@ -23,6 +23,7 @@ const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
 export enum TreeType {
   Classes = 'classes',
+  Decomposition = 'decomposition',
   Properties = 'properties',
   Individuals = 'individuals'
 }
@@ -44,6 +45,7 @@ export interface GraphDetails {
   repo?: string
   branches?: string[]
   branch?: string
+  path?: string
   visible?: boolean
   loaded?: boolean
   namespace?: string
@@ -160,6 +162,7 @@ export const useGraphStore = defineStore('graph', () => {
           userGraph.owner = owner
           userGraph.repo = repo
           userGraph.branch = ref
+          userGraph.path = path
         }
       } else {
         const response = await axios.get(graph.url)
@@ -450,6 +453,47 @@ export const useGraphStore = defineStore('graph', () => {
     return propertiesTree.value
   }
 
+  const decompositionTree = computed<ResourceTreeNode[]>(() => {
+    // A decomposition tree is a tree of all classes that are defined in a restriction on property 'hasPart'
+    // Different ontologies will have a different uri for this, so we try to make an educated guess
+    // In the future we will make this configurable
+
+    // Find a named node, which has 'hasPart' in the uri, which is of type owl:ObjectProperty or rdfs:Property,
+    // and which has a restriction on it
+    const hasPartProperties = store.value
+      .getQuads(null, vocab.rdf.type, null, null)
+      .filter((quad) => {
+        return (
+          (quad.object.equals(vocab.owl.ObjectProperty) ||
+            quad.object.equals(vocab.rdfs.Property)) &&
+          quad.subject.value.includes('hasPart')
+        )
+      })
+      .map((quad) => quad.subject.value)
+
+    // Get subclasses from intersections
+    // This needs to be done after all the other class tree nodes have been created
+    store.value.getQuads(null, vocab.owl.intersectionOf, null, null).forEach((quad) => {
+      const subClass: string | null = null
+      /*       store.value.getQuads(null, null, quad.subject, null).forEach((quad) => {
+        if (allClassTreeNodesMap[quad.subject.value]) {
+          // Found child class (there should only be one in this case)
+          subClass = quad.subject.value
+          allSubClasses.add(subClass)
+        }
+      })
+
+      if (!subClass) return
+      store.value.getQuads(quad.object, null, null, null).forEach((quad) => {
+        // Now push the children
+        if (allClassTreeNodesMap[quad.object.value] && subClass && allClassTreeNodesMap[subClass]) {
+          allClassTreeNodesMap[quad.object.value].children.push(allClassTreeNodesMap[subClass])
+        }
+      }) */
+    })
+    return []
+  })
+
   const getProperties = (classUri: string): Promise<string[]> => {
     return getVisibleSubjects(vocab.rdfs.domain, namedNode(classUri))
   }
@@ -630,72 +674,75 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const writeGraph = async (graphUrl: string) => {
-    const userGraph = userGraphs.value.find((g) => g.url === graphUrl)
-    const writer = new Writer({
-      end: false,
-      prefixes: userGraph?.prefixes
-    })
+    return await new Promise<string>((resolve, reject) => {
+      const userGraph = userGraphs.value.find((g) => g.url === graphUrl)
 
-    const retrieveBlankNodeContentRecursive = (blankNode: BlankNode) => {
-      const blankNodeQuads = store.value.getQuads(blankNode, null, null, literal(graphUrl))
-      if (
-        blankNodeQuads.every(
-          (q) =>
-            q.predicate.value === vocab.rdf.first.value ||
-            q.predicate.value === vocab.rdf.rest.value
-        )
-      ) {
-        return writer.list(
-          blankNodeQuads.map((q) => {
-            if (q.object.termType === 'BlankNode') {
-              return retrieveBlankNodeContentRecursive(q.object)
-            } else {
-              return q.object
-            }
-          })
-        )
-      } else {
-        return writer.blank(
-          blankNodeQuads.map((q) => ({
-            predicate: q.predicate,
-            object:
-              q.object.termType === 'BlankNode'
-                ? retrieveBlankNodeContentRecursive(q.object)
-                : q.object
-          }))
-        )
-      }
-    }
+      const writer = new Writer({
+        end: false,
+        prefixes: userGraph?.prefixes
+      })
 
-    const allQuads = store.value.getQuads(null, null, null, literal(graphUrl))
-    console.log(allQuads.length, allQuads.filter((q) => q.subject.termType !== 'BlankNode').length)
-    let count = 0
-
-    for (const quad of allQuads) {
-      console.log(count, quad)
-      if (quad.subject.termType === 'BlankNode') {
-        // Skip writing quads with blank node subjects
-        continue
+      const retrieveBlankNodeContentRecursive = (blankNode: BlankNode) => {
+        const blankNodeQuads = store.value.getQuads(blankNode, null, null, literal(graphUrl))
+        if (
+          blankNodeQuads.every(
+            (q) =>
+              q.predicate.value === vocab.rdf.first.value ||
+              q.predicate.value === vocab.rdf.rest.value
+          )
+        ) {
+          return writer.list(
+            blankNodeQuads.map((q) => {
+              if (q.object.termType === 'BlankNode') {
+                return retrieveBlankNodeContentRecursive(q.object)
+              } else {
+                return q.object
+              }
+            })
+          )
+        } else {
+          return writer.blank(
+            blankNodeQuads.map((q) => ({
+              predicate: q.predicate,
+              object:
+                q.object.termType === 'BlankNode'
+                  ? retrieveBlankNodeContentRecursive(q.object)
+                  : q.object
+            }))
+          )
+        }
       }
 
-      if (quad.object.termType === 'BlankNode') {
-        // Recursively retrieve and write quads for blank node objects
-        const blankNodeContent = retrieveBlankNodeContentRecursive(quad.object)
-        const writeQuad = new Quad(quad.subject, quad.predicate, blankNodeContent)
-        writer.addQuad(writeQuad)
-      } else {
-        writer.addQuad(new Quad(quad.subject, quad.predicate, quad.object))
-      }
-      count++
-      console.log(count, quad)
-    }
+      const allQuads = store.value.getQuads(null, null, null, literal(graphUrl))
+      let count = 0
 
-    writer.end((error, result) => {
-      if (error) {
-        console.error(`Failed to write graph: ${error}`)
-      } else {
-        console.log(result)
+      for (const quad of allQuads) {
+        if (quad.subject.termType === 'BlankNode') {
+          // Skip writing quads with blank node subjects
+          continue
+        }
+
+        if (quad.object.termType === 'BlankNode') {
+          // Recursively retrieve and write quads for blank node objects
+          const blankNodeContent = retrieveBlankNodeContentRecursive(quad.object)
+          const writeQuad = new Quad(quad.subject, quad.predicate, blankNodeContent)
+          writer.addQuad(writeQuad)
+        } else {
+          writer.addQuad(new Quad(quad.subject, quad.predicate, quad.object))
+        }
+        count++
+        console.log(count, quad)
       }
+
+      writer.end((error, result) => {
+        if (error) {
+          console.error(`Failed to write graph: ${error}`)
+          reject(error)
+        } else {
+          console.log(result)
+          resolve(result as string)
+        }
+      })
     })
   }
 
@@ -733,6 +780,7 @@ export const useGraphStore = defineStore('graph', () => {
     redo,
     clearUndoRedoStacks,
 
+    loadGraph,
     writeGraph
   }
 })
