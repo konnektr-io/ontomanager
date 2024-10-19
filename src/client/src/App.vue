@@ -23,7 +23,8 @@ const cookieDialog = () => {
     },
     acceptProps: {
       label: 'Accept',
-      text: true
+      severity: 'secondary',
+      outlined: true
     },
     accept: () => {
       // Bootstrap the Google Analytics

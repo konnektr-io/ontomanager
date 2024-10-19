@@ -5,6 +5,7 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
+import Textarea from 'primevue/textarea'
 import UserMenu from './UserMenu.vue'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import gitHubService from '@/services/GitHubService'
@@ -56,6 +57,8 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
   addOntology(newUrl)
 }
 
+const commitDialogVisible = ref(false)
+const commitMessage = ref('')
 const commitChanges = async () => {
   // Implement commit changes logic
   // For now just export and download the file
@@ -149,7 +152,8 @@ const commitChanges = async () => {
       <Button
         v-if="selectedOntology && selectedOntology.branch"
         label="Commit"
-        @click="commitChanges"
+        outlined
+        @click="commitDialogVisible = true"
       ></Button>
     </div>
     <!-- Right-aligned content -->
@@ -177,22 +181,89 @@ const commitChanges = async () => {
       v-model:visible="importDialogVisible"
       modal
     >
-      <div class="p-fluid">
-        <div class="field">
-          <label for="ontologyUrl">Ontology URL</label>
-          <InputText
-            id="ontologyUrl"
-            v-model="newOntologyUrl"
-          />
-        </div>
-        <div class="field">
-          <Button
-            label="Import"
-            icon="pi pi-check"
-            @click="importOntology"
-          />
+      <span class="text-surface-500 dark:text-surface-400 block mb-8">Enter an url to the ontology to load. Github URLs
+        require to be signed in.</span>
+      <div class="flex items-center gap-4 mb-4">
+        <label
+          for="ontologyUrl"
+          class="font-semibold w-16"
+        >URL</label>
+        <InputText
+          id="ontologyUrl"
+          v-model="newOntologyUrl"
+          class="flex-auto"
+        />
+      </div>
+      <template #footer>
+        <!-- <Button
+          label="Cancel"
+          text
+          severity="secondary"
+          @click="importDialogVisible = false"
+          autofocus
+        /> -->
+        <Button
+          label="Import"
+          outlined
+          severity="secondary"
+          @click="importOntology"
+          autofocus
+        />
+      </template>
+    </Dialog>
+
+    <!-- Commit dialog -->
+    <Dialog
+      header="Commit Changes"
+      v-model:visible="commitDialogVisible"
+      modal
+    >
+      <span class="text-surface-500 dark:text-surface-400 block mb-8">Commit changes to the selected ontology.</span>
+      <div class="flex flex-col gap-2 mb-4">
+        <div
+          id="fileDetails"
+          class="text-surface-500 dark:text-surface-400"
+        >
+          <p><span class="font-semibold">File:</span> {{ selectedOntology?.url }}</p>
+          <p><span class="font-semibold">Repository:</span> {{ selectedOntology?.repo }}</p>
+          <p>
+            <span class="font-semibold">Branch:</span> {{ selectedOntology?.branch }}
+          </p>
         </div>
       </div>
+
+      <div class="flex flex-col gap-2 mb-4">
+        <label
+          for="commitMessage"
+          class="font-semibold"
+        >Message</label>
+        <Textarea
+          id="commitMessage"
+          v-model="commitMessage"
+          autoResize
+          rows="5"
+          cols="30"
+        />
+      </div>
+
+      <template #footer>
+        <!-- <Button
+          label="Cancel"
+          text
+          severity="secondary"
+          @click="importDialogVisible = false"
+          autofocus
+        /> -->
+        <Button
+          label="Commit"
+          outlined
+          severity="secondary"
+          autofocus
+          :disabled="!commitMessage || !commitMessage.length"
+          @click="commitChanges"
+        />
+      </template>
     </Dialog>
+
   </div>
 </template>
