@@ -11,16 +11,16 @@ const cookieDialog = () => {
   confirm.require({
     group: 'positioned',
     header: 'Cookie Consent',
-    message: 'This site uses cookies to ensure you get the best experience.',
+    message: 'We use cookies to track usage and improve your experience. Do you consent to the use of cookies for analytics?',
     icon: 'pi pi-info-circle',
     position: 'bottomright',
     rejectProps: {
-      label: 'Cancel',
+      label: 'Decline',
       severity: 'secondary',
       text: true
     },
     acceptProps: {
-      label: 'Save',
+      label: 'Accept',
       text: true
     },
     accept: () => {
