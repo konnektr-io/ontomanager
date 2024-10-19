@@ -108,13 +108,14 @@ export const useGraphStore = defineStore('graph', () => {
   const selectedOntology = ref<GraphDetails | null>(null)
   const selectedResource = ref<string>()
 
-  const editMode = computed(
-    () =>
-      selectedOntology.value?.loaded &&
-      selectedOntology.value?.visible &&
-      selectedOntology.value?.repo &&
-      selectedOntology.value?.owner &&
-      selectedOntology.value?.branch
+  const editMode = computed(() =>
+    selectedOntology.value?.loaded &&
+    selectedOntology.value.visible &&
+    selectedOntology.value.repo &&
+    selectedOntology.value.owner &&
+    selectedOntology.value.branch
+      ? true
+      : false
   )
 
   const initialize = async () => {

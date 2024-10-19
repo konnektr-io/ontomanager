@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { bootstrap } from 'vue-gtag'
 import DynamicDialog from 'primevue/dynamicdialog'
+import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from "primevue/useconfirm"
 import TheHeader from '@/components/TheHeader.vue'
 import { onMounted } from 'vue'
@@ -14,6 +15,7 @@ const cookieDialog = () => {
     message: 'We use cookies to track usage and improve your experience. Do you consent to the use of cookies for analytics?',
     icon: 'pi pi-info-circle',
     position: 'bottomright',
+    modal: false,
     rejectProps: {
       label: 'Decline',
       severity: 'secondary',

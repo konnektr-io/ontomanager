@@ -1,4 +1,4 @@
-import { createApp, markRaw } from 'vue'
+import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
@@ -68,11 +68,7 @@ app.use(VueGtag, {
   config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID }
 })
 
-const pinia = createPinia()
-pinia.use(({ store }) => {
-  store.router = markRaw(router)
-})
-app.use(pinia)
+app.use(createPinia())
 app.use(router)
 
 app.use(PrimeVue, {

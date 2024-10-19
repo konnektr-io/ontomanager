@@ -15,10 +15,24 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const githubStore = useGitHubStore()
-  if (!githubStore.isSignedIn && !(await githubStore.handleGitHubCallback())) {
-    await githubStore.silentLogin()
+  if (githubStore.isSignedIn) {
+    next()
+  } else {
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    if (code) {
+      const user = await githubStore.handleGitHubCallback(code)
+      if (!user) next()
+      else {
+        const stateParam = urlParams.get('state')
+        if (stateParam) next(stateParam)
+        else next()
+      }
+    } else {
+      githubStore.silentLogin()
+      next()
+    }
   }
-  next()
 })
 
 export default router
