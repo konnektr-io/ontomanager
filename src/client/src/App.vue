@@ -34,7 +34,9 @@ const cookieDialog = () => {
 }
 
 onMounted(() => {
-  if (!localStorage.getItem('cookie-consent')) {
+  if (!localStorage.getItem('cookie-consent') && typeof
+    import.meta.env.VITE_GA_MEASUREMENT_ID === 'string' &&
+    import.meta.env.VITE_GA_MEASUREMENT_ID.length > 0) {
     cookieDialog()
   } else {
     bootstrap()
