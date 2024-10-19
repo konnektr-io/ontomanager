@@ -3,7 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-import VueGtag, { bootstrap } from 'vue-gtag'
+import VueGtag from 'vue-gtag'
 import './assets/main.css'
 import 'primeicons/primeicons.css'
 import PrimeVue from 'primevue/config'
@@ -11,6 +11,7 @@ import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
 import Tooltip from 'primevue/tooltip'
 import DialogService from 'primevue/dialogservice'
+import ConfirmationService from 'primevue/confirmationservice'
 
 const Konnektr = definePreset(Aura, {
   semantic: {
@@ -87,6 +88,7 @@ app.use(PrimeVue, {
   }
 })
 app.use(DialogService)
+app.use(ConfirmationService)
 app.directive('tooltip', Tooltip)
 
 app.mount('#app')
