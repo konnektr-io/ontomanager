@@ -181,7 +181,7 @@ const commitChanges = async () => {
         optionLabel="name"
         showClear
         placeholder="Select Ontology"
-        class="w-96 text-sm"
+        class="w-[32rem] text-sm"
         :pt:clearIcon:onClick="() => changeSelectedOntology(null)"
         @change="changeSelectedOntology($event.value)"
       >
