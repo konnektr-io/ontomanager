@@ -10,7 +10,7 @@ import UserMenu from './UserMenu.vue'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import gitHubService from '@/services/GitHubService'
 
-const { userGraphs, selectedOntology } = storeToRefs(useGraphStore())
+const { userGraphs, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
 const {
   toggleOntologyVisibility,
   addOntology,
@@ -150,9 +150,10 @@ const commitChanges = async () => {
         @change="changeBranch(selectedOntology, $event.value)"
       />
       <Button
-        v-if="selectedOntology && selectedOntology.branch"
+        v-if="selectedOntology && selectedOntology.branch && undoStackSize"
         label="Commit"
         outlined
+        :badge="`${undoStackSize}`"
         @click="commitDialogVisible = true"
       ></Button>
     </div>

@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { TreeType, useGraphStore } from '@/stores/graph'
+import Button from 'primevue/button'
 import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
-import Tabs from 'primevue/tabs'
-import Tab from 'primevue/tab'
-import TabList from 'primevue/tablist'
-import TabPanel from 'primevue/tabpanel'
 import ResourceTree from '@/components/ResourceTree.vue'
 import ResourceViewer from '@/components/ResourceViewer.vue'
 
@@ -28,57 +25,105 @@ watch(selectedResource, (value, oldValue) => {
   }
 })
 
-const tabs = [
-  { title: 'Classes', value: TreeType.Classes },
-  { title: 'Properties', value: TreeType.Properties },
+const drawerExpanded = ref(false)
+const drawerPinned = ref(false)
+const activeTreeType = ref(TreeType.Classes)
+
+const navigationItems = [
+  { icon: 'pi pi-sitemap', title: 'Classes', value: TreeType.Classes },
+  { icon: 'pi pi-link', title: 'Properties', value: TreeType.Properties },
+  { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
 ]
+
+const selectTreeType = (type: TreeType) => {
+  activeTreeType.value = type
+}
+
+const expandDrawer = () => {
+  if (!drawerPinned.value) {
+    drawerExpanded.value = true
+  }
+}
+
+const collapseDrawer = () => {
+  if (!drawerPinned.value) {
+    drawerExpanded.value = false
+  }
+}
+
+const toggleDrawer = () => {
+  drawerPinned.value = !drawerPinned.value
+  drawerExpanded.value = drawerPinned.value
+}
 
 const { initialize } = useGraphStore()
 onMounted(initialize)
-
 </script>
 
 <template>
-  <Splitter
-    :gutter-size="1"
-    class="h-full"
-    style="border: 0px;"
-  >
-    <SplitterPanel
-      :size="25"
-      :minSize="10"
-      class="bg-surface-0 h-full overflow-auto"
+  <div class="flex h-full">
+    <!-- Navigation Drawer -->
+    <div
+      class="flex flex-col justify-between bg-surface-100 transition-all duration-300 ease-in-out"
+      :class="{ 'w-56': drawerExpanded, 'w-10': !drawerExpanded }"
+      @mouseenter="expandDrawer"
+      @mouseleave="collapseDrawer"
     >
-      <Tabs :value="TreeType.Classes">
-        <TabList>
-          <Tab
-            v-for="tab in tabs"
-            :key="tab.title"
-            :value="tab.value"
-          >{{ tab.title }}</Tab>
-        </TabList>
-        <TabPanel
-          :value="TreeType.Classes"
-          header="Classes"
+      <ul class="list-none">
+        <li
+          v-for="item in navigationItems"
+          :key="item.value"
         >
-          <ResourceTree :type="TreeType.Classes" />
-        </TabPanel>
-        <TabPanel
-          :value="TreeType.Properties"
-          header="Properties"
-        >
-          <ResourceTree :type="TreeType.Properties" />
-        </TabPanel>
-      </Tabs>
-    </SplitterPanel>
-    <SplitterPanel
-      :size="75"
-      class="bg-surface-0 h-full overflow-auto"
-    >
-      <ResourceViewer v-if="selectedResource" />
-      <div v-else>
-        Nothing selected
+          <Button
+            :icon="item.icon"
+            :label="drawerExpanded ? item.title : ''"
+            text
+            :class="{
+              'font-semibold': activeTreeType !== item.value
+            }"
+            @click="selectTreeType(item.value)"
+          />
+        </li>
+      </ul>
+      <div>
+        <Button
+          icon="pi pi-angle-double-left"
+          text
+          :class="{ 'rotate-180': drawerPinned }"
+          @click="toggleDrawer"
+        />
       </div>
-    </SplitterPanel>
-  </Splitter>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-grow">
+      <Splitter
+        :gutter-size="1"
+        class="h-full border-y-0 border-r-0 rounded-none"
+      >
+        <SplitterPanel
+          :size="25"
+          :min-size="10"
+          class="bg-surface-0 overflow-auto"
+        >
+          <ResourceTree :type="activeTreeType" />
+        </SplitterPanel>
+        <SplitterPanel
+          :size="75"
+          class="bg-surface-0 overflow-auto"
+        >
+          <ResourceViewer v-if="selectedResource" />
+          <div v-else>
+            Nothing selected
+          </div>
+        </SplitterPanel>
+      </Splitter>
+    </div>
+  </div>
 </template>
+<style scoped>
+.p-button.p-button-text:not(.p-disabled):hover {
+  background: rgba(var(--primary-color), 0.04);
+  color: var(--primary-color);
+}
+</style>

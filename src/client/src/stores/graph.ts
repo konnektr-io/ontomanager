@@ -23,7 +23,8 @@ const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
 export enum TreeType {
   Classes = 'classes',
-  Properties = 'properties'
+  Properties = 'properties',
+  Individuals = 'individuals'
 }
 
 export interface ResourceTreeNode {
@@ -85,7 +86,6 @@ const builtinGraphs: BuiltinGraphDetails[] = [
 ]
 
 export const commonDataTypes = [
-  vocab.rdf.langString,
   vocab.xsd.string,
   vocab.xsd.integer,
   vocab.xsd.decimal,
@@ -93,6 +93,7 @@ export const commonDataTypes = [
   vocab.xsd.dateTime,
   vocab.xsd.date,
   vocab.xsd.time
+  // vocab.rdf.langString
 ]
 
 export const useGraphStore = defineStore('graph', () => {
@@ -567,48 +568,29 @@ export const useGraphStore = defineStore('graph', () => {
 
   interface QuadChange {
     action: 'add' | 'remove'
-    graphUrl: string
-    subject: NamedNode<string>
-    predicate: NamedNode<string>
-    object: NamedNode | Literal
+    quad: Quad
   }
 
   const undoStack = ref<QuadChange[]>([])
   const redoStack = ref<QuadChange[]>([])
 
-  const addQuad = (
-    graphUrl: string,
-    subject: NamedNode<string>,
-    predicate: NamedNode<string>,
-    object: NamedNode | Literal
-  ) => {
-    store.value.addQuad(subject, predicate, object, namedNode(graphUrl))
-    undoStack.value.push({ action: 'add', graphUrl, subject, predicate, object })
+  const addQuad = (quad: Quad) => {
+    store.value.addQuad(quad)
+    undoStack.value.push({ action: 'add', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
-  const editQuad = (
-    graphUrl: string,
-    subject: NamedNode<string>,
-    predicate: NamedNode<string>,
-    oldObject: NamedNode | Literal,
-    newObject: NamedNode | Literal
-  ) => {
-    store.value.removeQuad(subject, predicate, oldObject, namedNode(graphUrl))
-    store.value.addQuad(subject, predicate, newObject, namedNode(graphUrl))
-    undoStack.value.push({ action: 'remove', graphUrl, subject, predicate, object: oldObject })
-    undoStack.value.push({ action: 'add', graphUrl, subject, predicate, object: newObject })
+  const editQuad = (oldQuad: Quad, newQuad: Quad) => {
+    store.value.removeQuad(oldQuad)
+    store.value.addQuad(newQuad)
+    undoStack.value.push({ action: 'remove', quad: oldQuad })
+    undoStack.value.push({ action: 'add', quad: newQuad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
-  const removeQuad = (
-    graphUrl: string,
-    subject: NamedNode<string>,
-    predicate: NamedNode<string>,
-    object: NamedNode | Literal
-  ) => {
-    store.value.removeQuad(subject, predicate, object, namedNode(graphUrl))
-    undoStack.value.push({ action: 'remove', graphUrl, subject, predicate, object })
+  const removeQuad = (quad: Quad) => {
+    store.value.removeQuad(quad)
+    undoStack.value.push({ action: 'remove', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
@@ -616,13 +598,13 @@ export const useGraphStore = defineStore('graph', () => {
     const lastChange = undoStack.value.pop()
     if (!lastChange) return
 
-    const { action, graphUrl, subject, predicate, object } = lastChange
+    const { action, quad } = lastChange
     if (action === 'add') {
-      store.value.removeQuad(subject, predicate, object, namedNode(graphUrl))
-      redoStack.value.push({ action: 'remove', graphUrl, subject, predicate, object })
+      store.value.removeQuad(quad)
+      redoStack.value.push({ action: 'remove', quad })
     } else if (action === 'remove') {
-      store.value.addQuad(subject, predicate, object, namedNode(graphUrl))
-      redoStack.value.push({ action: 'add', graphUrl, subject, predicate, object })
+      store.value.addQuad(quad)
+      redoStack.value.push({ action: 'add', quad })
     }
   }
 
@@ -630,13 +612,13 @@ export const useGraphStore = defineStore('graph', () => {
     const lastUndo = redoStack.value.pop()
     if (!lastUndo) return
 
-    const { action, graphUrl, subject, predicate, object } = lastUndo
+    const { action, quad } = lastUndo
     if (action === 'add') {
-      store.value.addQuad(subject, predicate, object, namedNode(graphUrl))
-      undoStack.value.push({ action: 'add', graphUrl, subject, predicate, object })
+      store.value.addQuad(quad)
+      undoStack.value.push({ action: 'add', quad })
     } else if (action === 'remove') {
-      store.value.removeQuad(subject, predicate, object, namedNode(graphUrl))
-      undoStack.value.push({ action: 'remove', graphUrl, subject, predicate, object })
+      store.value.removeQuad(quad)
+      undoStack.value.push({ action: 'remove', quad })
     }
   }
 
