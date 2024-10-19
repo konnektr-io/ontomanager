@@ -3,10 +3,8 @@ FROM node:20 AS frontend-builder
 WORKDIR /app/client
 
 # Set environment variables for the frontend build
-ARG GITHUB_CLIENT_ID
-ARG GITHUB_REDIRECT_URI
-ENV VITE_GITHUB_CLIENT_ID=$GITHUB_CLIENT_ID
-ENV VITE_GITHUB_REDIRECT_URI=$GITHUB_REDIRECT_URI
+ARG GA_MEASUREMENT_ID
+ENV VITE_GA_MEASUREMENT_ID=$GA_MEASUREMENT_ID
 
 # Install pnpm globally
 RUN npm install -g pnpm

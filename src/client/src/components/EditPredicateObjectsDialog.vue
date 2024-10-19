@@ -169,15 +169,16 @@ const cancelChanges = () => {
     </div>
 
     <!-- Confirm and Cancel Buttons -->
-    <div class="flex justify-end space-x-4 mt-4">
+    <div class="flex justify-end gap-2 space-x-4 mt-4">
       <Button
+        type="button"
         label="Cancel"
-        class="p-button-secondary text"
+        severity="secondary"
         @click="cancelChanges"
       />
       <Button
+        type="button"
         label="Confirm"
-        class="p-button-success text"
         @click="confirmChanges"
       />
     </div>

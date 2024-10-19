@@ -3,6 +3,7 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
+import VueGtag, { bootstrap } from 'vue-gtag'
 import './assets/main.css'
 import 'primeicons/primeicons.css'
 import PrimeVue from 'primevue/config'
@@ -60,11 +61,16 @@ const Konnektr = definePreset(Aura, {
 })
 
 const app = createApp(App)
+
+app.use(VueGtag, {
+  bootstrap: false,
+  config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID }
+})
+
 const pinia = createPinia()
 pinia.use(({ store }) => {
   store.router = markRaw(router)
 })
-
 app.use(pinia)
 app.use(router)
 
