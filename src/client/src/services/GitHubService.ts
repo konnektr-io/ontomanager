@@ -78,6 +78,7 @@ class GitHubService {
         }
       )
       this.saveTokenData(response.data)
+      return response.data
     } catch (error) {
       console.error('Error refreshing token', error)
     }
@@ -110,7 +111,7 @@ class GitHubService {
             await this.refreshToken()
           }
         }
-        const user = await this.getUser()
+        const user = await this.authenticate(this.tokenData.access_token)
         return user
       } catch (error) {
         console.warn('Error during silent login', error)
