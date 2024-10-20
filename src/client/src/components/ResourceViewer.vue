@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
-import AnnotationPropertyList from './AnnotationPropertyList.vue'
+import AnnotationPropertyList from './PropertyValueList.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'

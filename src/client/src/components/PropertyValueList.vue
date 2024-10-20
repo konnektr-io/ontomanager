@@ -17,16 +17,15 @@ const dialog = useDialog()
 const { selectedOntology, selectedResource, editMode } = storeToRefs(useGraphStore())
 const { getSubjectQuads, getLabel } = useGraphStore()
 
-type GroupedAnnotations = Record<string, {
+type GroupedPropertyValues = Record<string, {
   editable: boolean;
   objects: Quad_Object[];
 }>
 
-const groupedAnnotations = computed(() => {
+const groupedObjectValues = computed(() => {
   const annotations = getSubjectQuads(props.subject)
-  return annotations.reduce<GroupedAnnotations>((acc, annotation) => {
-    const graphId = annotation.graph.value
-    const editable = (selectedOntology.value && graphId === selectedOntology.value.url) ?? false
+  return annotations.reduce<GroupedPropertyValues>((acc, annotation) => {
+    const editable = (selectedOntology.value && annotation.graph.value === selectedOntology.value.node?.value) ?? false
     const predicate = annotation.predicate.value
     if (!acc[predicate]) {
       acc[predicate] = {
@@ -64,7 +63,7 @@ const openDialog = (predicate: string) => {
 
 <template>
   <div
-    v-for="(predicateObjects, predicate) in groupedAnnotations"
+    v-for="(predicateObjects, predicate) in groupedObjectValues"
     :key="`${predicate}`"
     class="text-sm mb-1"
   >
