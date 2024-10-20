@@ -105,6 +105,7 @@ export const commonDataTypes = [
 ]
 
 const parser = new Parser()
+// TODO: Use quadstore package with indexedDB
 const store = new Store()
 
 export const useGraphStore = defineStore('graph', () => {
