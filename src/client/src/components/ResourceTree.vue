@@ -13,6 +13,7 @@ const {
   classesTree,
   decompositionTree,
   propertiesTree,
+  individualsTree,
   selectedOntology,
   selectedResource
 } = storeToRefs(useGraphStore())
@@ -25,6 +26,7 @@ const treeData = computed<ResourceTreeNode[]>(() => {
   if (props.type === TreeType.Properties) return propertiesTree.value
   if (props.type === TreeType.Decomposition) return decompositionTree.value
   if (props.type === TreeType.Classes) return classesTree.value
+  if (props.type === TreeType.Individuals) return individualsTree.value
   return []
 })
 
@@ -39,7 +41,7 @@ const treeData = computed<ResourceTreeNode[]>(() => {
   >
     <template #default="slotProps">
       <div v-tooltip="slotProps.node.key">
-        <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.url }">
+        <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
           {{ slotProps.node.label }}
         </span>
       </div>

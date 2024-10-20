@@ -143,6 +143,7 @@ export const useGraphStore = defineStore('graph', () => {
     await getClassesTree()
     await getDecompositionTree()
     await getPropertiesTree()
+    await getIndividualsTree()
   }
 
   const getUserGraphsFromLocalStorage = () => {
@@ -235,8 +236,8 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
-  const toggleOntologyVisibility = async (node: NamedNode<string>): Promise<void> => {
-    const ontologyIndex = userGraphs.value.findIndex((graph) => graph.node === node)
+  const toggleOntologyVisibility = async (g: GraphDetails): Promise<void> => {
+    const ontologyIndex = userGraphs.value.findIndex((graph) => graph.node?.value === g.node?.value)
     if (ontologyIndex !== -1) {
       userGraphs.value[ontologyIndex] = {
         ...userGraphs.value[ontologyIndex],
@@ -246,6 +247,7 @@ export const useGraphStore = defineStore('graph', () => {
       await getClassesTree()
       await getDecompositionTree()
       await getPropertiesTree()
+      await getIndividualsTree()
     }
   }
 
@@ -268,17 +270,19 @@ export const useGraphStore = defineStore('graph', () => {
     await getClassesTree()
     await getDecompositionTree()
     await getPropertiesTree()
+    await getIndividualsTree()
   }
 
-  const removeOntology = async (node: NamedNode<string>): Promise<void> => {
-    const graphIndex = userGraphs.value.findIndex((graph) => graph.node === node)
-    if (graphIndex !== -1) {
-      store.deleteGraph(node)
+  const removeOntology = async (g: GraphDetails): Promise<void> => {
+    const graphIndex = userGraphs.value.findIndex((graph) => graph.node?.value === g.node?.value)
+    if (g.node?.value && graphIndex !== -1) {
+      store.deleteGraph(g.node)
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
       await getClassesTree()
       await getDecompositionTree()
       await getPropertiesTree()
+      await getIndividualsTree()
     }
   }
 
@@ -569,6 +573,64 @@ export const useGraphStore = defineStore('graph', () => {
     )
   }
 
+  /** Retrieves all individuals and groups them by class */
+  const individualsTree = ref<ResourceTreeNode[]>([])
+  const getIndividualsTree = async () => {
+    const allIndividualTypeQuads: Quad[] = []
+    for (const graph of visibleGraphNodes.value) {
+      store.getQuads(null, vocab.rdf.type, null, graph).forEach((quad) => {
+        if (
+          quad.subject.termType === 'NamedNode' &&
+          quad.object.termType === 'NamedNode' &&
+          quad.object.value !== vocab.rdfs.Class.value &&
+          quad.object.value !== vocab.owl.Class.value &&
+          quad.object.value !== vocab.rdfs.Property.value &&
+          quad.object.value !== vocab.owl.ObjectProperty.value &&
+          quad.object.value !== vocab.owl.DatatypeProperty.value &&
+          quad.object.value !== vocab.owl.AnnotationProperty.value &&
+          quad.object.value !== vocab.owl.TransitiveProperty.value &&
+          quad.object.value !== vocab.rdfs.Datatype.value &&
+          quad.object.value !== vocab.owl.Restriction.value &&
+          quad.object.value !== vocab.owl.Ontology.value &&
+          quad.object.value !== vocab.skos.ConceptScheme.value &&
+          quad.object.value !== vocab.owl.NamedIndividual.value
+        ) {
+          allIndividualTypeQuads.push(quad)
+        }
+      })
+    }
+
+    // Construct the tree of individuals by class
+    const treeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
+
+    for (const quad of allIndividualTypeQuads) {
+      const classUri = quad.object.value
+      if (!treeNodesMap[classUri])
+        treeNodesMap[classUri] = {
+          key: classUri,
+          label: getLabel(classUri),
+          data: {
+            prefixedUri: getPrefixedUri(classUri),
+            graph: quad.graph.value
+          },
+          children: []
+        }
+      if (!treeNodesMap[classUri].children.find((c) => c.key === quad.subject.value)) {
+        treeNodesMap[classUri].children.push({
+          key: quad.subject.value,
+          label: getLabel(quad.subject.value),
+          data: {
+            prefixedUri: getPrefixedUri(quad.subject.value),
+            graph: quad.graph.value
+          },
+          children: []
+        })
+      }
+    }
+
+    individualsTree.value = Object.values(treeNodesMap)
+  }
+
   const getProperties = (classUri: string): Promise<string[]> => {
     return getVisibleSubjects(vocab.rdfs.domain, namedNode(classUri))
   }
@@ -844,6 +906,7 @@ export const useGraphStore = defineStore('graph', () => {
     classesTree,
     decompositionTree,
     propertiesTree,
+    individualsTree,
 
     getProperties,
     getIndividuals,

@@ -213,14 +213,14 @@ const commitChanges = async () => {
                 size="small"
                 text
                 rounded
-                @click.stop="toggleOntologyVisibility(slotProps.option.url)"
+                @click.stop="toggleOntologyVisibility(slotProps.option)"
               />
               <Button
                 icon="pi pi-trash"
                 size="small"
                 text
                 rounded
-                @click.stop="removeOntology(slotProps.option.url)"
+                @click.stop="removeOntology(slotProps.option)"
               />
             </div>
           </div>

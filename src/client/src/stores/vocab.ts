@@ -23,6 +23,7 @@ export const vocab = {
   rdfs: {
     Class: namedNode('http://www.w3.org/2000/01/rdf-schema#Class'),
     Property: namedNode('http://www.w3.org/2000/01/rdf-schema#Property'),
+    Datatype: namedNode('http://www.w3.org/2000/01/rdf-schema#Datatype'),
     label: namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
     domain: namedNode('http://www.w3.org/2000/01/rdf-schema#domain'),
     range: namedNode('http://www.w3.org/2000/01/rdf-schema#range'),
@@ -35,7 +36,8 @@ export const vocab = {
     ObjectProperty: namedNode('http://www.w3.org/2002/07/owl#ObjectProperty'),
     DatatypeProperty: namedNode('http://www.w3.org/2002/07/owl#DatatypeProperty'),
     AnnotationProperty: namedNode('http://www.w3.org/2002/07/owl#AnnotationProperty'),
-    Individual: namedNode('http://www.w3.org/2002/07/owl#Individual'),
+    TransitiveProperty: namedNode('http://www.w3.org/2002/07/owl#TransitiveProperty'),
+    NamedIndividual: namedNode('http://www.w3.org/2002/07/owl#NamedIndividual'),
     Ontology: namedNode('http://www.w3.org/2002/07/owl#Ontology'),
     Restriction: namedNode('http://www.w3.org/2002/07/owl#Restriction'),
     intersectionOf: namedNode('http://www.w3.org/2002/07/owl#intersectionOf'),
