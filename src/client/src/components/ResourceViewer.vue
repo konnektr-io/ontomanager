@@ -2,7 +2,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
-import AnnotationPropertyList from './PropertyValueList.vue'
+import PropertyValueList from './PropertyValueList.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'
@@ -45,7 +45,7 @@ watch([selectedResource, userGraphs], async () => {
     </div>
     <div>
       <div class="mb-6">
-        <AnnotationPropertyList :subject="selectedResource" />
+        <PropertyValueList :subject="selectedResource" />
       </div>
       <div class="space-y-6">
         <div>
@@ -81,7 +81,7 @@ watch([selectedResource, userGraphs], async () => {
                   </TermValue>
                 </div>
               </template>
-              <AnnotationPropertyList :subject="property" />
+              <PropertyValueList :subject="property" />
             </Panel>
           </div>
         </div>
@@ -119,7 +119,7 @@ watch([selectedResource, userGraphs], async () => {
                   </TermValue>
                 </div>
               </template>
-              <AnnotationPropertyList :subject="individual" />
+              <PropertyValueList :subject="individual" />
             </Panel>
           </div>
         </div>
