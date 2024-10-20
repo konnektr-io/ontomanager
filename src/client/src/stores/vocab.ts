@@ -48,7 +48,8 @@ export const vocab = {
     hasValue: namedNode('http://www.w3.org/2002/07/owl#hasValue')
   },
   skos: {
-    prefLabel: namedNode('http://www.w3.org/2004/02/skos/core#prefLabel')
+    prefLabel: namedNode('http://www.w3.org/2004/02/skos/core#prefLabel'),
+    ConceptScheme: namedNode('http://www.w3.org/2004/02/skos/core#ConceptScheme')
   },
   sh: {
     name: namedNode('http://www.w3.org/ns/shacl#name'),

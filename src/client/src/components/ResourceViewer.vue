@@ -11,17 +11,18 @@ import TermValue from './TermValue.vue'
 const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const {
   getProperties,
-  getShaclPropertyQuads,
-  getRestrictions,
+  getIndividuals,
   getLabel,
   getPrefixedUri,
   getRanges
 } = useGraphStore()
 
 const properties = ref<string[]>([])
+const individuals = ref<string[]>([])
 watch([selectedResource, userGraphs], async () => {
   if (!selectedResource.value) return
   properties.value = await getProperties(selectedResource.value)
+  individuals.value = getIndividuals(selectedResource.value)
 }, { immediate: true, deep: true })
 
 
@@ -81,6 +82,44 @@ watch([selectedResource, userGraphs], async () => {
                 </div>
               </template>
               <AnnotationPropertyList :subject="property" />
+            </Panel>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="text-lg font-semibold mb-4">Individuals</h3>
+          <p
+            v-if="!individuals.length"
+            class="text-muted-foreground"
+          >No individuals defined.</p>
+          <div
+            v-else
+            class="space-y-4"
+          >
+            <Panel
+              v-for="individual in individuals"
+              :key="individual"
+              toggleable
+              collapsed
+            >
+              <template #header>
+                <div class="flex items-center gap-4">
+                  <div
+                    v-tooltip="getPrefixedUri(individual)"
+                    class="font-semibold cursor-pointer"
+                    @click="selectedResource = individual"
+                  >{{ getLabel(individual) }}</div>
+                  <TermValue
+                    v-for="object of getRanges(individual)"
+                    :key="object.value"
+                    :term="object"
+                    class="text-sm"
+                    @click-uri="selectedResource = object.value"
+                  >
+                  </TermValue>
+                </div>
+              </template>
+              <AnnotationPropertyList :subject="individual" />
             </Panel>
           </div>
         </div>

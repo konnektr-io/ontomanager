@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { bootstrap } from 'vue-gtag'
-import DynamicDialog from 'primevue/dynamicdialog'
 import ConfirmDialog from 'primevue/confirmdialog'
+import DynamicDialog from 'primevue/dynamicdialog'
+import Toast from 'primevue/toast'
 import { useConfirm } from "primevue/useconfirm"
 import TheHeader from '@/components/TheHeader.vue'
-import { onMounted } from 'vue'
 
 const confirm = useConfirm()
 
@@ -63,5 +64,8 @@ onMounted(() => {
 
     <!-- Cookie Dialog -->
     <ConfirmDialog></ConfirmDialog>
+
+    <!-- Toast -->
+    <Toast></Toast>
   </div>
 </template>

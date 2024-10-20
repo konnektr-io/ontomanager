@@ -106,10 +106,10 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
         outlined: true
       },
       accept: () => {
-        if (graph.branch && branch) {
+        if (graph.branch && branch && graph.node) {
           clearUndoRedoStacks()
           const newUrl = graph.url.replace(graph.branch, branch)
-          removeOntology(graph.url)
+          removeOntology(graph.node)
           addOntology(newUrl)
           graph.branch = branch
         }
@@ -118,9 +118,9 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
       }
     })
   } else {
-    if (graph.branch && branch) {
+    if (graph.branch && branch && graph.node) {
       const newUrl = graph.url.replace(graph.branch, branch)
-      removeOntology(graph.url)
+      removeOntology(graph.node)
       addOntology(newUrl)
       graph.branch = branch
     }

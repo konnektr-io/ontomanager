@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import Tree from 'primevue/tree'
 import { storeToRefs } from 'pinia'
-import { TreeType, useGraphStore } from '@/stores/graph'
+import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
 
 
 const props = defineProps<{
@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const {
   classesTree,
+  decompositionTree,
   propertiesTree,
   selectedOntology,
   selectedResource
@@ -20,9 +21,11 @@ const selectedKeys = computed({
   get: () => ({ ...selectedResource.value && { [selectedResource.value]: true } }),
   set: (value: { [uri: string]: boolean }) => selectedResource.value = Object.keys(value)[0],
 })
-const treeData = computed(() => {
+const treeData = computed<ResourceTreeNode[]>(() => {
   if (props.type === TreeType.Properties) return propertiesTree.value
-  return classesTree.value
+  if (props.type === TreeType.Decomposition) return decompositionTree.value
+  if (props.type === TreeType.Classes) return classesTree.value
+  return []
 })
 
 </script>
