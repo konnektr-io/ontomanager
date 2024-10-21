@@ -6,22 +6,27 @@ import PropertyValueList from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'
+import graphStoreService from '@/services/GraphStoreService'
 
 const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const {
-  getProperties,
-  getIndividuals,
-  getLabel,
+  // getProperties,
+  // getIndividuals,
+  // getLabel,
   getPrefixedUri,
-  getRanges
+  // getRanges
 } = useGraphStore()
+
 
 const properties = ref<string[]>([])
 const individuals = ref<string[]>([])
-watch([selectedResource, userGraphs], async () => {
+watch([
+  selectedResource,
+  userGraphs
+], async () => {
   if (!selectedResource.value) return
-  properties.value = await getProperties(selectedResource.value)
-  individuals.value = getIndividuals(selectedResource.value)
+  // properties.value = await getProperties(selectedResource.value)
+  // individuals.value = getIndividuals(selectedResource.value)
 }, { immediate: true, deep: true })
 
 
@@ -34,7 +39,7 @@ watch([selectedResource, userGraphs], async () => {
     class="w-full p-4"
   >
     <div class="flex items-center gap-2 mb-4">
-      <p class="text-lg font-semibold">{{ getLabel(selectedResource) }}</p>
+      <p class="text-lg font-semibold">{{ graphStoreService.getLabel(selectedResource) }}</p>
       <div class="flex flex-wrap gap-1">
         <Tag
           v-tooltip="selectedResource"
@@ -44,7 +49,7 @@ watch([selectedResource, userGraphs], async () => {
     </div>
     <div>
       <div class="mb-6">
-        <PropertyValueList :subject="selectedResource" />
+        <!-- <PropertyValueList :subject="selectedResource" /> -->
       </div>
       <div class="space-y-6">
         <div>
@@ -69,18 +74,18 @@ watch([selectedResource, userGraphs], async () => {
                     v-tooltip="getPrefixedUri(property)"
                     class="font-semibold cursor-pointer"
                     @click="selectedResource = property"
-                  >{{ getLabel(property) }}</div>
-                  <TermValue
+                  >{{ graphStoreService.getLabel(property) }}</div>
+                  <!-- <TermValue
                     v-for="object of getRanges(property)"
                     :key="object.value"
                     :term="object"
                     class="text-sm"
                     @click-uri="selectedResource = object.value"
                   >
-                  </TermValue>
+                  </TermValue> -->
                 </div>
               </template>
-              <PropertyValueList :subject="property" />
+              <!-- <PropertyValueList :subject="property" /> -->
             </Panel>
           </div>
         </div>
@@ -103,7 +108,7 @@ watch([selectedResource, userGraphs], async () => {
             >
               <template #header>
                 <div class="flex items-center gap-4">
-                  <div
+                  <!-- <div
                     v-tooltip="getPrefixedUri(individual)"
                     class="font-semibold cursor-pointer"
                     @click="selectedResource = individual"
@@ -115,10 +120,10 @@ watch([selectedResource, userGraphs], async () => {
                     class="text-sm"
                     @click-uri="selectedResource = object.value"
                   >
-                  </TermValue>
+                  </TermValue> -->
                 </div>
               </template>
-              <PropertyValueList :subject="individual" />
+              <!-- <PropertyValueList :subject="individual" /> -->
             </Panel>
           </div>
         </div>

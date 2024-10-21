@@ -15,9 +15,9 @@ import { useConfirm } from 'primevue/useconfirm'
 const confirm = useConfirm()
 const { userGraphs, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
 const {
-  toggleOntologyVisibility,
-  addOntology,
-  removeOntology,
+  toggleGraphVisibility,
+  addGraph,
+  removeGraph,
   writeGraph,
   loadGraph,
   clearUndoRedoStacks
@@ -38,7 +38,7 @@ const openImportDialog = () => {
 }
 
 const importOntology = async () => {
-  await addOntology(newOntologyUrl.value)
+  await addGraph(newOntologyUrl.value)
   importDialogVisible.value = false
   newOntologyUrl.value = ''
 }
@@ -109,8 +109,8 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
         if (graph.branch && branch && graph.node) {
           clearUndoRedoStacks()
           const newUrl = graph.url.replace(graph.branch, branch)
-          removeOntology(graph)
-          addOntology(newUrl)
+          removeGraph(graph)
+          addGraph(newUrl)
           graph.branch = branch
         }
       },
@@ -120,8 +120,8 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
   } else {
     if (graph.branch && branch && graph.node) {
       const newUrl = graph.url.replace(graph.branch, branch)
-      removeOntology(graph)
-      addOntology(newUrl)
+      removeGraph(graph)
+      addGraph(newUrl)
       graph.branch = branch
     }
   }
@@ -142,7 +142,7 @@ const commitChanges = async () => {
   // Implement commit changes logic
   // For now just export and download the file
   if (selectedOntology.value) {
-    const content = await writeGraph(selectedOntology.value.url)
+    const content = await writeGraph(selectedOntology.value)
     if (!content ||
       !selectedOntology.value.owner ||
       !selectedOntology.value.repo ||
@@ -213,14 +213,14 @@ const commitChanges = async () => {
                 size="small"
                 text
                 rounded
-                @click.stop="toggleOntologyVisibility(slotProps.option)"
+                @click.stop="toggleGraphVisibility(slotProps.option)"
               />
               <Button
                 icon="pi pi-trash"
                 size="small"
                 text
                 rounded
-                @click.stop="removeOntology(slotProps.option)"
+                @click.stop="removeGraph(slotProps.option)"
               />
             </div>
           </div>

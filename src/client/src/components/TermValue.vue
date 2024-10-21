@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import type { Term } from 'n3'
 import Tag from 'primevue/tag'
 import { useGraphStore } from '@/stores/graph'
-import { vocab } from '@/stores/vocab'
+import { vocab } from '@/utils/vocab'
 
 const props = defineProps<{
   term: Term;

@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, watch, shallowRef } from 'vue'
 import Tree from 'primevue/tree'
 import { storeToRefs } from 'pinia'
 import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
+import graphStoreService from '@/services/GraphStoreService'
 
 
 const props = defineProps<{
@@ -10,10 +11,8 @@ const props = defineProps<{
 }>()
 
 const {
-  classesTree,
-  decompositionTree,
-  propertiesTree,
-  individualsTree,
+  userGraphs,
+  visibleGraphs,
   selectedOntology,
   selectedResource
 } = storeToRefs(useGraphStore())
@@ -22,13 +21,20 @@ const selectedKeys = computed({
   get: () => ({ ...selectedResource.value && { [selectedResource.value]: true } }),
   set: (value: { [uri: string]: boolean }) => selectedResource.value = Object.keys(value)[0],
 })
-const treeData = computed<ResourceTreeNode[]>(() => {
-  if (props.type === TreeType.Properties) return propertiesTree.value
-  if (props.type === TreeType.Decomposition) return decompositionTree.value
-  if (props.type === TreeType.Classes) return classesTree.value
-  if (props.type === TreeType.Individuals) return individualsTree.value
-  return []
-})
+const treeData = shallowRef<ResourceTreeNode[]>()
+const loading = ref(false)
+watch([
+  () => props.type,
+  userGraphs
+], async () => {
+  loading.value = true
+  if (props.type === TreeType.Classes) {
+    treeData.value = await graphStoreService.getClassesTree(visibleGraphs.value)
+  } else {
+    treeData.value = []
+  }
+  loading.value = false
+}, { immediate: true, deep: true })
 
 </script>
 
