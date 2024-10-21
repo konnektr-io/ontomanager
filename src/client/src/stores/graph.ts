@@ -1,15 +1,15 @@
 import { /* computed,  */ computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import { Store, Parser, DataFactory, NamedNode, Literal, Quad, Writer, BlankNode } from 'n3'
-import type { Quad_Object, OTerm, BlankTriple, Term } from 'n3'
+import { DataFactory, NamedNode, Literal, Quad, Writer, BlankNode } from 'n3'
+import type { Quad_Object, OTerm, BlankTriple } from 'n3'
 import gitHubService from '@/services/GitHubService'
+import graphStoreService from '@/services/GraphStoreService'
 import { vocab } from './vocab'
 import rdfVocab from '../assets/vocab/rdf.ttl?raw'
 import rdfsVocab from '../assets/vocab/rdfs.ttl?raw'
 import owlVocab from '../assets/vocab/owl.ttl?raw'
 import skosVocab from '../assets/vocab/skos.ttl?raw'
-import { useToast } from 'primevue/usetoast'
 
 const { namedNode, literal /* , blankNode */ } = DataFactory
 
@@ -104,10 +104,6 @@ export const commonDataTypes = [
   // vocab.rdf.langString
 ]
 
-const parser = new Parser()
-// TODO: Use quadstore package with indexedDB
-const store = new Store()
-
 export const useGraphStore = defineStore('graph', () => {
   const userGraphs = ref<GraphDetails[]>([])
 
@@ -118,7 +114,7 @@ export const useGraphStore = defineStore('graph', () => {
   )
 
   const selectedOntology = ref<GraphDetails | null>(null)
-  const selectedResource = ref<string>()
+  const selectedResource = ref<string | null>(null)
 
   const editMode = computed(() =>
     selectedOntology.value?.loaded &&
@@ -187,22 +183,22 @@ export const useGraphStore = defineStore('graph', () => {
         saveUserGraphsToLocalStorage
       }
     } catch (error) {
-      const toast = useToast()
+      /* const toast = useToast()
       toast.add({
         severity: 'error',
         summary: 'Error',
         detail: `Failed to load ${graph.url}: ${error}`,
         life: 3000
-      })
+      }) */
       console.error(`Failed to load ${graph.url}: ${error}`)
     }
   }
 
   const loadOntology = (ontologyContent: string, graph: GraphDetails) => {
-    if (graph.node) store.deleteGraph(graph.node)
+    if (graph.node) graphStoreService.store.deleteGraph(graph.node)
 
     const graphPrefixes: { [prefix: string]: NamedNode<string> } = {}
-    const quads = parser.parse(ontologyContent, null, (prefix, ns) => {
+    const quads = graphStoreService.parser.parse(ontologyContent, null, (prefix, ns) => {
       if (prefix && ns && prefix !== '_' && prefix !== ':')
         graphPrefixes[prefix] = ns as NamedNode<string>
     })
@@ -232,7 +228,7 @@ export const useGraphStore = defineStore('graph', () => {
       ) // TODO: URL might cause issues on github, but then there would be repo and path
     }
     graph.prefixes = graphPrefixes
-    store.addQuads(
+    graphStoreService.store.addQuads(
       quads.map((quad) => new Quad(quad.subject, quad.predicate, quad.object, graph.node))
     )
   }
@@ -277,7 +273,7 @@ export const useGraphStore = defineStore('graph', () => {
   const removeOntology = async (g: GraphDetails): Promise<void> => {
     const graphIndex = userGraphs.value.findIndex((graph) => graph.node?.value === g.node?.value)
     if (g.node?.value && graphIndex !== -1) {
-      store.deleteGraph(g.node)
+      graphStoreService.store.deleteGraph(g.node)
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
       await getClassesTree()
@@ -295,13 +291,13 @@ export const useGraphStore = defineStore('graph', () => {
     const promises = visibleGraphNodes.value.map(async (graphNode) => {
       await new Promise<void>((resolve) =>
         setTimeout(() => {
-          const quads = store.getQuads(null, predicate, null, graphNode)
+          const quads = graphStoreService.store.getQuads(null, predicate, null, graphNode)
           for (const quad of quads) {
             if (quad.subject.termType !== 'NamedNode') continue
             if (quad.object.equals(object)) {
               subjects.add(quad.subject.value)
             } else if (quad.object.termType === 'BlankNode') {
-              const subQuads = store.getQuads(quad.object, null, null, graphNode)
+              const subQuads = graphStoreService.store.getQuads(quad.object, null, null, graphNode)
               for (const subQuad of subQuads) {
                 if (subQuad.object.equals(object)) {
                   subjects.add(quad.subject.value)
@@ -312,7 +308,12 @@ export const useGraphStore = defineStore('graph', () => {
                     subQuad.predicate.value === vocab.owl.unionOf.value ||
                     subQuad.predicate.value === vocab.owl.complementOf.value)
                 ) {
-                  const subSubQuads = store.getQuads(subQuad.object, null, null, graphNode)
+                  const subSubQuads = graphStoreService.store.getQuads(
+                    subQuad.object,
+                    null,
+                    null,
+                    graphNode
+                  )
                   for (const subSubQuad of subSubQuads) {
                     if (subSubQuad.object.equals(object)) {
                       subjects.add(quad.subject.value)
@@ -336,7 +337,7 @@ export const useGraphStore = defineStore('graph', () => {
     const allClassTypeQuads: Quad[] = []
     for (const graph of visibleGraphNodes.value) {
       for (const classNode of classObjectNodes) {
-        store.getQuads(null, vocab.rdf.type, classNode, graph).forEach((quad) => {
+        graphStoreService.store.getQuads(null, vocab.rdf.type, classNode, graph).forEach((quad) => {
           if (quad.subject.termType === 'NamedNode') {
             allClassTypeQuads.push(quad)
           }
@@ -351,14 +352,16 @@ export const useGraphStore = defineStore('graph', () => {
       // Get all subclasses
       const subClassQuads: Quad[] = []
       for (const graph of visibleGraphNodes.value) {
-        store.getQuads(null, vocab.rdfs.subClassOf, namedNode(classUri), graph).forEach((quad) => {
-          if (
-            // Make sure it's a class
-            allClassTypeQuads.find((q) => q.subject.value === quad.subject.value)
-          ) {
-            subClassQuads.push(quad)
-          }
-        })
+        graphStoreService.store
+          .getQuads(null, vocab.rdfs.subClassOf, namedNode(classUri), graph)
+          .forEach((quad) => {
+            if (
+              // Make sure it's a class
+              allClassTypeQuads.find((q) => q.subject.value === quad.subject.value)
+            ) {
+              subClassQuads.push(quad)
+            }
+          })
       }
       const children: ResourceTreeNode[] = []
       for (const subClassQuad of subClassQuads) {
@@ -390,9 +393,9 @@ export const useGraphStore = defineStore('graph', () => {
 
     // Get subclasses from intersections
     // This needs to be done after all the other class tree nodes have been created
-    store.getQuads(null, vocab.owl.intersectionOf, null, null).forEach((quad) => {
+    graphStoreService.store.getQuads(null, vocab.owl.intersectionOf, null, null).forEach((quad) => {
       let subClass: string | null = null
-      store.getQuads(null, null, quad.subject, null).forEach((quad) => {
+      graphStoreService.store.getQuads(null, null, quad.subject, null).forEach((quad) => {
         if (allClassTreeNodesMap[quad.subject.value]) {
           // Found child class (there should only be one in this case)
           subClass = quad.subject.value
@@ -401,7 +404,7 @@ export const useGraphStore = defineStore('graph', () => {
       })
 
       if (!subClass) return
-      store.getQuads(quad.object, null, null, null).forEach((quad) => {
+      graphStoreService.store.getQuads(quad.object, null, null, null).forEach((quad) => {
         // Now push the children
         if (allClassTreeNodesMap[quad.object.value] && subClass && allClassTreeNodesMap[subClass]) {
           allClassTreeNodesMap[quad.object.value].children.push(allClassTreeNodesMap[subClass])
@@ -421,11 +424,13 @@ export const useGraphStore = defineStore('graph', () => {
     const allPropertyTypeQuads: Quad[] = []
     for (const graph of visibleGraphNodes.value) {
       for (const propertyNode of propertyObjectNodes) {
-        store.getQuads(null, vocab.rdf.type, propertyNode, graph).forEach((quad) => {
-          if (quad.subject.termType === 'NamedNode') {
-            allPropertyTypeQuads.push(quad)
-          }
-        })
+        graphStoreService.store
+          .getQuads(null, vocab.rdf.type, propertyNode, graph)
+          .forEach((quad) => {
+            if (quad.subject.termType === 'NamedNode') {
+              allPropertyTypeQuads.push(quad)
+            }
+          })
       }
     }
 
@@ -437,14 +442,16 @@ export const useGraphStore = defineStore('graph', () => {
       const propertyUri = propertyTypeQuad.subject.value
       const subPropertyQuads: Quad[] = []
       for (const graph of visibleGraphNodes.value) {
-        store.getQuads(null, vocab.rdfs.subPropertyOf, propertyUri, graph).forEach((quad) => {
-          if (
-            // Make sure it's a property
-            allPropertyTypeQuads.find((q) => q.subject.value === quad.subject.value)
-          ) {
-            subPropertyQuads.push(quad)
-          }
-        })
+        graphStoreService.store
+          .getQuads(null, vocab.rdfs.subPropertyOf, propertyUri, graph)
+          .forEach((quad) => {
+            if (
+              // Make sure it's a property
+              allPropertyTypeQuads.find((q) => q.subject.value === quad.subject.value)
+            ) {
+              subPropertyQuads.push(quad)
+            }
+          })
       }
 
       const children: ResourceTreeNode[] = []
@@ -491,7 +498,7 @@ export const useGraphStore = defineStore('graph', () => {
 
     // Find a named node, which has 'hasPart' in the uri, which is of type owl:ObjectProperty or rdfs:Property,
     // and which has a restriction on it
-    const hasPartProperties = store
+    const hasPartProperties = graphStoreService.store
       .getQuads(null, vocab.rdf.type, null, null)
       .filter((quad) => {
         return (
@@ -508,50 +515,60 @@ export const useGraphStore = defineStore('graph', () => {
 
     // Get 'parts' and parent classes from restrictions
     hasPartProperties.forEach((propertyUri) => {
-      store.getQuads(null, vocab.owl.onProperty, propertyUri, null).forEach((quad) => {
-        const blankNode = quad.subject
-        const parts = store.getObjects(blankNode, vocab.owl.someValuesFrom, null)
-        // There should only be one parent class
-        const parentClass = store.getSubjects(vocab.rdfs.subClassOf, blankNode, null)[0]
-        if (!parentClass) return
-        if (!allDecompositionTreeNodesMap[parentClass.value]) {
-          allDecompositionTreeNodesMap[parentClass.value] = {
-            key: parentClass.value,
-            label: getLabel(parentClass.value),
-            data: {
-              prefixedUri: getPrefixedUri(parentClass.value),
-              graph: quad.graph.value
-            },
-            children: []
-          }
-        }
-        parts.forEach((part) => {
-          if (!allChildClassUris.find((value) => value === part.value)) {
-            allChildClassUris.push(part.value)
-          }
-
-          if (!allDecompositionTreeNodesMap[part.value]) {
-            allDecompositionTreeNodesMap[part.value] = {
-              key: part.value,
-              label: getLabel(part.value),
+      graphStoreService.store
+        .getQuads(null, vocab.owl.onProperty, propertyUri, null)
+        .forEach((quad) => {
+          const blankNode = quad.subject
+          const parts = graphStoreService.store.getObjects(
+            blankNode,
+            vocab.owl.someValuesFrom,
+            null
+          )
+          // There should only be one parent class
+          const parentClass = graphStoreService.store.getSubjects(
+            vocab.rdfs.subClassOf,
+            blankNode,
+            null
+          )[0]
+          if (!parentClass) return
+          if (!allDecompositionTreeNodesMap[parentClass.value]) {
+            allDecompositionTreeNodesMap[parentClass.value] = {
+              key: parentClass.value,
+              label: getLabel(parentClass.value),
               data: {
-                prefixedUri: getPrefixedUri(part.value),
+                prefixedUri: getPrefixedUri(parentClass.value),
                 graph: quad.graph.value
               },
               children: []
             }
           }
-          if (
-            !allDecompositionTreeNodesMap[parentClass.value].children.find(
-              (child) => child.key === part.value
-            )
-          ) {
-            allDecompositionTreeNodesMap[parentClass.value].children.push(
-              allDecompositionTreeNodesMap[part.value]
-            )
-          }
+          parts.forEach((part) => {
+            if (!allChildClassUris.find((value) => value === part.value)) {
+              allChildClassUris.push(part.value)
+            }
+
+            if (!allDecompositionTreeNodesMap[part.value]) {
+              allDecompositionTreeNodesMap[part.value] = {
+                key: part.value,
+                label: getLabel(part.value),
+                data: {
+                  prefixedUri: getPrefixedUri(part.value),
+                  graph: quad.graph.value
+                },
+                children: []
+              }
+            }
+            if (
+              !allDecompositionTreeNodesMap[parentClass.value].children.find(
+                (child) => child.key === part.value
+              )
+            ) {
+              allDecompositionTreeNodesMap[parentClass.value].children.push(
+                allDecompositionTreeNodesMap[part.value]
+              )
+            }
+          })
         })
-      })
     })
 
     /* // Now recursively traverse the tree to add all children
@@ -579,7 +596,7 @@ export const useGraphStore = defineStore('graph', () => {
   const getIndividualsTree = async () => {
     const allIndividualTypeQuads: Quad[] = []
     for (const graph of visibleGraphNodes.value) {
-      store.getQuads(null, vocab.rdf.type, null, graph).forEach((quad) => {
+      graphStoreService.store.getQuads(null, vocab.rdf.type, null, graph).forEach((quad) => {
         if (
           quad.subject.termType === 'NamedNode' &&
           quad.object.termType === 'NamedNode' &&
@@ -632,39 +649,55 @@ export const useGraphStore = defineStore('graph', () => {
     individualsTree.value = Object.values(treeNodesMap)
   }
 
-  const getProperties = (classUri: string): Promise<string[]> => {
-    return getVisibleSubjects(vocab.rdfs.domain, namedNode(classUri))
+  const getProperties = (classUri: string): string[] => {
+    const set = new Set<string>()
+    graphStoreService.store
+      .getSubjects(vocab.rdfs.domain, namedNode(classUri), null)
+      .forEach((subject) => {
+        set.add(subject.value)
+      })
+    return Array.from(set)
   }
 
   const getIndividuals = (classUri: string): string[] => {
-    const individuals = new Set<string>()
-    store.getQuads(null, vocab.rdf.type, namedNode(classUri), null).forEach((quad) => {
-      individuals.add(quad.subject.value)
-    })
-    return Array.from(individuals)
-    // return getVisibleSubjects(vocab.rdf.type, namedNode(classUri))
+    const set = new Set<string>()
+    graphStoreService.store
+      .getSubjects(vocab.rdf.type, namedNode(classUri), null)
+      .forEach((subject) => {
+        set.add(subject.value)
+      })
+    return Array.from(set)
   }
 
   const getAllNamedNodes = (): NamedNode<string>[] => {
-    const namedNodeMap = store.getQuads(null, null, null, null).reduce((acc, quad) => {
-      if (quad.subject.termType === 'NamedNode') acc.set(quad.subject.value, quad.subject)
-      if (quad.object.termType === 'NamedNode') acc.set(quad.object.value, quad.object)
-      return acc
-    }, new Map<string, NamedNode<string>>())
+    const namedNodeMap = graphStoreService.store
+      .getQuads(null, null, null, null)
+      .reduce((acc, quad) => {
+        if (quad.subject.termType === 'NamedNode') acc.set(quad.subject.value, quad.subject)
+        if (quad.object.termType === 'NamedNode') acc.set(quad.object.value, quad.object)
+        return acc
+      }, new Map<string, NamedNode<string>>())
     return Array.from(namedNodeMap.values())
   }
 
   const getRanges = (propertyUri: string): Quad_Object[] => {
     const ranges = new Set<Quad_Object>()
-    store.getObjects(namedNode(propertyUri), vocab.rdfs.range, null).forEach((object) => {
-      ranges.add(object)
-    })
+    graphStoreService.store
+      .getObjects(namedNode(propertyUri), vocab.rdfs.range, null)
+      .forEach((object) => {
+        ranges.add(object)
+      })
     return Array.from(ranges)
   }
 
   const getPropertyRangeValueRestrictions = (propertyRangeObjectUri: BlankNode) => {
     const restrictions: BlankTriple[] = []
-    const restrictionQuads = store.getQuads(propertyRangeObjectUri, null, null, null)
+    const restrictionQuads = graphStoreService.store.getQuads(
+      propertyRangeObjectUri,
+      null,
+      null,
+      null
+    )
     if (
       restrictionQuads.some(
         (q) =>
@@ -695,15 +728,20 @@ export const useGraphStore = defineStore('graph', () => {
 
   const getRestrictions = (classUri: string): string[] => {
     const restrictions = new Set<string>()
-    store.getQuads(namedNode(classUri), vocab.rdfs.subClassOf, null, null).forEach((quad) => {
-      if (quad.object.termType === 'BlankNode') {
-        const restrictionNode = quad.object.value
-        const property = getObjectValue(restrictionNode, 'http://www.w3.org/2002/07/owl#onProperty')
-        if (property) {
-          restrictions.add(property)
+    graphStoreService.store
+      .getQuads(namedNode(classUri), vocab.rdfs.subClassOf, null, null)
+      .forEach((quad) => {
+        if (quad.object.termType === 'BlankNode') {
+          const restrictionNode = quad.object.value
+          const property = getObjectValue(
+            restrictionNode,
+            'http://www.w3.org/2002/07/owl#onProperty'
+          )
+          if (property) {
+            restrictions.add(property)
+          }
         }
-      }
-    })
+      })
     return Array.from(restrictions)
   }
 
@@ -717,16 +755,31 @@ export const useGraphStore = defineStore('graph', () => {
     return uri?.split('/').pop()?.split('#').pop() || uri
   }
 
-  const getSubjectQuads = (uri: OTerm): Quad[] => {
-    return store.getQuads(uri, null, null, null)
+  const getSubjectQuads = (uri: string): Quad[] => {
+    const quads: Quad[] = []
+    for (const graph of [...builtinGraphs, ...userGraphs.value]) {
+      if (!graph.node) continue
+      graphStoreService.store
+        .getQuads(namedNode(uri), null, null, namedNode(graph.node.value))
+        .forEach((quad) => {
+          quads.push(quad)
+        })
+    }
+    console.log(quads)
+    return quads
   }
 
   const getShaclPropertyQuads = (uri: string): Quad[] => {
-    return store.getQuads(namedNode(uri), vocab.sh.property, null, null)
+    return graphStoreService.store.getQuads(namedNode(uri), vocab.sh.property, null, null)
   }
 
   const getObjectValue = (subject: string, predicate: string): string | null => {
-    const quads = store.getQuads(namedNode(subject), namedNode(predicate), null, null)
+    const quads = graphStoreService.store.getQuads(
+      namedNode(subject),
+      namedNode(predicate),
+      null,
+      null
+    )
     const quad =
       quads.find(
         (q) => q.object.termType !== 'Literal' || ['en'].includes((q.object as Literal).language)
@@ -749,12 +802,12 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const getRdfTypes = (uri: string): string[] => {
-    const quads = store.getQuads(namedNode(uri), vocab.rdf.type, null, null)
+    const quads = graphStoreService.store.getQuads(namedNode(uri), vocab.rdf.type, null, null)
     return quads.map((quad) => getPrefixedUri(quad.object.value))
   }
 
   const getQuads = (subject: OTerm, predicate: OTerm, object: OTerm | OTerm[], graph: OTerm) => {
-    return store.getQuads(subject, predicate, object, graph)
+    return graphStoreService.store.getQuads(subject, predicate, object, graph)
   }
 
   interface QuadChange {
@@ -766,21 +819,21 @@ export const useGraphStore = defineStore('graph', () => {
   const redoStack = ref<QuadChange[]>([])
 
   const addQuad = (quad: Quad) => {
-    store.addQuad(quad)
+    graphStoreService.store.addQuad(quad)
     undoStack.value.push({ action: 'add', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
   const editQuad = (oldQuad: Quad, newQuad: Quad) => {
-    store.removeQuad(oldQuad)
-    store.addQuad(newQuad)
+    graphStoreService.store.removeQuad(oldQuad)
+    graphStoreService.store.addQuad(newQuad)
     undoStack.value.push({ action: 'remove', quad: oldQuad })
     undoStack.value.push({ action: 'add', quad: newQuad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
   const removeQuad = (quad: Quad) => {
-    store.removeQuad(quad)
+    graphStoreService.store.removeQuad(quad)
     undoStack.value.push({ action: 'remove', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
@@ -791,10 +844,10 @@ export const useGraphStore = defineStore('graph', () => {
 
     const { action, quad } = lastChange
     if (action === 'add') {
-      store.removeQuad(quad)
+      graphStoreService.store.removeQuad(quad)
       redoStack.value.push({ action: 'remove', quad })
     } else if (action === 'remove') {
-      store.addQuad(quad)
+      graphStoreService.store.addQuad(quad)
       redoStack.value.push({ action: 'add', quad })
     }
   }
@@ -805,10 +858,10 @@ export const useGraphStore = defineStore('graph', () => {
 
     const { action, quad } = lastUndo
     if (action === 'add') {
-      store.addQuad(quad)
+      graphStoreService.store.addQuad(quad)
       undoStack.value.push({ action: 'add', quad })
     } else if (action === 'remove') {
-      store.removeQuad(quad)
+      graphStoreService.store.removeQuad(quad)
       undoStack.value.push({ action: 'remove', quad })
     }
   }
@@ -830,7 +883,12 @@ export const useGraphStore = defineStore('graph', () => {
       })
 
       const retrieveBlankNodeContentRecursive = (blankNode: BlankNode) => {
-        const blankNodeQuads = store.getQuads(blankNode, null, null, literal(graphUrl))
+        const blankNodeQuads = graphStoreService.store.getQuads(
+          blankNode,
+          null,
+          null,
+          literal(graphUrl)
+        )
         if (
           blankNodeQuads.length > 1 &&
           blankNodeQuads.every(
@@ -861,7 +919,7 @@ export const useGraphStore = defineStore('graph', () => {
         }
       }
 
-      const allQuads = store.getQuads(null, null, null, literal(graphUrl))
+      const allQuads = graphStoreService.store.getQuads(null, null, null, literal(graphUrl))
       let count = 0
 
       for (const quad of allQuads) {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import type { OTerm, Quad_Object } from 'n3'
+import type { Quad_Object } from 'n3'
 import { useDialog } from 'primevue/usedialog'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
@@ -10,7 +10,7 @@ import TermValue from './TermValue.vue'
 import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
 
 const props = defineProps<{
-  subject: OTerm;
+  subject: string;
 }>()
 
 const dialog = useDialog()
@@ -22,7 +22,8 @@ type GroupedPropertyValues = Record<string, {
   objects: Quad_Object[];
 }>
 
-const groupedObjectValues = computed(() => {
+
+const getGroupedObjectValues = () => {
   const annotations = getSubjectQuads(props.subject)
   return annotations.reduce<GroupedPropertyValues>((acc, annotation) => {
     const editable = (selectedOntology.value && annotation.graph.value === selectedOntology.value.node?.value) ?? false
@@ -36,7 +37,15 @@ const groupedObjectValues = computed(() => {
     acc[predicate].objects.push(annotation.object)
     return acc
   }, {} as Record<string, { editable: boolean, objects: Quad_Object[] }>)
-})
+}
+
+const groupedObjectValues = ref<GroupedPropertyValues>({})
+watch([
+  () => props.subject,
+  () => selectedOntology.value,
+], () => {
+  groupedObjectValues.value = getGroupedObjectValues()
+}, { immediate: true })
 
 const openDialog = (predicate: string) => {
   if (!selectedOntology.value) return

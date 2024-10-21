@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
-import PropertyValueList from './PropertyValueList.vue'
+import PropertyValueList from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import TermValue from './TermValue.vue'
-
 
 const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const {

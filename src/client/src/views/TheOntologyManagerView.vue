@@ -14,7 +14,7 @@ const route = useRoute()
 const router = useRouter()
 watch(() => route.params, () => {
   if (!route.query.uri) {
-    selectedResource.value = undefined
+    selectedResource.value = null
   } else {
     selectedResource.value = route.query.uri.toString()
   }
