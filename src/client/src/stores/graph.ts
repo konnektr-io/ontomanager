@@ -120,8 +120,11 @@ export const useGraphStore = defineStore('graph', () => {
   )
 
   const initialize = async () => {
+    await graphStoreService.store.open()
+
     // For now, reload the store completely, in the future, keep the store and only add new graphs or remove deleted graphs
     await graphStoreService.store.clear()
+    await graphStoreService.store.open()
 
     for (const graph of builtinGraphs) {
       const { node, prefixes } = await graphStoreService.loadGraph(graph.content)

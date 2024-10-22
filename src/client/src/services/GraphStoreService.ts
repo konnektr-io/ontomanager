@@ -56,6 +56,7 @@ class GraphStoreService {
   }
 
   public async loadGraph(ontologyContent: string) {
+    await this.init()
     // if (graph.node) this._store.deleteGraph(graph.node)
 
     const graphPrefixes: { [prefix: string]: NamedNode<string> } = {}
@@ -197,12 +198,90 @@ class GraphStoreService {
     })
   }
 
+  /*   public async getClassesTree(graphs: NamedNode[]) {
+    await this.init()
+
+    const graphUris = graphs.map((graph) => `<${graph.value}>`).join(' ')
+
+    const sparqlQuery = `
+      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+      PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+      PREFIX owl: <http://www.w3.org/2002/07/owl#>
+      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+
+      SELECT ?class ?subClass ?label ?graph WHERE {
+        GRAPH ?graph {
+          VALUES ?graph { ${graphUris} }
+          ?class rdf:type ?type .
+          FILTER (?type IN (rdfs:Class, owl:Class))
+          OPTIONAL { ?class rdfs:label ?label . }
+          OPTIONAL { ?class skos:prefLabel ?label . }
+          OPTIONAL { ?subClass rdfs:subClassOf ?class . }
+        }
+      }
+    `
+
+    const query = await this._engine.query(sparqlQuery)
+    if (query.resultType !== 'bindings') {
+      throw new Error('Unexpected result type')
+    }
+    const bindingsStream = await query.execute()
+    const bindings = await (bindingsStream as any).toArray()
+
+    const classTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
+    const allSubClasses = new Set<string>()
+
+    bindings.forEach((binding) => {
+      const classUri = binding.get('class').value
+      const subClassUri = binding.get('subClass')?.value
+      const label = binding.get('label')?.value || classUri
+      const graphUri = binding.get('graph').value
+
+      if (!classTreeNodesMap[classUri]) {
+        classTreeNodesMap[classUri] = {
+          key: classUri,
+          label,
+          data: { graph: graphUri },
+          children: []
+        }
+      }
+
+      if (subClassUri) {
+        allSubClasses.add(subClassUri)
+        if (!classTreeNodesMap[subClassUri]) {
+          classTreeNodesMap[subClassUri] = {
+            key: subClassUri,
+            label: subClassUri,
+            data: { graph: graphUri },
+            children: []
+          }
+        }
+        classTreeNodesMap[classUri].children.push(classTreeNodesMap[subClassUri])
+      }
+    })
+
+    return Object.values(classTreeNodesMap).filter((node) => !allSubClasses.has(node.key))
+  } */
+
   public async getClassesTree(graphs: NamedNode[]) {
+    await this.init()
+
     const allClassTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
     const allClassTypeQuads: Quad[] = []
     for (const graph of graphs) {
       for (const classNode of classObjectNodes) {
-        for await (const quad of (
+        const { items: quads } = await this._store.get({
+          predicate: vocab.rdf.type,
+          object: classNode,
+          graph
+        })
+        quads.forEach((quad) => {
+          if (quad.subject.termType === 'NamedNode') {
+            allClassTypeQuads.push(quad as Quad)
+          }
+        })
+
+        /* for await (const quad of (
           await this._store.getStream({
             predicate: vocab.rdf.type,
             object: classNode,
@@ -212,10 +291,10 @@ class GraphStoreService {
           if (quad.subject.termType === 'NamedNode') {
             allClassTypeQuads.push(quad as Quad)
           }
-        }
+        } */
       }
     }
-    /** Holds the class uris for all classes that are a subclass of another class (to filter the root classes) */
+    // Holds the class uris for all classes that are a subclass of another class (to filter the root classes)
     const allSubClasses = new Set<string>()
 
     const createClassTreeNodeRecursive = async (classTypeQuad: Quad): Promise<ResourceTreeNode> => {
@@ -223,7 +302,20 @@ class GraphStoreService {
       // Get all subclasses
       const subClassQuads: Quad[] = []
       for (const graph of graphs) {
-        for await (const quad of (
+        const { items: quads } = await this._store.get({
+          predicate: vocab.rdfs.subClassOf,
+          object: classTypeQuad.subject,
+          graph
+        })
+        quads.forEach((quad) => {
+          if (
+            // Make sure it's a class
+            allClassTypeQuads.find((q) => q.subject.value === quad.subject.value)
+          ) {
+            subClassQuads.push(quad as Quad)
+          }
+        })
+        /* for await (const quad of (
           await this._store.getStream({
             predicate: vocab.rdfs.subClassOf,
             object: classTypeQuad.subject,
@@ -236,7 +328,7 @@ class GraphStoreService {
           ) {
             subClassQuads.push(quad as Quad)
           }
-        }
+        } */
       }
       const children: ResourceTreeNode[] = []
       for (const subClassQuad of subClassQuads) {
@@ -267,7 +359,7 @@ class GraphStoreService {
 
     // Get subclasses from intersections
     // This needs to be done after all the other class tree nodes have been created
-    for await (const quad of (
+    /* for await (const quad of (
       await this._store.getStream({
         predicate: vocab.owl.intersectionOf
       })
@@ -296,12 +388,13 @@ class GraphStoreService {
           )
         }
       }
-    }
+    } */
 
     return Object.values(allClassTreeNodesMap).filter((node) => !allSubClasses.has(node.key))
   }
 
   public async getLabel(uri: string) {
+    await this.init()
     for (const labelNode of labelNodes) {
       for await (const quad of (
         await this._store.getStream({

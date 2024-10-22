@@ -39,6 +39,7 @@ watch([
 </script>
 
 <template>
+  {{ loading }}
   <Tree
     v-model:selectionKeys="selectedKeys"
     :value="treeData"

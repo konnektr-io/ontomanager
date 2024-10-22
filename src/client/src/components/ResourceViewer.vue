@@ -17,18 +17,23 @@ const {
   // getRanges
 } = useGraphStore()
 
-
+const label = ref<string>('')
 const properties = ref<string[]>([])
 const individuals = ref<string[]>([])
 watch([
   selectedResource,
   userGraphs
 ], async () => {
-  if (!selectedResource.value) return
-  // properties.value = await getProperties(selectedResource.value)
-  // individuals.value = getIndividuals(selectedResource.value)
+  if (!selectedResource.value) {
+    label.value = ''
+    properties.value = []
+    individuals.value = []
+  } else {
+    label.value = await graphStoreService.getLabel(selectedResource.value)
+    // properties.value = await getProperties(selectedResource.value)
+    // individuals.value = getIndividuals(selectedResource.value)
+  }
 }, { immediate: true, deep: true })
-
 
 
 </script>
@@ -39,7 +44,7 @@ watch([
     class="w-full p-4"
   >
     <div class="flex items-center gap-2 mb-4">
-      <p class="text-lg font-semibold">{{ graphStoreService.getLabel(selectedResource) }}</p>
+      <p class="text-lg font-semibold">{{ label }}</p>
       <div class="flex flex-wrap gap-1">
         <Tag
           v-tooltip="selectedResource"

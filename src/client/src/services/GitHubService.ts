@@ -43,7 +43,7 @@ class GitHubService {
       access_token_expiry: Date.now() + tokenData.expires_in * 1000,
       refresh_token_expiry: Date.now() + tokenData.refresh_token_expires_in * 1000
     }
-    localStorage.setItem('githubTokenData', JSON.stringify(tokenData))
+    localStorage.setItem('githubTokenData', JSON.stringify(this.tokenData))
     this.octokit = new Octokit({ auth: tokenData.access_token })
   }
 
@@ -106,6 +106,7 @@ class GitHubService {
         if (this.isTokenExpired(this.tokenData.access_token_expiry)) {
           if (this.isTokenExpired(this.tokenData.refresh_token_expiry)) {
             console.warn('Refresh token expired')
+            localStorage.removeItem('githubTokenData')
             return false
           } else {
             await this.refreshToken()
