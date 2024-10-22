@@ -174,12 +174,6 @@ export const useGraphStore = defineStore('graph', () => {
       graph.prefixes = prefixes
 
       graph.loaded = true
-      userGraphs.value = [
-        ...userGraphs.value.filter(
-          (g) => g.url !== graph.url && g.node?.value !== graph.node?.value
-        ),
-        graph
-      ]
       saveUserGraphsToLocalStorage
     } catch (error) {
       console.error(`Failed to load ${graph.url}: ${error}`)
@@ -192,7 +186,7 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const addGraph = async (url: string): Promise<void> => {
-    const existingUserGraphIndex = userGraphs.value.findIndex((g) => g.url === url)
+    const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
     if (existingUserGraphIndex !== -1) {
       userGraphs.value.splice(existingUserGraphIndex, 1)
       graphStoreService.store.deleteGraph(g.node)
@@ -203,7 +197,7 @@ export const useGraphStore = defineStore('graph', () => {
       visible: true,
       loaded: false,
       prefixes: {},
-      ...(url.includes('github') && { gitHubUrl: url })
+      ...(url.includes('github.com') && { gitHubUrl: url })
     }
     await loadGraph(graph)
     userGraphs.value.push(graph)

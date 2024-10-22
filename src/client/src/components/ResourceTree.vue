@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, watch, shallowRef } from 'vue'
-import Tree from 'primevue/tree'
 import { storeToRefs } from 'pinia'
+import Tree from 'primevue/tree'
+import ProgressSpinner from 'primevue/progressspinner'
 import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 
@@ -39,19 +40,24 @@ watch([
 </script>
 
 <template>
-  {{ loading }}
-  <Tree
-    v-model:selectionKeys="selectedKeys"
-    :value="treeData"
-    selectionMode="single"
-    class="w-full"
-  >
-    <template #default="slotProps">
-      <div v-tooltip="slotProps.node.key">
-        <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
-          {{ slotProps.node.label }}
-        </span>
-      </div>
-    </template>
-  </Tree>
+  <div>
+    <ProgressSpinner
+      v-if="loading"
+      style="width: 1rem; height: 1rem"
+    />
+    <Tree
+      v-model:selectionKeys="selectedKeys"
+      :value="treeData"
+      selectionMode="single"
+      class="w-full"
+    >
+      <template #default="slotProps">
+        <div v-tooltip="slotProps.node.key">
+          <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
+            {{ slotProps.node.label }}
+          </span>
+        </div>
+      </template>
+    </Tree>
+  </div>
 </template>

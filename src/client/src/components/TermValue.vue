@@ -12,14 +12,14 @@ const emit = defineEmits<{
   (e: 'clickUri', value: string): void
 }>()
 
-const { getPrefixedUri, getPropertyRangeValueRestrictions } = useGraphStore()
-const restrictionRangeValues = computed(() => {
+const { getPrefixedUri } = useGraphStore()
+/* const restrictionRangeValues = computed(() => {
   if (props.term.termType === 'BlankNode') {
     return getPropertyRangeValueRestrictions(props.term)
   } else {
     return []
   }
-})
+}) */
 </script>
 
 <template>
@@ -47,7 +47,7 @@ const restrictionRangeValues = computed(() => {
         class="text-xs"
       />
     </div>
-    <div v-else-if="term.termType === 'BlankNode'">
+    <!-- <div v-else-if="term.termType === 'BlankNode'">
       <div
         v-for="restrictionRangeValue of restrictionRangeValues"
         :key="`${restrictionRangeValue.predicate.value}_${restrictionRangeValue.object.value}`"
@@ -64,7 +64,7 @@ const restrictionRangeValues = computed(() => {
           v-tooltip="restrictionRangeValue.object.value"
         />
       </div>
-    </div>
+    </div> -->
     <div v-else>{{ term.value }}</div>
   </div>
 </template>

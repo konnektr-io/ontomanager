@@ -268,20 +268,22 @@ class GraphStoreService {
 
     const allClassTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
     const allClassTypeQuads: Quad[] = []
-    for (const graph of graphs) {
-      for (const classNode of classObjectNodes) {
-        const { items: quads } = await this._store.get({
-          predicate: vocab.rdf.type,
-          object: classNode,
-          graph
-        })
-        quads.forEach((quad) => {
-          if (quad.subject.termType === 'NamedNode') {
-            allClassTypeQuads.push(quad as Quad)
-          }
-        })
+    // for (const graph of graphs) {
+    for (const classNode of classObjectNodes) {
+      const { items: quads } = await this._store.get({
+        predicate: vocab.rdf.type,
+        object: classNode
+      })
+      quads.forEach((quad) => {
+        if (
+          quad.subject.termType === 'NamedNode' &&
+          graphs.map((g) => g.value).includes(quad.graph.value)
+        ) {
+          allClassTypeQuads.push(quad as Quad)
+        }
+      })
 
-        /* for await (const quad of (
+      /* for await (const quad of (
           await this._store.getStream({
             predicate: vocab.rdf.type,
             object: classNode,
@@ -292,53 +294,33 @@ class GraphStoreService {
             allClassTypeQuads.push(quad as Quad)
           }
         } */
-      }
     }
+    // }
     // Holds the class uris for all classes that are a subclass of another class (to filter the root classes)
     const allSubClasses = new Set<string>()
 
     const createClassTreeNodeRecursive = async (classTypeQuad: Quad): Promise<ResourceTreeNode> => {
       const classUri = classTypeQuad.subject.value
       // Get all subclasses
-      const subClassQuads: Quad[] = []
-      for (const graph of graphs) {
-        const { items: quads } = await this._store.get({
-          predicate: vocab.rdfs.subClassOf,
-          object: classTypeQuad.subject,
-          graph
-        })
-        quads.forEach((quad) => {
-          if (
-            // Make sure it's a class
-            allClassTypeQuads.find((q) => q.subject.value === quad.subject.value)
-          ) {
-            subClassQuads.push(quad as Quad)
-          }
-        })
-        /* for await (const quad of (
-          await this._store.getStream({
-            predicate: vocab.rdfs.subClassOf,
-            object: classTypeQuad.subject,
-            graph
-          })
-        ).iterator) {
-          if (
-            // Make sure it's a class
-            allClassTypeQuads.find((q) => q.subject.value === quad.subject.value)
-          ) {
-            subClassQuads.push(quad as Quad)
-          }
-        } */
-      }
+      // for (const graph of graphs) {
+      const { items: quads } = await this._store.get({
+        predicate: vocab.rdfs.subClassOf,
+        object: classTypeQuad.subject
+      })
       const children: ResourceTreeNode[] = []
-      for (const subClassQuad of subClassQuads) {
-        const subClass = subClassQuad.subject.value
-        allSubClasses.add(subClass)
-        if (allClassTreeNodesMap[subClass]) {
-          children.push(allClassTreeNodesMap[subClass])
+      for (const subClassQuad of quads.filter<Quad>(
+        (quad): quad is Quad =>
+          graphs.map((g) => g.value).includes(quad.graph.value) &&
+          // Make sure it's a class
+          allClassTypeQuads.some((q) => q.subject.value === quad.subject.value)
+      )) {
+        const subClassUri = subClassQuad.subject.value
+        allSubClasses.add(subClassUri)
+        if (allClassTreeNodesMap[subClassUri]) {
+          children.push(allClassTreeNodesMap[subClassUri])
         } else {
-          allClassTreeNodesMap[subClass] = await createClassTreeNodeRecursive(subClassQuad)
-          children.push(allClassTreeNodesMap[subClass])
+          allClassTreeNodesMap[subClassUri] = await createClassTreeNodeRecursive(subClassQuad)
+          children.push(allClassTreeNodesMap[subClassUri])
         }
       }
       return {
@@ -393,6 +375,11 @@ class GraphStoreService {
     return Object.values(allClassTreeNodesMap).filter((node) => !allSubClasses.has(node.key))
   }
 
+  public async getSubjectQuads(uri: string): Promise<Quad[]> {
+    const { items } = await this._store.get({ subject: this._datafactory.namedNode(uri) })
+    return items as Quad[]
+  }
+
   public async getLabel(uri: string) {
     await this.init()
     for (const labelNode of labelNodes) {
@@ -403,7 +390,13 @@ class GraphStoreService {
         })
       ).iterator) {
         const label = quad.object.value
-        if (label) {
+        if (
+          label &&
+          label.length > 0 &&
+          quad.object.termType === 'Literal' &&
+          quad.object.language &&
+          quad.object.language === 'en'
+        ) {
           return label
         }
       }

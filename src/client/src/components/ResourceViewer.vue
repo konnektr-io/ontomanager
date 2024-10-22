@@ -54,7 +54,7 @@ watch([
     </div>
     <div>
       <div class="mb-6">
-        <!-- <PropertyValueList :subject="selectedResource" /> -->
+        <PropertyValueList :subject="selectedResource" />
       </div>
       <div class="space-y-6">
         <div>
