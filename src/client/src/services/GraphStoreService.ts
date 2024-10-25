@@ -396,6 +396,8 @@ class GraphStoreService {
 
   public async getPropertiesTree(graphs: NamedNode[]) {}
 
+  public async getIndividualsTree(graphs: NamedNode[]) {}
+
   public async getSubjectQuads(uri: string): Promise<Quad[]> {
     await this.init()
     const { items } = await this._store.get({ subject: this._datafactory.namedNode(uri) })
