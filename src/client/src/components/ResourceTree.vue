@@ -21,8 +21,55 @@ const selectedKeys = computed({
   get: () => ({ ...selectedResource.value && { [selectedResource.value]: true } }),
   set: (value: { [uri: string]: boolean }) => selectedResource.value = Object.keys(value)[0],
 })
+
 const classesTree = shallowRef<ResourceTreeNode[]>()
+const classesTreeLoading = ref(false)
+const classesTreeLoadingId = ref(0)
+const loadClassesTree = async () => {
+  const loadingId = classesTreeLoadingId.value++
+  classesTreeLoading.value = true
+  const result = await graphStoreService.getClassesTree(visibleGraphs.value)
+  if (classesTreeLoadingId.value === loadingId) {
+    classesTree.value = result
+    classesTreeLoading.value = false
+  }
+}
 const decompositionTree = shallowRef<ResourceTreeNode[]>()
+const decompositionTreeLoading = ref(false)
+const decompositionTreeLoadingId = ref(0)
+const loadDecompositionTree = async () => {
+  const loadingId = decompositionTreeLoadingId.value++
+  decompositionTreeLoading.value = true
+  const result = await graphStoreService.getDecompositionTree(visibleGraphs.value)
+  if (decompositionTreeLoadingId.value === loadingId) {
+    decompositionTree.value = result
+    decompositionTreeLoading.value = false
+  }
+}
+const propertiesTree = shallowRef<ResourceTreeNode[]>()
+const propertiesTreeLoading = ref(false)
+const propertiesTreeLoadingId = ref(0)
+const loadPropertiesTree = async () => {
+  const loadingId = propertiesTreeLoadingId.value++
+  propertiesTreeLoading.value = true
+  const result = await graphStoreService.getPropertiesTree(visibleGraphs.value)
+  if (propertiesTreeLoadingId.value === loadingId) {
+    propertiesTree.value = result
+    propertiesTreeLoading.value = false
+  }
+}
+const individualsTree = shallowRef<ResourceTreeNode[]>()
+const individualsTreeLoading = ref(false)
+const individualsTreeLoadingId = ref(0)
+const loadIndividualsTree = async () => {
+  const loadingId = individualsTreeLoadingId.value++
+  individualsTreeLoading.value = true
+  const result = await graphStoreService.getIndividualsTree(visibleGraphs.value)
+  if (individualsTreeLoadingId.value === loadingId) {
+    individualsTree.value = result
+    individualsTreeLoading.value = false
+  }
+}
 const treeData = computed(() => {
   if (props.type === TreeType.Classes) {
     return classesTree.value
@@ -30,35 +77,52 @@ const treeData = computed(() => {
   if (props.type === TreeType.Decomposition) {
     return decompositionTree.value
   }
+  if (props.type === TreeType.Properties) {
+    return propertiesTree.value
+  }
+  if (props.type === TreeType.Individuals) {
+    return individualsTree.value
+  }
   return []
 })
-const loading = ref(false)
-const loadingId = ref(0)
-watch(visibleGraphs, async (graphs) => {
-  loading.value = true
-  loadingId.value++
-  await new Promise(resolve => setTimeout(resolve, 2000))
-  // First load the the visible treetype, then start preparing the other ones
+
+const loading = computed(() => {
   if (props.type === TreeType.Classes) {
-    const classesTreeResult = await graphStoreService.getClassesTree(graphs)
-    if (loadingId.value === loadingId.value) {
-      classesTree.value = classesTreeResult
-      loading.value = false
-    }
-    const decompositionTreeResult = await graphStoreService.getDecompositionTree(graphs)
-    if (loadingId.value === loadingId.value) {
-      decompositionTree.value = decompositionTreeResult
-    }
+    return classesTreeLoading.value
+  }
+  if (props.type === TreeType.Decomposition) {
+    return decompositionTreeLoading.value
+  }
+  if (props.type === TreeType.Properties) {
+    return propertiesTreeLoading.value
+  }
+  if (props.type === TreeType.Individuals) {
+    return individualsTreeLoading.value
+  }
+  return false
+})
+
+watch(visibleGraphs, async () => {
+  if (props.type === TreeType.Classes) {
+    await loadClassesTree()
+    loadDecompositionTree()
+    loadPropertiesTree()
+    loadIndividualsTree()
   } else if (props.type === TreeType.Decomposition) {
-    const decompositionTreeResult = await graphStoreService.getDecompositionTree(graphs)
-    if (loadingId.value === loadingId.value) {
-      decompositionTree.value = decompositionTreeResult
-      loading.value = false
-    }
-    const classesTreeResult = await graphStoreService.getClassesTree(graphs)
-    if (loadingId.value === loadingId.value) {
-      classesTree.value = classesTreeResult
-    }
+    await loadDecompositionTree()
+    loadClassesTree()
+    loadPropertiesTree()
+    loadIndividualsTree()
+  } else if (props.type === TreeType.Properties) {
+    await loadPropertiesTree()
+    loadClassesTree()
+    loadDecompositionTree()
+    loadIndividualsTree()
+  } else if (props.type === TreeType.Individuals) {
+    await loadIndividualsTree()
+    loadClassesTree()
+    loadDecompositionTree()
+    loadPropertiesTree()
   }
 }, { immediate: true, deep: true })
 

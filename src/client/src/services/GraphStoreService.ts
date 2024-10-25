@@ -293,6 +293,8 @@ class GraphStoreService {
   }
 
   public async getDecompositionTree(graphs: NamedNode[]) {
+    await this.init()
+
     if (!graphs.length) return []
     // A decomposition tree is a tree of all classes that are defined in a restriction on property 'hasPart'
     // Different ontologies will have a different uri for this, so we try to make an educated guess
@@ -394,9 +396,66 @@ class GraphStoreService {
     )
   }
 
-  public async getPropertiesTree(graphs: NamedNode[]) {}
+  public async getPropertiesTree(graphs: NamedNode[]) {
+    await this.init()
 
-  public async getIndividualsTree(graphs: NamedNode[]) {}
+    if (!graphs.length) return []
+
+    return [] as ResourceTreeNode[]
+  }
+
+  public async getIndividualsTree(graphs: NamedNode[]) {
+    await this.init()
+
+    if (!graphs.length) return []
+    // Construct the tree of individuals by class
+    const treeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
+
+    for (const graph of graphs) {
+      for await (const quad of (await this._store.getStream({ predicate: vocab.rdf.type, graph }))
+        .iterator) {
+        if (
+          quad.subject.termType === 'NamedNode' &&
+          quad.object.termType === 'NamedNode' &&
+          quad.object.value !== vocab.rdfs.Class.value &&
+          quad.object.value !== vocab.owl.Class.value &&
+          quad.object.value !== vocab.rdfs.Property.value &&
+          quad.object.value !== vocab.owl.ObjectProperty.value &&
+          quad.object.value !== vocab.owl.DatatypeProperty.value &&
+          quad.object.value !== vocab.owl.AnnotationProperty.value &&
+          quad.object.value !== vocab.owl.TransitiveProperty.value &&
+          quad.object.value !== vocab.rdfs.Datatype.value &&
+          quad.object.value !== vocab.owl.Restriction.value &&
+          quad.object.value !== vocab.owl.Ontology.value &&
+          quad.object.value !== vocab.skos.ConceptScheme.value &&
+          quad.object.value !== vocab.owl.NamedIndividual.value
+        ) {
+          const classUri = quad.object.value
+          if (!treeNodesMap[classUri])
+            treeNodesMap[classUri] = {
+              key: classUri,
+              label: await this.getLabel(classUri),
+              data: {
+                graph: quad.graph.value
+              },
+              children: []
+            }
+          if (!treeNodesMap[classUri].children.find((c) => c.key === quad.subject.value)) {
+            treeNodesMap[classUri].children.push({
+              key: quad.subject.value,
+              label: await this.getLabel(quad.subject.value),
+              data: {
+                graph: quad.graph.value
+              },
+              children: []
+            })
+          }
+        }
+      }
+    }
+
+    return Object.values(treeNodesMap)
+  }
 
   public async getSubjectQuads(uri: string): Promise<Quad[]> {
     await this.init()
