@@ -24,27 +24,38 @@ const selectedKeys = computed({
 })
 const treeData = shallowRef<ResourceTreeNode[]>()
 const loading = ref(false)
+const loadingId = ref(0)
 watch([
   () => props.type,
-  userGraphs
-], async () => {
+  visibleGraphs
+], async ([type, graphs]) => {
   loading.value = true
-  if (props.type === TreeType.Classes) {
-    treeData.value = await graphStoreService.getClassesTree(visibleGraphs.value)
+  loadingId.value++
+  let result: ResourceTreeNode[] = []
+  if (type === TreeType.Classes && graphs.length) {
+    result = await graphStoreService.getClassesTree(graphs)
   } else {
     treeData.value = []
   }
-  loading.value = false
+  if (loadingId.value === loadingId.value) {
+    treeData.value = result
+    loading.value = false
+  }
 }, { immediate: true, deep: true })
 
 </script>
 
 <template>
   <div>
-    <ProgressSpinner
+    <div
       v-if="loading"
-      style="width: 1rem; height: 1rem"
-    />
+      class="flex justify-start p-2 gap-2"
+    >
+      <div>
+        <ProgressSpinner style="width: 1.5rem; height: 1.5rem" />
+      </div>
+      <div class="text-surface-600">Loading ...</div>
+    </div>
     <Tree
       v-model:selectionKeys="selectedKeys"
       :value="treeData"

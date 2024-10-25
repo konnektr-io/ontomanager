@@ -136,6 +136,19 @@ class GitHubService {
     return response.data
   }
 
+  public async getLatestFileSha(owner: string, repo: string, path: string, ref?: string) {
+    const response = await this.octokit.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref
+    })
+    if (Array.isArray(response.data) || !('sha' in response.data)) {
+      throw new Error('File not found or is a directory')
+    }
+    return response.data.sha
+  }
+
   public async getFileContent(owner: string, repo: string, path: string, ref?: string) {
     const response = await this.octokit.repos.getContent({
       owner,

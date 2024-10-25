@@ -9,6 +9,7 @@ import 'primeicons/primeicons.css'
 import PrimeVue from 'primevue/config'
 import { definePreset } from '@primevue/themes'
 import Aura from '@primevue/themes/aura'
+import Ripple from 'primevue/ripple'
 import Tooltip from 'primevue/tooltip'
 import ConfirmationService from 'primevue/confirmationservice'
 import DialogService from 'primevue/dialogservice'
@@ -73,6 +74,7 @@ app.use(createPinia())
 app.use(router)
 
 app.use(PrimeVue, {
+  ripple: true,
   theme: {
     preset: Konnektr,
     options: {
@@ -87,6 +89,7 @@ app.use(PrimeVue, {
 app.use(ConfirmationService)
 app.use(DialogService)
 app.use(ToastService)
+app.directive('ripple', Ripple)
 app.directive('tooltip', Tooltip)
 
 app.mount('#app')

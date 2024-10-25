@@ -5,12 +5,13 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
+import Tooltip from 'primevue/tooltip'
 import Textarea from 'primevue/textarea'
-import UserMenu from './UserMenu.vue'
-import { useGraphStore, type GraphDetails } from '@/stores/graph'
-import gitHubService from '@/services/GitHubService'
 import { useConfirm } from 'primevue/useconfirm'
-
+import { PhGithubLogo, PhLink, PhLinkBreak, PhWarningCircle } from '@phosphor-icons/vue'
+import gitHubService from '@/services/GitHubService'
+import { useGraphStore, type GraphDetails } from '@/stores/graph'
+import UserMenu from './UserMenu.vue'
 
 const confirm = useConfirm()
 const { userGraphs, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
@@ -178,6 +179,7 @@ const commitChanges = async () => {
       <Select
         :model-value="selectedOntology"
         :options="userGraphs"
+        v-ripple="false"
         optionLabel="name"
         showClear
         placeholder="Select Ontology"
@@ -197,12 +199,11 @@ const commitChanges = async () => {
           </span>
         </template>
         <template #option="slotProps">
-          <div class="flex items-center justify-between w-full text-sm">
+          <div class="flex items-center justify-between w-full text-sm gap-4">
             <span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
-            <div class="pl-3">
+            <div class="flex items-center gap-2">
               <Button
-                v-if="slotProps.option.url"
-                :icon="`pi pi-${slotProps.option.repo ? 'github' : 'link'}`"
+                :icon="`pi pi-${slotProps.option.error ? 'info-circle text-red-500' : slotProps.option.repo ? 'github' : 'link'}`"
                 size="small"
                 text
                 rounded
@@ -239,6 +240,12 @@ const commitChanges = async () => {
           </div>
         </template>
       </Select>
+      <i
+        v-if="userGraphs.some(g => g.error)"
+        v-tooltip="userGraphs.filter(g => g.error).map(g => g.error).join('\n')"
+        class="pi pi-info-circle text-red-500"
+      >
+      </i>
       <Select
         v-if="selectedOntology && selectedOntology.branch"
         :model-value="selectedOntology.branch"

@@ -2,10 +2,9 @@
 import { ref, watch } from 'vue'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
-import PropertyValueList from './PropertyValues.vue'
+import PropertyValues from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
-import TermValue from './TermValue.vue'
 import graphStoreService from '@/services/GraphStoreService'
 
 const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
@@ -18,7 +17,7 @@ const {
 } = useGraphStore()
 
 const label = ref<string>('')
-const properties = ref<string[]>([])
+const properties = ref<{ label: string, uri: string }[]>([])
 const individuals = ref<string[]>([])
 watch([
   selectedResource,
@@ -30,7 +29,7 @@ watch([
     individuals.value = []
   } else {
     label.value = await graphStoreService.getLabel(selectedResource.value)
-    // properties.value = await getProperties(selectedResource.value)
+    properties.value = await graphStoreService.getProperties(selectedResource.value)
     // individuals.value = getIndividuals(selectedResource.value)
   }
 }, { immediate: true, deep: true })
@@ -54,7 +53,7 @@ watch([
     </div>
     <div>
       <div class="mb-6">
-        <PropertyValueList :subject="selectedResource" />
+        <PropertyValues :subject="selectedResource" />
       </div>
       <div class="space-y-6">
         <div>
@@ -69,17 +68,17 @@ watch([
           >
             <Panel
               v-for="property in properties"
-              :key="property"
+              :key="property.uri"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(property)"
+                    v-tooltip="getPrefixedUri(property.uri)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = property"
-                  >{{ graphStoreService.getLabel(property) }}</div>
+                    @click="selectedResource = property.uri"
+                  >{{ property.label }}</div>
                   <!-- <TermValue
                     v-for="object of getRanges(property)"
                     :key="object.value"
@@ -90,7 +89,7 @@ watch([
                   </TermValue> -->
                 </div>
               </template>
-              <!-- <PropertyValueList :subject="property" /> -->
+              <PropertyValues :subject="property.uri" />
             </Panel>
           </div>
         </div>

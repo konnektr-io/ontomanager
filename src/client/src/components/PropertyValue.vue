@@ -87,7 +87,7 @@ const openDialog = (predicate: string) => {
     >
     </TermValue>
   </div>
-  <div class="pl-6 pt-1 flex flex-col gap-1">
+  <!-- <div class="pl-6 pt-1 flex flex-col gap-1">
     <Panel
       v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
       :key="object.id"
@@ -97,31 +97,5 @@ const openDialog = (predicate: string) => {
     >
       <AnnotationPropertyList :subject="object" />
     </Panel>
-    <!-- <div
-	        v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
-	        :key="object.id"
-	      >
-	        <div
-	          v-for="quad of getQuads(object, null, null, null)"
-	          :key="`${quad.predicate.value}_${quad.object.value}`"
-	        >
-	          <div class="flex items-center gap-2">
-	            <div
-	              v-tooltip="quad.predicate.value"
-	              class="text-sm font-medium text-muted-foreground cursor-pointer"
-	              @click="selectedResource = quad.predicate.value"
-	            >
-	              {{ getLabel(quad.predicate.value) }}
-	            </div>
-	          </div>
-	          <div class="flex items-center gap-2">
-	            <TermValue
-	              :term="quad.object"
-	              class="text-sm"
-	            >
-	            </TermValue>
-	          </div>
-	        </div>
-	      </div> -->
-  </div>
+  </div> -->
 </template>

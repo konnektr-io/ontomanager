@@ -1,7 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import { NamedNode, Quad } from 'n3'
+import { NamedNode, Quad, DataFactory } from 'n3'
 import gitHubService from '@/services/GitHubService'
 import graphStoreService from '@/services/GraphStoreService'
 import { vocab } from '../utils/vocab'
@@ -40,6 +40,8 @@ export interface GraphDetails {
   namespace?: string
   node?: NamedNode<string>
   prefixes?: { [prefix: string]: NamedNode<string> }
+  error?: string
+  sha?: string
 }
 
 interface BuiltinGraphDetails extends GraphDetails {
@@ -53,7 +55,8 @@ const builtinGraphs: BuiltinGraphDetails[] = [
     namespace: 'https://www.w3.org/2002/07/owl#',
     visible: false,
     loaded: false,
-    prefixes: {}
+    prefixes: {},
+    node: DataFactory.namedNode('https://www.w3.org/2002/07/owl')
   },
   {
     content: rdfVocab,
@@ -61,15 +64,17 @@ const builtinGraphs: BuiltinGraphDetails[] = [
     namespace: 'https://www.w3.org/2000/01/rdf-schema#',
     visible: false,
     loaded: false,
-    prefixes: {}
+    prefixes: {},
+    node: DataFactory.namedNode('https://www.w3.org/2000/01/rdf-schema#')
   },
   {
     content: rdfsVocab,
     url: 'https://www.w3.org/1999/02/22-rdf-syntax-ns',
-    namespace: 'https://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    namespace: 'https://www.w3.org/2002/07/owl#',
     visible: false,
     loaded: false,
-    prefixes: {}
+    prefixes: {},
+    node: DataFactory.namedNode('https://www.w3.org/2002/07/owl')
   },
   {
     content: skosVocab,
@@ -77,7 +82,8 @@ const builtinGraphs: BuiltinGraphDetails[] = [
     namespace: 'http://www.w3.org/2004/02/skos/core#',
     visible: false,
     loaded: false,
-    prefixes: {}
+    prefixes: {},
+    node: DataFactory.namedNode('http://www.w3.org/2004/02/skos/core')
   }
 ]
 
@@ -102,7 +108,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   const visibleGraphs = computed<NamedNode[]>(() =>
     userGraphs.value
-      .filter((graph) => graph.visible && graph.node)
+      .filter((graph) => graph.visible && graph.node && graph.loaded)
       .map<NamedNode>((graph) => graph.node as NamedNode)
   )
 
@@ -122,20 +128,47 @@ export const useGraphStore = defineStore('graph', () => {
   const initialize = async () => {
     await graphStoreService.store.open()
 
-    // For now, reload the store completely, in the future, keep the store and only add new graphs or remove deleted graphs
-    await graphStoreService.store.clear()
-    await graphStoreService.store.open()
-
-    for (const graph of builtinGraphs) {
-      const { node, prefixes } = await graphStoreService.loadGraph(graph.content)
-      graph.node = node
-      graph.prefixes = prefixes
-    }
+    await Promise.all(
+      builtinGraphs.map(async (graph) => {
+        const { items } = await graphStoreService.store.get({ graph: graph.node }, { limit: 1 })
+        if (items.length > 0) return // already loaded
+        const { node, prefixes } = await graphStoreService.loadGraph(graph.content)
+        graph.node = node
+        graph.prefixes = prefixes
+      })
+    )
 
     getUserGraphsFromLocalStorage()
-    for (const graph of userGraphs.value) {
-      await loadGraph(graph)
-    }
+    await Promise.all(
+      userGraphs.value.map(async (graph) => {
+        try {
+          if (graph.owner && graph.repo && graph.branch && graph.path) {
+            const latestSha = await gitHubService.getLatestFileSha(
+              graph.owner,
+              graph.repo,
+              graph.path,
+              graph.branch
+            )
+            if (latestSha !== graph.sha) {
+              graph.sha = latestSha
+              await loadGraph(graph)
+              return
+            }
+          }
+        } catch (error) {
+          console.error(`Failed to load ${graph.url}: ${error}`)
+        }
+
+        if (graph.node) {
+          const { items } = await graphStoreService.store.get({ graph: graph.node }, { limit: 1 })
+          if (items.length > 0) {
+            graph.loaded = true
+            return // already loaded
+          }
+        }
+        await loadGraph(graph)
+      })
+    )
   }
 
   const getUserGraphsFromLocalStorage = () => {
@@ -174,9 +207,14 @@ export const useGraphStore = defineStore('graph', () => {
       graph.prefixes = prefixes
 
       graph.loaded = true
+      graph.error = undefined
       saveUserGraphsToLocalStorage
     } catch (error) {
+      graph.loaded = false
+      graph.sha = undefined
+      graph.error = `Failed to load ${graph.url}`
       console.error(`Failed to load ${graph.url}: ${error}`)
+      saveUserGraphsToLocalStorage
     }
   }
 
@@ -188,8 +226,9 @@ export const useGraphStore = defineStore('graph', () => {
   const addGraph = async (url: string): Promise<void> => {
     const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
     if (existingUserGraphIndex !== -1) {
+      const g = userGraphs.value[existingUserGraphIndex]
+      if (g.node) graphStoreService.store.deleteGraph(g.node)
       userGraphs.value.splice(existingUserGraphIndex, 1)
-      graphStoreService.store.deleteGraph(g.node)
     }
 
     const graph: GraphDetails = {
@@ -199,6 +238,7 @@ export const useGraphStore = defineStore('graph', () => {
       prefixes: {},
       ...(url.includes('github.com') && { gitHubUrl: url })
     }
+
     await loadGraph(graph)
     userGraphs.value.push(graph)
     saveUserGraphsToLocalStorage()
@@ -206,20 +246,25 @@ export const useGraphStore = defineStore('graph', () => {
 
   const removeGraph = async (g: GraphDetails): Promise<void> => {
     const graphIndex = userGraphs.value.findIndex((graph) => graph.node?.value === g.node?.value)
-    if (g.node?.value && graphIndex !== -1) {
-      graphStoreService.store.deleteGraph(g.node)
+    if (graphIndex !== -1) {
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
+      if (g.node?.value) {
+        graphStoreService.store.deleteGraph(g.node)
+      }
     }
   }
 
-  /* const getProperties = (classUri: string): string[] => {
+  /* const getProperties = async (classUri: string): Promise<string[]> => {
     const set = new Set<string>()
-    graphStoreService.store
-      .getSubjects(vocab.rdfs.domain, namedNode(classUri), null)
-      .forEach((subject) => {
-        set.add(subject.value)
+    const { items } = await graphStoreService.store
+      .get({
+        predicate: vocab.rdfs.domain,
+        object: DataFactory.namedNode(classUri)
       })
+    items.forEach((item) => {
+      set.add(item.subject.value)
+    })
     return Array.from(set)
   } */
 
