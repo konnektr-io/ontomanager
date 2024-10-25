@@ -19,6 +19,12 @@ import type { ResourceTreeNode } from '@/stores/graph'
 import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
 
 export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
+export const propertyObjectNodes = [
+  vocab.rdfs.Property,
+  vocab.owl.ObjectProperty,
+  vocab.owl.DatatypeProperty,
+  vocab.owl.AnnotationProperty
+]
 export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
 class GraphStoreService {
@@ -402,7 +408,78 @@ class GraphStoreService {
 
     if (!graphs.length) return []
 
-    return [] as ResourceTreeNode[]
+    const allPropertyTreeNodesMap: { [propertyUri: string]: ResourceTreeNode } = {}
+    const allPropertyTypeQuads: Quad[] = []
+    for (const graph of graphs) {
+      for (const propertyNode of propertyObjectNodes) {
+        const { items } = await this._store.get({
+          predicate: vocab.rdf.type,
+          object: propertyNode,
+          graph
+        })
+        items.forEach((quad) => {
+          if (quad.subject.termType === 'NamedNode') {
+            allPropertyTypeQuads.push(quad as Quad)
+          }
+        })
+      }
+    }
+
+    const allSubProperties = new Set<string>()
+
+    const createPropertyTreeNodeRecursive = async (
+      propertyTypeQuad: Quad
+    ): Promise<ResourceTreeNode> => {
+      const propertyNode = propertyTypeQuad.subject
+      const subPropertyQuads: Quad[] = []
+      for (const graph of graphs) {
+        const { items } = await this._store.get({
+          predicate: vocab.rdfs.subPropertyOf,
+          object: propertyNode,
+          graph
+        })
+        items.forEach((quad) => {
+          if (
+            // Make sure it's a property
+            allPropertyTypeQuads.find((q) => q.subject.value === quad.subject.value)
+          ) {
+            subPropertyQuads.push(quad as Quad)
+          }
+        })
+      }
+
+      const children: ResourceTreeNode[] = []
+      for (const subPropertyQuad of subPropertyQuads) {
+        const subProperty = subPropertyQuad.subject.value
+        allSubProperties.add(subProperty)
+        if (allPropertyTreeNodesMap[subProperty]) {
+          children.push(allPropertyTreeNodesMap[subProperty])
+        } else {
+          allPropertyTreeNodesMap[subProperty] =
+            await createPropertyTreeNodeRecursive(subPropertyQuad)
+          children.push(allPropertyTreeNodesMap[subProperty])
+        }
+      }
+
+      return {
+        key: propertyNode.value,
+        label: await this.getLabel(propertyNode.value),
+        data: {
+          graph: propertyTypeQuad.graph.value
+        },
+        children
+      }
+    }
+
+    await Promise.all(
+      allPropertyTypeQuads.map(async (quad) => {
+        if (!allPropertyTreeNodesMap[quad.subject.value]) {
+          allPropertyTreeNodesMap[quad.subject.value] = await createPropertyTreeNodeRecursive(quad)
+        }
+      })
+    )
+
+    return Object.values(allPropertyTreeNodesMap).filter((node) => !allSubProperties.has(node.key))
   }
 
   public async getIndividualsTree(graphs: NamedNode[]) {
