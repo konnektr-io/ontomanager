@@ -199,71 +199,6 @@ class GraphStoreService {
     })
   }
 
-  /*   public async getClassesTree(graphs: NamedNode[]) {
-    await this.init()
-
-    const graphUris = graphs.map((graph) => `<${graph.value}>`).join(' ')
-
-    const sparqlQuery = `
-      PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-      PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-      PREFIX owl: <http://www.w3.org/2002/07/owl#>
-      PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
-
-      SELECT ?class ?subClass ?label ?graph WHERE {
-        GRAPH ?graph {
-          VALUES ?graph { ${graphUris} }
-          ?class rdf:type ?type .
-          FILTER (?type IN (rdfs:Class, owl:Class))
-          OPTIONAL { ?class rdfs:label ?label . }
-          OPTIONAL { ?class skos:prefLabel ?label . }
-          OPTIONAL { ?subClass rdfs:subClassOf ?class . }
-        }
-      }
-    `
-
-    const query = await this._engine.query(sparqlQuery)
-    if (query.resultType !== 'bindings') {
-      throw new Error('Unexpected result type')
-    }
-    const bindingsStream = await query.execute()
-    const bindings = await (bindingsStream as any).toArray()
-
-    const classTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
-    const allSubClasses = new Set<string>()
-
-    bindings.forEach((binding) => {
-      const classUri = binding.get('class').value
-      const subClassUri = binding.get('subClass')?.value
-      const label = binding.get('label')?.value || classUri
-      const graphUri = binding.get('graph').value
-
-      if (!classTreeNodesMap[classUri]) {
-        classTreeNodesMap[classUri] = {
-          key: classUri,
-          label,
-          data: { graph: graphUri },
-          children: []
-        }
-      }
-
-      if (subClassUri) {
-        allSubClasses.add(subClassUri)
-        if (!classTreeNodesMap[subClassUri]) {
-          classTreeNodesMap[subClassUri] = {
-            key: subClassUri,
-            label: subClassUri,
-            data: { graph: graphUri },
-            children: []
-          }
-        }
-        classTreeNodesMap[classUri].children.push(classTreeNodesMap[subClassUri])
-      }
-    })
-
-    return Object.values(classTreeNodesMap).filter((node) => !allSubClasses.has(node.key))
-  } */
-
   public async getClassesTree(graphs: NamedNode[]) {
     await this.init()
 
@@ -343,6 +278,23 @@ class GraphStoreService {
     await this.init()
     const { items } = await this._store.get({
       predicate: vocab.rdfs.domain,
+      object: DataFactory.namedNode(uri)
+    })
+    return await Promise.all(
+      items.map(async (quad) => {
+        const label = await this.getLabel(quad.subject.value)
+        return {
+          label,
+          uri: quad.subject.value
+        }
+      })
+    )
+  }
+
+  public async getIndividuals(uri: string): Promise<{ label: string; uri: string }[]> {
+    await this.init()
+    const { items } = await this._store.get({
+      predicate: vocab.rdf.type,
       object: DataFactory.namedNode(uri)
     })
     return await Promise.all(

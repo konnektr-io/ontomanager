@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
 import PropertyValues from './PropertyValues.vue'
@@ -7,7 +8,10 @@ import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 
-const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
+const {
+  editMode,
+  selectedResource,
+  userGraphs } = storeToRefs(useGraphStore())
 const {
   // getProperties,
   // getIndividuals,
@@ -18,7 +22,7 @@ const {
 
 const label = ref<string>('')
 const properties = ref<{ label: string, uri: string }[]>([])
-const individuals = ref<string[]>([])
+const individuals = ref<{ label: string, uri: string }[]>([])
 watch([
   selectedResource,
   userGraphs
@@ -30,7 +34,7 @@ watch([
   } else {
     label.value = await graphStoreService.getLabel(selectedResource.value)
     properties.value = await graphStoreService.getProperties(selectedResource.value)
-    // individuals.value = getIndividuals(selectedResource.value)
+    individuals.value = await graphStoreService.getIndividuals(selectedResource.value)
   }
 }, { immediate: true, deep: true })
 
@@ -56,11 +60,20 @@ watch([
         <PropertyValues :subject="selectedResource" />
       </div>
       <div class="space-y-6">
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Properties</h3>
+        <div v-if="properties.length || editMode">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold">Properties</h3>
+            <Button
+              v-if="editMode"
+              icon="pi pi-plus"
+              size="small"
+              text
+              label="Add"
+            />
+          </div>
           <p
             v-if="!properties.length"
-            class="text-muted-foreground"
+            class="text-slate-500"
           >No properties defined.</p>
           <div
             v-else
@@ -79,14 +92,6 @@ watch([
                     class="font-semibold cursor-pointer"
                     @click="selectedResource = property.uri"
                   >{{ property.label }}</div>
-                  <!-- <TermValue
-                    v-for="object of getRanges(property)"
-                    :key="object.value"
-                    :term="object"
-                    class="text-sm"
-                    @click-uri="selectedResource = object.value"
-                  >
-                  </TermValue> -->
                 </div>
               </template>
               <PropertyValues :subject="property.uri" />
@@ -94,11 +99,20 @@ watch([
           </div>
         </div>
 
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Individuals</h3>
+        <div v-if="individuals.length || editMode">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold">Individuals</h3>
+            <Button
+              v-if="editMode"
+              icon="pi pi-plus"
+              size="small"
+              text
+              label="Add"
+            />
+          </div>
           <p
             v-if="!individuals.length"
-            class="text-muted-foreground"
+            class="text-slate-500"
           >No individuals defined.</p>
           <div
             v-else
@@ -106,28 +120,20 @@ watch([
           >
             <Panel
               v-for="individual in individuals"
-              :key="individual"
+              :key="individual.uri"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
-                  <!-- <div
-                    v-tooltip="getPrefixedUri(individual)"
+                  <div
+                    v-tooltip="getPrefixedUri(individual.uri)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = individual"
-                  >{{ getLabel(individual) }}</div>
-                  <TermValue
-                    v-for="object of getRanges(individual)"
-                    :key="object.value"
-                    :term="object"
-                    class="text-sm"
-                    @click-uri="selectedResource = object.value"
-                  >
-                  </TermValue> -->
+                    @click="selectedResource = individual.uri"
+                  >{{ individual.label }}</div>
                 </div>
               </template>
-              <!-- <PropertyValueList :subject="individual" /> -->
+              <PropertyValues :subject="individual.uri" />
             </Panel>
           </div>
         </div>

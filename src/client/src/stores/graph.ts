@@ -255,29 +255,6 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  /* const getProperties = async (classUri: string): Promise<string[]> => {
-    const set = new Set<string>()
-    const { items } = await graphStoreService.store
-      .get({
-        predicate: vocab.rdfs.domain,
-        object: DataFactory.namedNode(classUri)
-      })
-    items.forEach((item) => {
-      set.add(item.subject.value)
-    })
-    return Array.from(set)
-  } */
-
-  /* const getIndividuals = (classUri: string): string[] => {
-    const set = new Set<string>()
-    graphStoreService.store
-      .getSubjects(vocab.rdf.type, namedNode(classUri), null)
-      .forEach((subject) => {
-        set.add(subject.value)
-      })
-    return Array.from(set)
-  } */
-
   /* const getAllNamedNodes = (): NamedNode<string>[] => {
     const namedNodeMap = graphStoreService.store
       .getQuads(null, null, null, null)
