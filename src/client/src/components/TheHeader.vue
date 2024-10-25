@@ -5,10 +5,9 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
-import Tooltip from 'primevue/tooltip'
+import ProgressSpinner from 'primevue/progressspinner'
 import Textarea from 'primevue/textarea'
 import { useConfirm } from 'primevue/useconfirm'
-import { PhGithubLogo, PhLink, PhLinkBreak, PhWarningCircle } from '@phosphor-icons/vue'
 import gitHubService from '@/services/GitHubService'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import UserMenu from './UserMenu.vue'
@@ -38,8 +37,8 @@ const openImportDialog = () => {
   importDialogVisible.value = true
 }
 
-const importOntology = async () => {
-  await addGraph(newOntologyUrl.value)
+const importOntology = () => {
+  addGraph(newOntologyUrl.value)
   importDialogVisible.value = false
   newOntologyUrl.value = ''
 }
@@ -169,7 +168,7 @@ const commitChanges = async () => {
 <template>
   <div class="flex items-center justify-between w-full">
     <!-- Title -->
-    <div class="flex items-center gap-2 text-lg font-medium">
+    <div class="flex items-center gap-2 text-lg font-medium text-surface-900">
       <i class="pi pi-sitemap"></i>
       <span>OntoManager</span>
     </div>
@@ -200,7 +199,12 @@ const commitChanges = async () => {
         </template>
         <template #option="slotProps">
           <div class="flex items-center justify-between w-full text-sm gap-4">
-            <span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
+            <div>
+              <ProgressSpinner
+                v-if="slotProps.option.loaded !== true"
+                style="width: 1.5rem; height: 1.5rem"
+              ></ProgressSpinner><span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
+            </div>
             <div class="flex items-center gap-2">
               <Button
                 :icon="`pi pi-${slotProps.option.error ? 'info-circle text-red-500' : slotProps.option.repo ? 'github' : 'link'}`"

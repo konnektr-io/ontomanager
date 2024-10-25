@@ -8,8 +8,9 @@ import Splitter from 'primevue/splitter'
 import SplitterPanel from 'primevue/splitterpanel'
 import ResourceTree from '@/components/ResourceTree.vue'
 import ResourceViewer from '@/components/ResourceViewer.vue'
+import LoadOntologyView from '@/views/LoadOntologyView.vue'
 
-const { selectedResource } = storeToRefs(useGraphStore())
+const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const route = useRoute()
 const router = useRouter()
 watch(() => route.params, () => {
@@ -118,7 +119,13 @@ onMounted(initialize)
           class="bg-surface-0 overflow-auto"
         >
           <ResourceViewer v-if="selectedResource" />
-          <div v-else>
+          <div v-else-if="!userGraphs.length">
+            <LoadOntologyView></LoadOntologyView>
+          </div>
+          <div
+            v-else
+            class="p-6"
+          >
             Nothing selected
           </div>
         </SplitterPanel>

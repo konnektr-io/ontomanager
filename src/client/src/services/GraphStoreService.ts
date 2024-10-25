@@ -16,6 +16,7 @@ import { Quadstore } from 'quadstore'
 // import { Engine } from 'quadstore-comunica'
 import { vocab } from '@/utils/vocab'
 import type { ResourceTreeNode } from '@/stores/graph'
+import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
 
 export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
 export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
@@ -36,8 +37,22 @@ class GraphStoreService {
   private _parser: Parser
   // private _engine: Engine
 
+  // Avoid blank node collisions
+  private _scope: Scope | undefined
+
   public async init() {
     await this._store.open()
+
+    if (this._scope) return
+
+    // Try to get scope id from local storage
+    const scopeId = localStorage.getItem('scopeId')
+    if (scopeId) {
+      this._scope = await this._store.loadScope(scopeId)
+    } else {
+      this._scope = await this._store.initScope()
+      localStorage.setItem('scopeId', this._scope.id)
+    }
   }
 
   public async close() {
@@ -48,11 +63,9 @@ class GraphStoreService {
     await this._store.clear()
   }
 
-  public get store() {
-    return this._store
-  }
-  public get parser() {
-    return this._parser
+  public async isGraphLoaded(graph: NamedNode) {
+    const { items } = await this._store.get({ graph }, { limit: 1 })
+    return items.length > 0
   }
 
   public async loadGraph(ontologyContent: string) {
@@ -92,16 +105,25 @@ class GraphStoreService {
       graphPrefixes[preferredPrefixObject.value] = ontologySubject
     }
 
-    for (const quad of quads) {
-      await this._store.put(
-        this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject)
+    await this._store.multiPut(
+      quads.map(
+        (quad) =>
+          this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject),
+        { scope: this._scope }
       )
-    }
+    )
 
     return {
       node: ontologySubject,
       prefixes: graphPrefixes
     }
+  }
+
+  public async deleteGraph(graph: NamedNode) {
+    await this.init()
+    return await new Promise((resolve, reject) =>
+      this._store.deleteGraph(graph).on('end', resolve).on('error', reject)
+    )
   }
 
   public async writeGraph(graph: NamedNode, prefixes?: { [prefix: string]: NamedNode<string> }) {
@@ -202,6 +224,8 @@ class GraphStoreService {
   public async getClassesTree(graphs: NamedNode[]) {
     await this.init()
 
+    if (!graphs.length) return []
+
     const allClassTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
     const allClassTypeQuads: Quad[] = []
     for (const classNode of classObjectNodes) {
@@ -268,6 +292,110 @@ class GraphStoreService {
       .sort((a, b) => a.label.localeCompare(b.label))
   }
 
+  public async getDecompositionTree(graphs: NamedNode[]) {
+    if (!graphs.length) return []
+    // A decomposition tree is a tree of all classes that are defined in a restriction on property 'hasPart'
+    // Different ontologies will have a different uri for this, so we try to make an educated guess
+    // In the future we will make this configurable
+
+    // Find a named node, which has 'hasPart' in the uri, which is of type owl:ObjectProperty or rdfs:Property,
+    // and which has a restriction on it
+    // It would be better to store this in the configuration instead of having to find them
+    const hasPartPropertyUris: string[] = []
+    for await (const quad of (
+      await this._store.getStream({
+        predicate: vocab.rdf.type
+      })
+    ).iterator) {
+      if (
+        (quad.object.equals(vocab.owl.ObjectProperty) || quad.object.equals(vocab.rdfs.Property)) &&
+        quad.subject.value.includes('hasPart') &&
+        !hasPartPropertyUris.includes(quad.subject.value)
+      ) {
+        hasPartPropertyUris.push(quad.subject.value)
+      }
+    }
+
+    const allDecompositionTreeNodesMap: { [classUri: string]: ResourceTreeNode } = {}
+    const allChildClassUris: string[] = []
+
+    // Get 'parts' and parent classes from restrictions
+    for (const propertyUri of hasPartPropertyUris) {
+      // await Promise.all(
+      //   hasPartPropertyUris.map(async (propertyUri) => {
+      const { items: onPropertyQuads } = await this._store.get({
+        predicate: vocab.owl.onProperty,
+        object: this._datafactory.namedNode(propertyUri)
+      })
+      for (const quad of onPropertyQuads) {
+        // await Promise.all(
+        //   onPropertyQuads.map(async (quad) => {
+        const blankNode = quad.subject
+        if (quad.subject.termType !== 'BlankNode') continue // must be something weird ...
+        const { items: partQuads } = await this._store.get({
+          subject: blankNode,
+          predicate: vocab.owl.someValuesFrom
+        })
+        const { items: parentClassQuads } = await this._store.get(
+          {
+            predicate: vocab.rdfs.subClassOf,
+            object: blankNode
+          },
+          { limit: 1 }
+        )
+        const parentClass = parentClassQuads.filter((q) =>
+          graphs.map((q) => q.value).includes(q.graph.value)
+        )[0]?.subject
+        if (!parentClass) continue
+        if (!allDecompositionTreeNodesMap[parentClass.value]) {
+          allDecompositionTreeNodesMap[parentClass.value] = {
+            key: parentClass.value,
+            label: await this.getLabel(parentClass.value),
+            data: {
+              // prefixedUri: parentClass.value,
+              graph: quad.graph.value
+            },
+            children: []
+          }
+        }
+        partQuads.forEach(async (partQuad) => {
+          const part = partQuad.object
+          if (!allChildClassUris.find((value) => value === part.value)) {
+            allChildClassUris.push(part.value)
+          }
+
+          if (!allDecompositionTreeNodesMap[part.value]) {
+            allDecompositionTreeNodesMap[part.value] = {
+              key: part.value,
+              label: await this.getLabel(part.value),
+              data: {
+                // prefixedUri: part.value,
+                graph: quad.graph.value
+              },
+              children: []
+            }
+          }
+          if (
+            !allDecompositionTreeNodesMap[parentClass.value].children.find(
+              (child) => child.key === part.value
+            )
+          ) {
+            allDecompositionTreeNodesMap[parentClass.value].children.push(
+              allDecompositionTreeNodesMap[part.value]
+            )
+          }
+        })
+      }
+    }
+
+    // Now return the root nodes
+    return Object.values(allDecompositionTreeNodesMap).filter(
+      (t) => t.children.length && !allChildClassUris.find((u) => u === t.key)
+    )
+  }
+
+  public async getPropertiesTree(graphs: NamedNode[]) {}
+
   public async getSubjectQuads(uri: string): Promise<Quad[]> {
     await this.init()
     const { items } = await this._store.get({ subject: this._datafactory.namedNode(uri) })
@@ -330,6 +458,16 @@ class GraphStoreService {
       }
     }
     return uri?.split('/').pop()?.split('#').pop() || uri
+  }
+
+  public async put(quad: Quad) {
+    await this.init()
+    return this._store.put(quad, { scope: this._scope })
+  }
+
+  public async del(quad: Quad) {
+    await this.init()
+    return this._store.del(quad, { scope: this._scope })
   }
 }
 

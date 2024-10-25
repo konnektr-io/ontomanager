@@ -50,31 +50,31 @@ interface BuiltinGraphDetails extends GraphDetails {
 
 const builtinGraphs: BuiltinGraphDetails[] = [
   {
-    content: owlVocab,
-    url: 'https://www.w3.org/2002/07/owl',
-    namespace: 'https://www.w3.org/2002/07/owl#',
+    content: rdfVocab,
+    url: 'http://www.w3.org/1999/02/22-rdf-syntax-ns',
+    namespace: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
     visible: false,
     loaded: false,
     prefixes: {},
-    node: DataFactory.namedNode('https://www.w3.org/2002/07/owl')
+    node: DataFactory.namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#')
   },
   {
-    content: rdfVocab,
-    url: 'https://www.w3.org/2000/01/rdf-schema',
-    namespace: 'https://www.w3.org/2000/01/rdf-schema#',
+    content: owlVocab,
+    url: 'http://www.w3.org/2002/07/owl',
+    namespace: 'http://www.w3.org/2002/07/owl#',
     visible: false,
     loaded: false,
     prefixes: {},
-    node: DataFactory.namedNode('https://www.w3.org/2000/01/rdf-schema#')
+    node: DataFactory.namedNode('http://www.w3.org/2002/07/owl')
   },
   {
     content: rdfsVocab,
-    url: 'https://www.w3.org/1999/02/22-rdf-syntax-ns',
-    namespace: 'https://www.w3.org/2002/07/owl#',
+    url: 'http://www.w3.org/2000/01/rdf-schema',
+    namespace: 'http://www.w3.org/2000/01/rdf-schema#',
     visible: false,
     loaded: false,
     prefixes: {},
-    node: DataFactory.namedNode('https://www.w3.org/2002/07/owl')
+    node: DataFactory.namedNode('http://www.w3.org/2000/01/rdf-schema#')
   },
   {
     content: skosVocab,
@@ -126,19 +126,26 @@ export const useGraphStore = defineStore('graph', () => {
   )
 
   const initialize = async () => {
-    await graphStoreService.store.open()
+    getUserGraphsFromLocalStorage()
+
+    await graphStoreService.init()
 
     await Promise.all(
       builtinGraphs.map(async (graph) => {
-        const { items } = await graphStoreService.store.get({ graph: graph.node }, { limit: 1 })
-        if (items.length > 0) return // already loaded
+        if (graph.node) {
+          const isLoaded = await graphStoreService.isGraphLoaded(graph.node)
+          if (isLoaded) {
+            graph.loaded = true
+            return // already loaded
+          }
+        }
         const { node, prefixes } = await graphStoreService.loadGraph(graph.content)
+        graph.loaded = true
         graph.node = node
         graph.prefixes = prefixes
       })
     )
 
-    getUserGraphsFromLocalStorage()
     await Promise.all(
       userGraphs.value.map(async (graph) => {
         try {
@@ -160,13 +167,13 @@ export const useGraphStore = defineStore('graph', () => {
         }
 
         if (graph.node) {
-          const { items } = await graphStoreService.store.get({ graph: graph.node }, { limit: 1 })
-          if (items.length > 0) {
+          if (await graphStoreService.isGraphLoaded(graph.node)) {
             graph.loaded = true
             return // already loaded
           }
         }
         await loadGraph(graph)
+        console.log('loaded', graph.url)
       })
     )
   }
@@ -227,7 +234,7 @@ export const useGraphStore = defineStore('graph', () => {
     const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
     if (existingUserGraphIndex !== -1) {
       const g = userGraphs.value[existingUserGraphIndex]
-      if (g.node) graphStoreService.store.deleteGraph(g.node)
+      if (g.node) await graphStoreService.deleteGraph(g.node)
       userGraphs.value.splice(existingUserGraphIndex, 1)
     }
 
@@ -239,8 +246,8 @@ export const useGraphStore = defineStore('graph', () => {
       ...(url.includes('github.com') && { gitHubUrl: url })
     }
 
-    await loadGraph(graph)
     userGraphs.value.push(graph)
+    await loadGraph(graph)
     saveUserGraphsToLocalStorage()
   }
 
@@ -250,7 +257,7 @@ export const useGraphStore = defineStore('graph', () => {
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
       if (g.node?.value) {
-        graphStoreService.store.deleteGraph(g.node)
+        await graphStoreService.deleteGraph(g.node)
       }
     }
   }
@@ -326,21 +333,21 @@ export const useGraphStore = defineStore('graph', () => {
   const redoStack = ref<QuadChange[]>([])
 
   const addQuad = (quad: Quad) => {
-    graphStoreService.store.put(quad)
+    graphStoreService.put(quad)
     undoStack.value.push({ action: 'add', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
   const editQuad = (oldQuad: Quad, newQuad: Quad) => {
-    graphStoreService.store.del(oldQuad)
-    graphStoreService.store.put(newQuad)
+    graphStoreService.del(oldQuad)
+    graphStoreService.put(newQuad)
     undoStack.value.push({ action: 'remove', quad: oldQuad })
     undoStack.value.push({ action: 'add', quad: newQuad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
   const removeQuad = (quad: Quad) => {
-    graphStoreService.store.del(quad)
+    graphStoreService.del(quad)
     undoStack.value.push({ action: 'remove', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
@@ -351,10 +358,10 @@ export const useGraphStore = defineStore('graph', () => {
 
     const { action, quad } = lastChange
     if (action === 'add') {
-      graphStoreService.store.del(quad)
+      graphStoreService.del(quad)
       redoStack.value.push({ action: 'remove', quad })
     } else if (action === 'remove') {
-      graphStoreService.store.put(quad)
+      graphStoreService.put(quad)
       redoStack.value.push({ action: 'add', quad })
     }
   }
@@ -365,10 +372,10 @@ export const useGraphStore = defineStore('graph', () => {
 
     const { action, quad } = lastUndo
     if (action === 'add') {
-      graphStoreService.store.put(quad)
+      graphStoreService.put(quad)
       undoStack.value.push({ action: 'add', quad })
     } else if (action === 'remove') {
-      graphStoreService.store.del(quad)
+      graphStoreService.del(quad)
       undoStack.value.push({ action: 'remove', quad })
     }
   }
