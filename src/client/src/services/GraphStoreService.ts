@@ -329,65 +329,66 @@ class GraphStoreService {
         predicate: vocab.owl.onProperty,
         object: this._datafactory.namedNode(propertyUri)
       })
-      for (const quad of onPropertyQuads) {
-        // await Promise.all(
-        //   onPropertyQuads.map(async (quad) => {
-        const blankNode = quad.subject
-        if (quad.subject.termType !== 'BlankNode') continue // must be something weird ...
-        const { items: partQuads } = await this._store.get({
-          subject: blankNode,
-          predicate: vocab.owl.someValuesFrom
-        })
-        const { items: parentClassQuads } = await this._store.get(
-          {
-            predicate: vocab.rdfs.subClassOf,
-            object: blankNode
-          },
-          { limit: 1 }
-        )
-        const parentClass = parentClassQuads.filter((q) =>
-          graphs.map((q) => q.value).includes(q.graph.value)
-        )[0]?.subject
-        if (!parentClass) continue
-        if (!allDecompositionTreeNodesMap[parentClass.value]) {
-          allDecompositionTreeNodesMap[parentClass.value] = {
-            key: parentClass.value,
-            label: await this.getLabel(parentClass.value),
-            data: {
-              // prefixedUri: parentClass.value,
-              graph: quad.graph.value
+      // for (const quad of onPropertyQuads) {
+      await Promise.all(
+        onPropertyQuads.map(async (quad) => {
+          const blankNode = quad.subject
+          if (quad.subject.termType !== 'BlankNode') return // continue // must be something weird ...
+          const { items: partQuads } = await this._store.get({
+            subject: blankNode,
+            predicate: vocab.owl.someValuesFrom
+          })
+          const { items: parentClassQuads } = await this._store.get(
+            {
+              predicate: vocab.rdfs.subClassOf,
+              object: blankNode
             },
-            children: []
-          }
-        }
-        partQuads.forEach(async (partQuad) => {
-          const part = partQuad.object
-          if (!allChildClassUris.find((value) => value === part.value)) {
-            allChildClassUris.push(part.value)
-          }
-
-          if (!allDecompositionTreeNodesMap[part.value]) {
-            allDecompositionTreeNodesMap[part.value] = {
-              key: part.value,
-              label: await this.getLabel(part.value),
+            { limit: 1 }
+          )
+          const parentClass = parentClassQuads.filter((q) =>
+            graphs.map((q) => q.value).includes(q.graph.value)
+          )[0]?.subject
+          if (!parentClass) return // continue
+          if (!allDecompositionTreeNodesMap[parentClass.value]) {
+            allDecompositionTreeNodesMap[parentClass.value] = {
+              key: parentClass.value,
+              label: await this.getLabel(parentClass.value),
               data: {
-                // prefixedUri: part.value,
+                // prefixedUri: parentClass.value,
                 graph: quad.graph.value
               },
               children: []
             }
           }
-          if (
-            !allDecompositionTreeNodesMap[parentClass.value].children.find(
-              (child) => child.key === part.value
-            )
-          ) {
-            allDecompositionTreeNodesMap[parentClass.value].children.push(
-              allDecompositionTreeNodesMap[part.value]
-            )
-          }
+          partQuads.forEach(async (partQuad) => {
+            const part = partQuad.object
+            if (!allChildClassUris.find((value) => value === part.value)) {
+              allChildClassUris.push(part.value)
+            }
+
+            if (!allDecompositionTreeNodesMap[part.value]) {
+              allDecompositionTreeNodesMap[part.value] = {
+                key: part.value,
+                label: await this.getLabel(part.value),
+                data: {
+                  // prefixedUri: part.value,
+                  graph: quad.graph.value
+                },
+                children: []
+              }
+            }
+            if (
+              !allDecompositionTreeNodesMap[parentClass.value].children.find(
+                (child) => child.key === part.value
+              )
+            ) {
+              allDecompositionTreeNodesMap[parentClass.value].children.push(
+                allDecompositionTreeNodesMap[part.value]
+              )
+            }
+          })
         })
-      }
+      )
     }
 
     // Now return the root nodes
