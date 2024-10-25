@@ -86,3 +86,7 @@ For any questions or support, please contact:
 
 - **Email**: <niko.raes@gmail.com>
 - **GitHub Issues**: [OntoManager Issues](https://github.com/nikoraes/ontomanager/issues)
+
+## License
+
+Licensed under the Apache License, Version 2.0: <http://www.apache.org/licenses/LICENSE-2.0>
