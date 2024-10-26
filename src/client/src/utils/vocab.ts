@@ -37,6 +37,8 @@ export const vocab = {
     DatatypeProperty: namedNode('http://www.w3.org/2002/07/owl#DatatypeProperty'),
     AnnotationProperty: namedNode('http://www.w3.org/2002/07/owl#AnnotationProperty'),
     TransitiveProperty: namedNode('http://www.w3.org/2002/07/owl#TransitiveProperty'),
+    FunctionalProperty: namedNode('http://www.w3.org/2002/07/owl#FunctionalProperty'),
+    InverseFunctionalProperty: namedNode('http://www.w3.org/2002/07/owl#InverseFunctionalProperty'),
     NamedIndividual: namedNode('http://www.w3.org/2002/07/owl#NamedIndividual'),
     Ontology: namedNode('http://www.w3.org/2002/07/owl#Ontology'),
     Restriction: namedNode('http://www.w3.org/2002/07/owl#Restriction'),

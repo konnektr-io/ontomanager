@@ -7,8 +7,10 @@ import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import graphStoreService from '@/services/GraphStoreService'
 import { useGraphStore } from '@/stores/graph'
+import { vocab } from '@/utils/vocab'
 import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
 import TermValue from './TermValue.vue'
+import PropertyValues from './PropertyValues.vue'
 
 const props = defineProps<{
   subject: string;
@@ -50,7 +52,10 @@ const openDialog = (predicate: string) => {
 </script>
 
 <template>
-  <div class="flex items-center gap-2">
+  <div
+    v-if="predicate !== vocab.rdf.first.value && predicate !== vocab.rdf.rest.value"
+    class="flex items-center gap-2"
+  >
     <div
       v-tooltip="predicate"
       class="text-sm font-medium !text-muted-foreground cursor-pointer"
@@ -69,7 +74,7 @@ const openDialog = (predicate: string) => {
   </div>
   <div class="flex flex-wrap items-center gap-2">
     <TermValue
-      v-for="object of predicateObjects.objects.filter(object => object.termType === 'NamedNode')"
+      v-for="object of predicateObjects.objects.filter(object => object.termType === 'NamedNode' && object.value !== vocab.rdf.nil.value)"
       :key="object.id"
       :term="object"
       class="text-sm"
@@ -87,7 +92,10 @@ const openDialog = (predicate: string) => {
     >
     </TermValue>
   </div>
-  <!-- <div class="pl-6 pt-1 flex flex-col gap-1">
+  <div
+    v-if="predicate !== vocab.rdfs.subClassOf.value && predicate !== vocab.rdf.first.value && predicate !== vocab.rdf.rest.value"
+    class="pl-6 pt-1 flex flex-col gap-1"
+  >
     <Panel
       v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
       :key="object.id"
@@ -95,7 +103,17 @@ const openDialog = (predicate: string) => {
       :pt:content:class="`pb-2`"
       class="py-0"
     >
-      <AnnotationPropertyList :subject="object" />
+      <PropertyValues :subject="object.value" />
     </Panel>
-  </div> -->
+  </div>
+  <div
+    v-else-if="predicate === vocab.rdf.first.value || predicate === vocab.rdf.rest.value"
+    class="pt-1 flex flex-col gap-1"
+  >
+    <PropertyValues
+      v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
+      :key="object.id"
+      :subject="object.value"
+    />
+  </div>
 </template>

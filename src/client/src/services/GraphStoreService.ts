@@ -1,13 +1,16 @@
 import { BrowserLevel } from 'browser-level'
 import {
+  BlankNode,
   DataFactory,
+  Literal,
   NamedNode,
   Parser,
   Quad,
   type DataFactoryInterface,
   type Quad_Object,
   type Quad_Predicate,
-  type Quad_Subject
+  type Quad_Subject,
+  type Term
 } from 'n3'
 import { Quadstore } from 'quadstore'
 // import { Engine } from 'quadstore-comunica'
@@ -435,11 +438,14 @@ class GraphStoreService {
           quad.object.termType === 'NamedNode' &&
           quad.object.value !== vocab.rdfs.Class.value &&
           quad.object.value !== vocab.owl.Class.value &&
+          quad.object.value !== vocab.owl.Thing.value &&
           quad.object.value !== vocab.rdf.Property.value &&
           quad.object.value !== vocab.owl.ObjectProperty.value &&
           quad.object.value !== vocab.owl.DatatypeProperty.value &&
           quad.object.value !== vocab.owl.AnnotationProperty.value &&
           quad.object.value !== vocab.owl.TransitiveProperty.value &&
+          quad.object.value !== vocab.owl.FunctionalProperty.value &&
+          quad.object.value !== vocab.owl.InverseFunctionalProperty.value &&
           quad.object.value !== vocab.rdfs.Datatype.value &&
           quad.object.value !== vocab.owl.Restriction.value &&
           quad.object.value !== vocab.owl.Ontology.value &&
@@ -489,7 +495,9 @@ class GraphStoreService {
     return items as Quad[]
   }
 
-  public async getProperties(uri: string): Promise<{ label: string; uri: string }[]> {
+  public async getProperties(
+    uri: string
+  ): Promise<{ label: string; node: NamedNode; ranges: Term[] }[]> {
     await this.init()
     const { items } = await this._store.get({
       predicate: vocab.rdfs.domain,
@@ -498,15 +506,107 @@ class GraphStoreService {
     return await Promise.all(
       items.map(async (quad) => {
         const label = await this.getLabel(quad.subject.value)
+        const { items: rangeQuads } = await this._store.get({
+          subject: quad.subject,
+          predicate: vocab.rdfs.range
+        })
+        const ranges = rangeQuads.map((q) => q.object as Term)
         return {
           label,
-          uri: quad.subject.value
+          node: quad.subject as NamedNode,
+          ranges
         }
       })
     )
   }
 
-  public async getIndividuals(uri: string): Promise<{ label: string; uri: string }[]> {
+  public async getRestrictions(uri: string): Promise<
+    {
+      label: string
+      propertyNode: NamedNode
+      blankNode: BlankNode
+      valueNodes: Term[]
+    }[]
+  > {
+    await this.init()
+    const { items } = await this._store.get({
+      predicate: vocab.rdfs.subClassOf,
+      subject: DataFactory.namedNode(uri)
+    })
+
+    const restrictions = items.filter((quad) => quad.object.termType === 'BlankNode')
+
+    return await Promise.all(
+      restrictions.map(async (quad) => {
+        const blankNode = quad.object as BlankNode
+        const { items: propertyQuads } = await this._store.get({
+          subject: blankNode,
+          predicate: vocab.owl.onProperty
+        })
+        const propertyNode = propertyQuads[0]?.object as NamedNode
+        const propertyUri = propertyNode.value
+        const label = propertyUri ? await this.getLabel(propertyUri) : ''
+
+        // This is just to display the value in the UI
+        const valueNodes: Term[] = []
+        const { items: someValuesQuads } = await this._store.get({
+          subject: blankNode,
+          predicate: vocab.owl.someValuesFrom
+        })
+        if (someValuesQuads.length) {
+          valueNodes.push(...someValuesQuads.map((q) => q.object as Term))
+        }
+        if (!valueNodes.length) {
+          const { items: hasValueQuads } = await this._store.get({
+            subject: blankNode,
+            predicate: vocab.owl.hasValue
+          })
+          if (hasValueQuads.length) {
+            valueNodes.push(...hasValueQuads.map((q) => q.object as Term))
+          }
+        }
+        if (!valueNodes.length) {
+          const { items: allValuesQuads } = await this._store.get({
+            subject: blankNode,
+            predicate: vocab.owl.allValuesFrom
+          })
+          if (allValuesQuads.length) {
+            for (const q of allValuesQuads) {
+              if (q.object.termType === 'NamedNode') {
+                valueNodes.push(q.object as Term)
+              } else if (q.object.termType === 'BlankNode') {
+                const { items: vQuads } = await this._store.get({
+                  subject: q.object as BlankNode
+                })
+                for (const vQuad of vQuads) {
+                  if (vQuad.object.termType === 'NamedNode') {
+                    valueNodes.push(vQuad.object as Term)
+                  } else if (vQuad.object.termType === 'BlankNode') {
+                    const { items: vvQuads } = await this._store.get({
+                      subject: vQuad.object as BlankNode
+                    })
+                    valueNodes.push(
+                      ...vvQuads
+                        .filter((q) => q.object.termType !== 'BlankNode')
+                        .map((q) => q.object as Term)
+                    )
+                  }
+                }
+              }
+            }
+          }
+        }
+        return {
+          label,
+          propertyNode,
+          blankNode,
+          valueNodes
+        }
+      })
+    )
+  }
+
+  public async getIndividuals(uri: string): Promise<{ label: string; node: NamedNode }[]> {
     await this.init()
     const { items } = await this._store.get({
       predicate: vocab.rdf.type,
@@ -517,7 +617,7 @@ class GraphStoreService {
         const label = await this.getLabel(quad.subject.value)
         return {
           label,
-          uri: quad.subject.value
+          node: quad.subject as NamedNode
         }
       })
     )

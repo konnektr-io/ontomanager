@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import type { Term } from 'n3'
 import Tag from 'primevue/tag'
 import { useGraphStore } from '@/stores/graph'
 import { vocab } from '@/utils/vocab'
 
-const props = defineProps<{
+defineProps<{
   term: Term;
 }>()
 const emit = defineEmits<{
@@ -13,13 +12,7 @@ const emit = defineEmits<{
 }>()
 
 const { getPrefixedUri } = useGraphStore()
-/* const restrictionRangeValues = computed(() => {
-  if (props.term.termType === 'BlankNode') {
-    return getPropertyRangeValueRestrictions(props.term)
-  } else {
-    return []
-  }
-}) */
+
 </script>
 
 <template>

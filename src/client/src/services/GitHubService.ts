@@ -67,7 +67,7 @@ class GitHubService {
         return
       }
       const response = await axios.post<GitHubTokenData>(
-        '/api/github/oauth/refresh_token',
+        '/api/github/oauth/refresh-token',
         new URLSearchParams({
           refresh_token: this.tokenData.refresh_token
         }),

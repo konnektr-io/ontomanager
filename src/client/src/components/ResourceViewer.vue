@@ -7,6 +7,8 @@ import PropertyValues from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
+import type { BlankNode, NamedNode, Term } from 'n3'
+import TermValue from './TermValue.vue'
 
 const {
   editMode,
@@ -21,8 +23,18 @@ const {
 } = useGraphStore()
 
 const label = ref<string>('')
-const properties = ref<{ label: string, uri: string }[]>([])
-const individuals = ref<{ label: string, uri: string }[]>([])
+const properties = ref<{
+  label: string,
+  node: NamedNode,
+  ranges: Term[]
+}[]>([])
+const restrictions = ref<{
+  label: string
+  propertyNode: NamedNode
+  blankNode: BlankNode
+  valueNodes: Term[]
+}[]>([])
+const individuals = ref<{ label: string, node: NamedNode }[]>([])
 watch([
   selectedResource,
   userGraphs
@@ -30,10 +42,12 @@ watch([
   if (!selectedResource.value) {
     label.value = ''
     properties.value = []
+    restrictions.value = []
     individuals.value = []
   } else {
     label.value = await graphStoreService.getLabel(selectedResource.value)
     properties.value = await graphStoreService.getProperties(selectedResource.value)
+    restrictions.value = await graphStoreService.getRestrictions(selectedResource.value)
     individuals.value = await graphStoreService.getIndividuals(selectedResource.value)
   }
 }, { immediate: true, deep: true })
@@ -81,20 +95,75 @@ watch([
           >
             <Panel
               v-for="property in properties"
-              :key="property.uri"
+              :key="property.node.value"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(property.uri)"
+                    v-tooltip="getPrefixedUri(property.node.value)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = property.uri"
+                    @click="selectedResource = property.node.value"
                   >{{ property.label }}</div>
+                  <TermValue
+                    v-for="range of property.ranges"
+                    :key="range.id"
+                    :term="range"
+                    class="text-sm"
+                    @click-uri="selectedResource = range.value"
+                  />
                 </div>
+
               </template>
-              <PropertyValues :subject="property.uri" />
+              <PropertyValues :subject="property.node.value" />
+            </Panel>
+          </div>
+        </div>
+
+        <div v-if="restrictions.length || editMode">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold">Restrictions</h3>
+            <Button
+              v-if="editMode"
+              icon="pi pi-plus"
+              size="small"
+              text
+              label="Add"
+            />
+          </div>
+          <p
+            v-if="!restrictions.length"
+            class="text-slate-500"
+          >No restrictions defined.</p>
+          <div
+            v-else
+            class="space-y-4"
+          >
+            <Panel
+              v-for="restriction in restrictions"
+              :key="restriction.blankNode.value"
+              toggleable
+              collapsed
+            >
+              <template #header>
+                <div class="flex items-center gap-4">
+                  <div
+                    v-tooltip="getPrefixedUri(restriction.propertyNode.value)"
+                    class="font-semibold cursor-pointer"
+                    @click="selectedResource = restriction.propertyNode.value"
+                  >{{ restriction.label }}</div>
+                  <TermValue
+                    v-for="valueNode of restriction.valueNodes"
+                    :key="valueNode.id"
+                    :term="valueNode"
+                    class="text-sm"
+                    @click-uri="selectedResource = valueNode.value"
+                  />
+                </div>
+                <!-- TODO: add value here -->
+              </template>
+              <PropertyValues :subject="restriction.blankNode.value" />
             </Panel>
           </div>
         </div>
@@ -120,20 +189,20 @@ watch([
           >
             <Panel
               v-for="individual in individuals"
-              :key="individual.uri"
+              :key="individual.node.value"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(individual.uri)"
+                    v-tooltip="getPrefixedUri(individual.node.value)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = individual.uri"
+                    @click="selectedResource = individual.node.value"
                   >{{ individual.label }}</div>
                 </div>
               </template>
-              <PropertyValues :subject="individual.uri" />
+              <PropertyValues :subject="individual.node.value" />
             </Panel>
           </div>
         </div>
