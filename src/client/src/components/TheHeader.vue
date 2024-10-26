@@ -5,19 +5,19 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import Dialog from 'primevue/dialog'
+import ProgressSpinner from 'primevue/progressspinner'
 import Textarea from 'primevue/textarea'
-import UserMenu from './UserMenu.vue'
-import { useGraphStore, type GraphDetails } from '@/stores/graph'
-import gitHubService from '@/services/GitHubService'
 import { useConfirm } from 'primevue/useconfirm'
-
+import gitHubService from '@/services/GitHubService'
+import { useGraphStore, type GraphDetails } from '@/stores/graph'
+import UserMenu from './UserMenu.vue'
 
 const confirm = useConfirm()
-const { userGraphs, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
+const { userGraphs, graphsLoading, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
 const {
-  toggleOntologyVisibility,
-  addOntology,
-  removeOntology,
+  toggleGraphVisibility,
+  addGraph,
+  removeGraph,
   writeGraph,
   loadGraph,
   clearUndoRedoStacks
@@ -37,8 +37,8 @@ const openImportDialog = () => {
   importDialogVisible.value = true
 }
 
-const importOntology = async () => {
-  await addOntology(newOntologyUrl.value)
+const importOntology = () => {
+  addGraph(newOntologyUrl.value)
   importDialogVisible.value = false
   newOntologyUrl.value = ''
 }
@@ -109,8 +109,8 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
         if (graph.branch && branch && graph.node) {
           clearUndoRedoStacks()
           const newUrl = graph.url.replace(graph.branch, branch)
-          removeOntology(graph)
-          addOntology(newUrl)
+          removeGraph(graph)
+          addGraph(newUrl)
           graph.branch = branch
         }
       },
@@ -120,8 +120,8 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
   } else {
     if (graph.branch && branch && graph.node) {
       const newUrl = graph.url.replace(graph.branch, branch)
-      removeOntology(graph)
-      addOntology(newUrl)
+      removeGraph(graph)
+      addGraph(newUrl)
       graph.branch = branch
     }
   }
@@ -142,7 +142,7 @@ const commitChanges = async () => {
   // Implement commit changes logic
   // For now just export and download the file
   if (selectedOntology.value) {
-    const content = await writeGraph(selectedOntology.value.url)
+    const content = await writeGraph(selectedOntology.value)
     if (!content ||
       !selectedOntology.value.owner ||
       !selectedOntology.value.repo ||
@@ -168,19 +168,24 @@ const commitChanges = async () => {
 <template>
   <div class="flex items-center justify-between w-full">
     <!-- Title -->
-    <div class="flex items-center gap-2 text-lg font-medium">
+    <div class="flex items-center gap-2 text-lg font-medium text-surface-900">
       <i class="pi pi-sitemap"></i>
       <span>OntoManager</span>
     </div>
 
     <!-- Ontology Select -->
     <div class="flex items-center gap-6 md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 w-240">
+      <ProgressSpinner
+        v-if="Object.values(graphsLoading).some(l => l)"
+        style="width: 1.5rem; height: 1.5rem"
+      ></ProgressSpinner>
       <Select
         :model-value="selectedOntology"
         :options="userGraphs"
+        v-ripple="false"
         optionLabel="name"
         showClear
-        placeholder="Select Ontology"
+        placeholder="Select Ontology to Edit"
         class="w-[32rem] text-sm"
         :pt:clearIcon:onClick="() => changeSelectedOntology(null)"
         @change="changeSelectedOntology($event.value)"
@@ -197,12 +202,16 @@ const commitChanges = async () => {
           </span>
         </template>
         <template #option="slotProps">
-          <div class="flex items-center justify-between w-full text-sm">
-            <span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
-            <div class="pl-3">
+          <div class="flex items-center justify-between w-full text-sm gap-4">
+            <div>
+              <ProgressSpinner
+                v-if="graphsLoading[slotProps.option.url]"
+                style="width: 1.5rem; height: 1.5rem"
+              ></ProgressSpinner><span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
+            </div>
+            <div class="flex items-center gap-2">
               <Button
-                v-if="slotProps.option.url"
-                :icon="`pi pi-${slotProps.option.repo ? 'github' : 'link'}`"
+                :icon="`pi pi-${slotProps.option.error ? 'info-circle text-red-500' : slotProps.option.repo ? 'github' : 'link'}`"
                 size="small"
                 text
                 rounded
@@ -213,14 +222,14 @@ const commitChanges = async () => {
                 size="small"
                 text
                 rounded
-                @click.stop="toggleOntologyVisibility(slotProps.option)"
+                @click.stop="toggleGraphVisibility(slotProps.option)"
               />
               <Button
                 icon="pi pi-trash"
                 size="small"
                 text
                 rounded
-                @click.stop="removeOntology(slotProps.option)"
+                @click.stop="removeGraph(slotProps.option)"
               />
             </div>
           </div>
@@ -239,6 +248,12 @@ const commitChanges = async () => {
           </div>
         </template>
       </Select>
+      <i
+        v-if="userGraphs.some(g => g.error)"
+        v-tooltip="userGraphs.filter(g => g.error).map(g => g.error).join('\n')"
+        class="pi pi-info-circle text-red-500"
+      >
+      </i>
       <Select
         v-if="selectedOntology && selectedOntology.branch"
         :model-value="selectedOntology.branch"

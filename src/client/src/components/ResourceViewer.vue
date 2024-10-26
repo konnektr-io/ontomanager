@@ -1,29 +1,42 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
-import PropertyValueList from './PropertyValues.vue'
+import PropertyValues from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
-import TermValue from './TermValue.vue'
+import graphStoreService from '@/services/GraphStoreService'
 
-const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const {
-  getProperties,
-  getIndividuals,
-  getLabel,
+  editMode,
+  selectedResource,
+  userGraphs } = storeToRefs(useGraphStore())
+const {
+  // getProperties,
+  // getIndividuals,
+  // getLabel,
   getPrefixedUri,
-  getRanges
+  // getRanges
 } = useGraphStore()
 
-const properties = ref<string[]>([])
-const individuals = ref<string[]>([])
-watch([selectedResource, userGraphs], async () => {
-  if (!selectedResource.value) return
-  properties.value = await getProperties(selectedResource.value)
-  individuals.value = getIndividuals(selectedResource.value)
+const label = ref<string>('')
+const properties = ref<{ label: string, uri: string }[]>([])
+const individuals = ref<{ label: string, uri: string }[]>([])
+watch([
+  selectedResource,
+  userGraphs
+], async () => {
+  if (!selectedResource.value) {
+    label.value = ''
+    properties.value = []
+    individuals.value = []
+  } else {
+    label.value = await graphStoreService.getLabel(selectedResource.value)
+    properties.value = await graphStoreService.getProperties(selectedResource.value)
+    individuals.value = await graphStoreService.getIndividuals(selectedResource.value)
+  }
 }, { immediate: true, deep: true })
-
 
 
 </script>
@@ -34,7 +47,7 @@ watch([selectedResource, userGraphs], async () => {
     class="w-full p-4"
   >
     <div class="flex items-center gap-2 mb-4">
-      <p class="text-lg font-semibold">{{ getLabel(selectedResource) }}</p>
+      <p class="text-lg font-semibold">{{ label }}</p>
       <div class="flex flex-wrap gap-1">
         <Tag
           v-tooltip="selectedResource"
@@ -44,14 +57,23 @@ watch([selectedResource, userGraphs], async () => {
     </div>
     <div>
       <div class="mb-6">
-        <PropertyValueList :subject="selectedResource" />
+        <PropertyValues :subject="selectedResource" />
       </div>
       <div class="space-y-6">
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Properties</h3>
+        <div v-if="properties.length || editMode">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold">Properties</h3>
+            <Button
+              v-if="editMode"
+              icon="pi pi-plus"
+              size="small"
+              text
+              label="Add"
+            />
+          </div>
           <p
             v-if="!properties.length"
-            class="text-muted-foreground"
+            class="text-slate-500"
           >No properties defined.</p>
           <div
             v-else
@@ -59,37 +81,38 @@ watch([selectedResource, userGraphs], async () => {
           >
             <Panel
               v-for="property in properties"
-              :key="property"
+              :key="property.uri"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(property)"
+                    v-tooltip="getPrefixedUri(property.uri)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = property"
-                  >{{ getLabel(property) }}</div>
-                  <TermValue
-                    v-for="object of getRanges(property)"
-                    :key="object.value"
-                    :term="object"
-                    class="text-sm"
-                    @click-uri="selectedResource = object.value"
-                  >
-                  </TermValue>
+                    @click="selectedResource = property.uri"
+                  >{{ property.label }}</div>
                 </div>
               </template>
-              <PropertyValueList :subject="property" />
+              <PropertyValues :subject="property.uri" />
             </Panel>
           </div>
         </div>
 
-        <div>
-          <h3 class="text-lg font-semibold mb-4">Individuals</h3>
+        <div v-if="individuals.length || editMode">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold">Individuals</h3>
+            <Button
+              v-if="editMode"
+              icon="pi pi-plus"
+              size="small"
+              text
+              label="Add"
+            />
+          </div>
           <p
             v-if="!individuals.length"
-            class="text-muted-foreground"
+            class="text-slate-500"
           >No individuals defined.</p>
           <div
             v-else
@@ -97,28 +120,20 @@ watch([selectedResource, userGraphs], async () => {
           >
             <Panel
               v-for="individual in individuals"
-              :key="individual"
+              :key="individual.uri"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(individual)"
+                    v-tooltip="getPrefixedUri(individual.uri)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = individual"
-                  >{{ getLabel(individual) }}</div>
-                  <TermValue
-                    v-for="object of getRanges(individual)"
-                    :key="object.value"
-                    :term="object"
-                    class="text-sm"
-                    @click-uri="selectedResource = object.value"
-                  >
-                  </TermValue>
+                    @click="selectedResource = individual.uri"
+                  >{{ individual.label }}</div>
                 </div>
               </template>
-              <PropertyValueList :subject="individual" />
+              <PropertyValues :subject="individual.uri" />
             </Panel>
           </div>
         </div>
