@@ -146,7 +146,7 @@ export const useGraphStore = defineStore('graph', () => {
       })
     )
 
-    await Promise.all(
+    userGraphs.value = await Promise.all(
       userGraphs.value.map(async (graph) => {
         try {
           if (graph.owner && graph.repo && graph.branch && graph.path) {
@@ -158,8 +158,7 @@ export const useGraphStore = defineStore('graph', () => {
             )
             if (latestSha !== graph.sha) {
               graph.sha = latestSha
-              await loadGraph(graph)
-              return
+              return await loadGraph(graph)
             }
           }
         } catch (error) {
@@ -169,13 +168,14 @@ export const useGraphStore = defineStore('graph', () => {
         if (graph.node) {
           if (await graphStoreService.isGraphLoaded(graph.node)) {
             graph.loaded = true
-            return // already loaded
+            return graph // already loaded
           }
         }
-        await loadGraph(graph)
-        console.log('loaded', graph.url)
+        return await loadGraph(graph)
       })
     )
+
+    saveUserGraphsToLocalStorage()
   }
 
   const getUserGraphsFromLocalStorage = () => {
@@ -189,7 +189,9 @@ export const useGraphStore = defineStore('graph', () => {
     localStorage.setItem('userGraphs', JSON.stringify(userGraphs.value))
   }
 
+  const graphsLoading = ref<{ [graphUrl: string]: boolean }>({})
   const loadGraph = async (graph: GraphDetails) => {
+    graphsLoading.value[graph.url] = true
     graph.loaded = false
     try {
       let content: string
@@ -215,14 +217,14 @@ export const useGraphStore = defineStore('graph', () => {
 
       graph.loaded = true
       graph.error = undefined
-      saveUserGraphsToLocalStorage
     } catch (error) {
       graph.loaded = false
       graph.sha = undefined
       graph.error = `Failed to load ${graph.url}`
       console.error(`Failed to load ${graph.url}: ${error}`)
-      saveUserGraphsToLocalStorage
     }
+    graphsLoading.value[graph.url] = false
+    return graph
   }
 
   const toggleGraphVisibility = async (graph: GraphDetails): Promise<void> => {
@@ -230,24 +232,38 @@ export const useGraphStore = defineStore('graph', () => {
     saveUserGraphsToLocalStorage()
   }
 
-  const addGraph = async (url: string): Promise<void> => {
-    const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
-    if (existingUserGraphIndex !== -1) {
-      const g = userGraphs.value[existingUserGraphIndex]
-      if (g.node) await graphStoreService.deleteGraph(g.node)
-      userGraphs.value.splice(existingUserGraphIndex, 1)
-    }
+  const addGraph = async (url: string | string[]): Promise<void> => {
+    const urls = Array.isArray(url) ? url : [url]
+    userGraphs.value = await Promise.all(
+      urls.map(async (url) => {
+        const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
+        if (existingUserGraphIndex !== -1) {
+          const g = userGraphs.value[existingUserGraphIndex]
+          if (g.node) await graphStoreService.deleteGraph(g.node)
+          userGraphs.value.splice(existingUserGraphIndex, 1)
+        }
 
-    const graph: GraphDetails = {
-      url,
-      visible: true,
-      loaded: false,
-      prefixes: {},
-      ...(url.includes('github.com') && { gitHubUrl: url })
-    }
+        let graph: GraphDetails = {
+          url,
+          loaded: false,
+          visible: false,
+          prefixes: {},
+          ...(url.includes('github.com') && { gitHubUrl: url })
+        }
 
-    userGraphs.value.push(graph)
-    await loadGraph(graph)
+        graph = await loadGraph(graph)
+        graph.visible = true
+        // Avoid duplicates
+        const existingUserGraphIndex2 = userGraphs.value.findIndex(
+          (g) => g.node?.value === graph.node?.value
+        )
+        if (existingUserGraphIndex2 !== -1) {
+          userGraphs.value.splice(existingUserGraphIndex2, 1)
+        }
+        return graph
+      })
+    )
+
     saveUserGraphsToLocalStorage()
   }
 
@@ -402,6 +418,7 @@ export const useGraphStore = defineStore('graph', () => {
     initialize,
     toggleGraphVisibility,
 
+    graphsLoading,
     addGraph,
     loadGraph,
     writeGraph,

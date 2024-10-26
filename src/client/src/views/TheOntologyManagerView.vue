@@ -10,6 +10,10 @@ import ResourceTree from '@/components/ResourceTree.vue'
 import ResourceViewer from '@/components/ResourceViewer.vue'
 import LoadOntologyView from '@/views/LoadOntologyView.vue'
 
+const props = defineProps<{
+  type: TreeType
+}>()
+
 const { selectedResource, userGraphs } = storeToRefs(useGraphStore())
 const route = useRoute()
 const router = useRouter()
@@ -22,12 +26,17 @@ watch(() => route.params, () => {
 }, { immediate: true })
 watch(selectedResource, (value, oldValue) => {
   if (value !== oldValue && route.query.uri !== value) {
-    router.push({ query: { uri: value } })
+    router.push({ query: { uri: value || undefined } })
+  }
+})
+watch(() => userGraphs.value, (value) => {
+  if (!value.length) {
+    selectedResource.value = null
   }
 })
 
-const drawerExpanded = ref(false)
-const drawerPinned = ref(false)
+const drawerExpanded = ref(true)
+const drawerPinned = ref(true)
 const activeTreeType = ref(TreeType.Classes)
 
 const navigationItems = [
@@ -37,8 +46,13 @@ const navigationItems = [
   { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
 ]
 
+watch(() => props.type, (value) => {
+  activeTreeType.value = value
+})
+
 const selectTreeType = (type: TreeType) => {
-  activeTreeType.value = type
+  router.push(`/${type}`)
+  // activeTreeType.value = type
 }
 
 const expandDrawer = () => {
@@ -67,7 +81,7 @@ onMounted(initialize)
     <!-- Navigation Drawer -->
     <div
       class="flex flex-col justify-between bg-surface-100 transition-all duration-300 ease-in-out"
-      :class="{ 'w-56': drawerExpanded, 'w-10': !drawerExpanded }"
+      :class="{ 'w-48': drawerExpanded, 'w-10': !drawerExpanded }"
       @mouseenter="expandDrawer"
       @mouseleave="collapseDrawer"
     >
@@ -119,14 +133,8 @@ onMounted(initialize)
           class="bg-surface-0 overflow-auto"
         >
           <ResourceViewer v-if="selectedResource" />
-          <div v-else-if="!userGraphs.length">
+          <div v-else>
             <LoadOntologyView></LoadOntologyView>
-          </div>
-          <div
-            v-else
-            class="p-6"
-          >
-            Nothing selected
           </div>
         </SplitterPanel>
       </Splitter>

@@ -8,12 +8,8 @@ export const useGitHubStore = defineStore('github', () => {
   const name = ref<string | null>(null)
   const avatarUrl = ref<string | null>(null)
 
-  const loginToGitHub = async () => {
-    localStorage.removeItem('githubTokenData')
-    const redirectUri = `${window.location.origin}`
-    const state = encodeURIComponent(window.location.pathname + window.location.hash)
-    const githubAuthUrl = `/api/github/oauth/login?redirect_uri=${redirectUri}&state=${state}`
-    window.location.href = githubAuthUrl
+  const loginToGitHub = () => {
+    githubService.loginToGitHub()
   }
 
   const handleGitHubCallback = async (code: string) => {

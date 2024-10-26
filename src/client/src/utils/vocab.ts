@@ -56,9 +56,14 @@ export const vocab = {
   sh: {
     name: namedNode('http://www.w3.org/ns/shacl#name'),
     property: namedNode('http://www.w3.org/ns/shacl#property'),
-    rule: namedNode('http://www.w3.org/ns/shacl#rule')
+    rule: namedNode('http://www.w3.org/ns/shacl#rule'),
+    NodeShape: namedNode('http://www.w3.org/ns/shacl#NodeShape')
   },
   vann: {
-    preferredNamespacePrefix: namedNode('http://purl.org/vocab/vann/preferredNamespacePrefix')
+    preferredNamespacePrefix: namedNode('http://purl.org/vocab/vann/preferredNamespacePrefix'),
+    preferredNamespaceUri: namedNode('http://purl.org/vocab/vann/preferredNamespaceUri')
+  },
+  voaf: {
+    Vocabulary: namedNode('http://purl.org/vocommons/voaf#Vocabulary')
   }
 }

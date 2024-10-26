@@ -7,8 +7,13 @@ const router = createRouter({
   routes: [
     {
       path: '/',
+      redirect: '/classes'
+    },
+    {
+      path: '/:type',
       name: 'ontology',
-      component: TheOntologyManagerView
+      component: TheOntologyManagerView,
+      props: true
     }
   ]
 })

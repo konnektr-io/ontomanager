@@ -26,7 +26,7 @@ const classesTree = shallowRef<ResourceTreeNode[]>()
 const classesTreeLoading = ref(false)
 const classesTreeLoadingId = ref(0)
 const loadClassesTree = async () => {
-  const loadingId = classesTreeLoadingId.value++
+  const loadingId = classesTreeLoadingId.value = classesTreeLoadingId.value++
   classesTreeLoading.value = true
   const result = await graphStoreService.getClassesTree(visibleGraphs.value)
   if (classesTreeLoadingId.value === loadingId) {
@@ -38,7 +38,7 @@ const decompositionTree = shallowRef<ResourceTreeNode[]>()
 const decompositionTreeLoading = ref(false)
 const decompositionTreeLoadingId = ref(0)
 const loadDecompositionTree = async () => {
-  const loadingId = decompositionTreeLoadingId.value++
+  const loadingId = decompositionTreeLoadingId.value = decompositionTreeLoadingId.value++
   decompositionTreeLoading.value = true
   const result = await graphStoreService.getDecompositionTree(visibleGraphs.value)
   if (decompositionTreeLoadingId.value === loadingId) {
@@ -50,7 +50,7 @@ const propertiesTree = shallowRef<ResourceTreeNode[]>()
 const propertiesTreeLoading = ref(false)
 const propertiesTreeLoadingId = ref(0)
 const loadPropertiesTree = async () => {
-  const loadingId = propertiesTreeLoadingId.value++
+  const loadingId = propertiesTreeLoadingId.value = propertiesTreeLoadingId.value++
   propertiesTreeLoading.value = true
   const result = await graphStoreService.getPropertiesTree(visibleGraphs.value)
   if (propertiesTreeLoadingId.value === loadingId) {
@@ -62,7 +62,7 @@ const individualsTree = shallowRef<ResourceTreeNode[]>()
 const individualsTreeLoading = ref(false)
 const individualsTreeLoadingId = ref(0)
 const loadIndividualsTree = async () => {
-  const loadingId = individualsTreeLoadingId.value++
+  const loadingId = individualsTreeLoadingId.value = individualsTreeLoadingId.value++
   individualsTreeLoading.value = true
   const result = await graphStoreService.getIndividualsTree(visibleGraphs.value)
   if (individualsTreeLoadingId.value === loadingId) {
@@ -102,7 +102,8 @@ const loading = computed(() => {
   return false
 })
 
-watch(visibleGraphs, async () => {
+watch(visibleGraphs, async (graph) => {
+  console.log(graph)
   if (props.type === TreeType.Classes) {
     await loadClassesTree()
     loadDecompositionTree()
@@ -139,7 +140,14 @@ watch(visibleGraphs, async () => {
       </div>
       <div class="text-surface-600">Loading ...</div>
     </div>
+    <div
+      v-if="!treeData?.length && !loading"
+      class="flex justify-start p-2 gap-2"
+    >
+      <div class="text-surface-600">No data</div>
+    </div>
     <Tree
+      v-else
       v-model:selectionKeys="selectedKeys"
       :value="treeData"
       selectionMode="single"

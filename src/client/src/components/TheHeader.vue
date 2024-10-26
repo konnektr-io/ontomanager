@@ -13,7 +13,7 @@ import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import UserMenu from './UserMenu.vue'
 
 const confirm = useConfirm()
-const { userGraphs, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
+const { userGraphs, graphsLoading, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
 const {
   toggleGraphVisibility,
   addGraph,
@@ -175,13 +175,17 @@ const commitChanges = async () => {
 
     <!-- Ontology Select -->
     <div class="flex items-center gap-6 md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6 w-240">
+      <ProgressSpinner
+        v-if="Object.values(graphsLoading).some(l => l)"
+        style="width: 1.5rem; height: 1.5rem"
+      ></ProgressSpinner>
       <Select
         :model-value="selectedOntology"
         :options="userGraphs"
         v-ripple="false"
         optionLabel="name"
         showClear
-        placeholder="Select Ontology"
+        placeholder="Select Ontology to Edit"
         class="w-[32rem] text-sm"
         :pt:clearIcon:onClick="() => changeSelectedOntology(null)"
         @change="changeSelectedOntology($event.value)"
@@ -201,7 +205,7 @@ const commitChanges = async () => {
           <div class="flex items-center justify-between w-full text-sm gap-4">
             <div>
               <ProgressSpinner
-                v-if="slotProps.option.loaded !== true"
+                v-if="graphsLoading[slotProps.option.url]"
                 style="width: 1.5rem; height: 1.5rem"
               ></ProgressSpinner><span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
             </div>

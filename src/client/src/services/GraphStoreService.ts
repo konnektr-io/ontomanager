@@ -1,12 +1,19 @@
 import { BrowserLevel } from 'browser-level'
-import { DataFactory, NamedNode, Parser, Quad, type DataFactoryInterface } from 'n3'
+import {
+  DataFactory,
+  NamedNode,
+  Parser,
+  Quad,
+  type DataFactoryInterface,
+  type Quad_Object,
+  type Quad_Predicate,
+  type Quad_Subject
+} from 'n3'
 import { Quadstore } from 'quadstore'
 // import { Engine } from 'quadstore-comunica'
 import { vocab } from '@/utils/vocab'
 import type { ResourceTreeNode } from '@/stores/graph'
 import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
-import rdf from '@rdfjs/data-model'
-import * as RDF from '@rdfjs/types'
 import Serializer, { type SerializerOptions } from '@rdfjs/serializer-turtle'
 
 export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
@@ -79,7 +86,8 @@ class GraphStoreService {
     const ontologySubject = quads.find(
       (quad) =>
         quad.object.value === vocab.owl.Ontology.value ||
-        quad.object.value === vocab.skos.ConceptScheme.value
+        quad.object.value === vocab.skos.ConceptScheme.value ||
+        quad.object.value === vocab.voaf.Vocabulary.value
     )?.subject
 
     if (!ontologySubject || ontologySubject.termType !== 'NamedNode') {
@@ -99,7 +107,13 @@ class GraphStoreService {
     )?.object
     // Store the preferred prefix for the ontology
     if (preferredPrefixObject && preferredPrefixObject.termType === 'Literal') {
-      graphPrefixes[preferredPrefixObject.value] = ontologySubject
+      const preferredNamespaceUri = quads.find(
+        (quad) =>
+          quad.subject.value === ontologySubject.value &&
+          quad.predicate.value === vocab.vann.preferredNamespaceUri.value &&
+          quad.object.termType === 'NamedNode'
+      )?.object as NamedNode<string>
+      graphPrefixes[preferredPrefixObject.value] = preferredNamespaceUri || ontologySubject
     }
 
     await this._store.multiPut(
@@ -132,16 +146,16 @@ class GraphStoreService {
 
     let count = 0
 
-    const input: RDF.Quad[] = []
+    const input: Quad[] = []
 
     const { iterator } = await this._store.getStream({ graph })
 
     for await (const quad of iterator) {
       input.push(
-        rdf.quad(
-          quad.subject as RDF.Quad_Subject,
-          quad.predicate as RDF.Quad_Predicate,
-          quad.object as RDF.Quad_Object
+        this._datafactory.quad(
+          quad.subject as Quad_Subject,
+          quad.predicate as Quad_Predicate,
+          quad.object as Quad_Object
         )
       )
       count++
@@ -430,7 +444,8 @@ class GraphStoreService {
           quad.object.value !== vocab.owl.Restriction.value &&
           quad.object.value !== vocab.owl.Ontology.value &&
           quad.object.value !== vocab.skos.ConceptScheme.value &&
-          quad.object.value !== vocab.owl.NamedIndividual.value
+          quad.object.value !== vocab.owl.NamedIndividual.value &&
+          quad.object.value !== vocab.sh.NodeShape.value
         ) {
           const classUri = quad.object.value
           if (!treeNodesMap[classUri])
