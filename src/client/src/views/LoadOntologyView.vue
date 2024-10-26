@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useGraphStore } from '@/stores/graph'
 import Button from 'primevue/button'
+import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 
 const { addGraph } = useGraphStore()
@@ -9,8 +10,11 @@ const newOntologyUrl = ref('')
 
 const predefinedOntologies = [
   { name: 'SML', description: 'Building information modelling (BIM) - Semantic modelling and linking (SML) - CEN-EN 17632', urls: ['https://docs.crow.nl/sml/data/concat/sml.ttl'] },
-  { name: 'BOT', description: 'Building Topology Ontology', urls: ['http://www.w3id.org/bot/bot.ttl'] },
-  { name: 'RealEstateCore + Brick', urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl'] }
+  { name: 'BOT', description: 'The Building Topology Ontology (BOT) is a minimal ontology for describing the core topological concepts of a building.', urls: ['http://www.w3id.org/bot/bot.ttl'] },
+  { name: 'RealEstateCore + Brick', description: 'RealEstateCore is an ontology for building-related data and applications. Brick defines HVAC, lighting, spatial and electrical concepts and relationships.', urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl'] },
+  {
+    name: 'DPROD + DCAT', description: 'The Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabulary, designed to describe Data Products. ', urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl']
+  }
 ]
 
 const importOntology = (urls: string | string[]) => {
@@ -21,11 +25,11 @@ const importOntology = (urls: string | string[]) => {
 
 <template>
   <div class="bg-surface-0 dark:bg-surface-950 px-6 py-12 md:px-12 lg:px-20">
-    <div class="mb-4 font-bold text-xl">
+    <div class="mb-4 font-bold text-xl mb-[3rem]">
       <span class="text-surface-900 dark:text-surface-0">Get Started</span>
     </div>
-    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]">Import an ontology</div>
-    <div class="flex items-center gap-4 mb-4">
+    <div class="text-surface-700 dark:text-surface-0/70 mb-2">Import an ontology</div>
+    <div class="flex items-center gap-4 mb-[3rem]">
       <InputText
         v-model="newOntologyUrl"
         placeholder="Enter ontology URL"
@@ -38,16 +42,18 @@ const importOntology = (urls: string | string[]) => {
         @click="importOntology(newOntologyUrl)"
       />
     </div>
-    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]">Or load a common ontology</div>
+    <div class="text-surface-700 dark:text-surface-0/70 mb-2">Or load and extend an existing ontology</div>
     <div class="flex flex-wrap gap-4">
-      <Button
+      <Card
         v-for="ontology in predefinedOntologies"
-        :key="ontology.name"
-        :label="ontology.name"
-        outlined
-        severity="secondary"
+        v-ripple
+        :key="ontology.urls.join('_')"
+        class="cursor-pointer w-[15rem]"
         @click="importOntology(ontology.urls)"
-      />
+      >
+        <template #title>{{ ontology.name }}</template>
+        <template #content>{{ ontology.description }}</template>
+      </Card>
     </div>
   </div>
 </template>

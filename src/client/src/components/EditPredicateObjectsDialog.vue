@@ -2,11 +2,13 @@
 import { ref, computed, inject, type Ref, onMounted } from 'vue'
 import { useGraphStore, commonDataTypes } from '@/stores/graph'
 import { DataFactory, Literal, Quad } from 'n3'
+import { useDebounceFn } from '@vueuse/core'
 import AutoComplete, { type AutoCompleteCompleteEvent } from 'primevue/autocomplete'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
+import graphStoreService from '@/services/GraphStoreService'
 
 const { namedNode, literal, quad } = DataFactory
 
@@ -14,11 +16,12 @@ const dialogRef = inject<Ref<DynamicDialogInstance & {
   data: { subject: string, predicate: string, graphId: string }
 }>>('dialogRef')
 
-const subject = computed(() => dialogRef?.value.data?.subject)
-const predicate = computed(() => dialogRef?.value.data.predicate)
-const graphId = computed(() => dialogRef?.value.data.graphId)
+const predicateLabel = ref<string>('')
+const subjectUri = computed(() => dialogRef?.value.data?.subjectUri)
+const predicateUri = computed(() => dialogRef?.value.data.predicateUri)
+const graphUri = computed(() => dialogRef?.value.data.graphUri)
 
-const { getQuads, getLabel, getAllNamedNodes, addQuad, editQuad, removeQuad } = useGraphStore()
+const { addQuad, editQuad, removeQuad } = useGraphStore()
 
 const originalQuads: Quad[] = []
 interface EditableObject {
@@ -34,9 +37,10 @@ const namedNodeSuggestions = ref<string[]>([])
 const languageOptions = ['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']
 
 // Get quads on mount
-onMounted(() => {
-  if (!subject.value || !predicate.value || !graphId.value) return
-  const qs = getQuads(namedNode(subject.value), namedNode(predicate.value), null, literal(graphId.value))
+onMounted(async () => {
+  if (!subjectUri.value || !predicateUri.value || !graphUri.value) return
+  predicateLabel.value = await graphStoreService.getLabel(predicateUri.value)
+  const qs = await graphStoreService.getSubjectQuads(subjectUri.value, predicateUri.value, graphUri.value)
   originalQuads.push(...qs)
   objects.value = qs
     .filter((q) => q.object.termType === 'NamedNode' || q.object.termType === 'Literal')
@@ -59,15 +63,13 @@ onMounted(() => {
 })
 
 // Fetch suggestions for NamedNode URIs
-const fetchNamedNodeSuggestions = (event: AutoCompleteCompleteEvent) => {
-  const allNamedNodes = getAllNamedNodes().map(node => node.value)
-  namedNodeSuggestions.value = [...new Set(allNamedNodes.filter(value =>
-    value.includes(event.query)
-  ))]
-}
+// TODO: add debounce
+const fetchNamedNodeSuggestions = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
+  namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(predicateUri.value, event.query)
+}, 250, { maxWait: 1000 })
 
 const addObject = (type: 'NamedNode' | 'Literal') => {
-  if (!subject.value || !predicate.value || !graphId.value) return
+  if (!subjectUri.value || !predicateUri.value || !graphUri.value) return
   if (type === 'NamedNode') {
     objects.value.push({
       termType: 'NamedNode',
@@ -89,9 +91,9 @@ const confirmChanges = () => {
   // Handle saving changes back to the store
   const newQuads = objects.value.map<Quad>(obj => {
     if (obj.termType === 'NamedNode') {
-      return quad(namedNode(subject.value), namedNode(predicate.value), namedNode(obj.value), namedNode(graphId.value))
+      return quad(namedNode(subjectUri.value), namedNode(predicateUri.value), namedNode(obj.value), namedNode(graphUri.value))
     } else {
-      return quad(namedNode(subject.value), namedNode(predicate.value), literal(obj.value, obj.language || obj.datatype), namedNode(graphId.value))
+      return quad(namedNode(subjectUri.value), namedNode(predicateUri.value), literal(obj.value, obj.language || obj.datatype), namedNode(graphUri.value))
     }
   })
 
@@ -128,7 +130,7 @@ const cancelChanges = () => {
 
 <template>
   <div class="flex flex-col gap-2 w-full">
-    <div class="font-medium mb-4">{{ predicate && getLabel(predicate) }}</div>
+    <div class="font-medium mb-4">{{ predicateLabel || predicateUri }}</div>
     <div
       v-for="(object, index) in objects"
       :key="index"
@@ -174,8 +176,8 @@ const cancelChanges = () => {
             v-if="!object.language"
             v-model="object.datatype"
             :options="commonDataTypes"
-            :option-label="type => getLabel(type.value)"
-            :option-value="type => type.value"
+            option-value="uri"
+            option-name="label"
             placeholder="Select Datatype"
             showClear
           />

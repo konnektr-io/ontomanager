@@ -18,7 +18,7 @@ import Serializer, { type SerializerOptions } from '@rdfjs/serializer-turtle'
 
 export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
 export const propertyObjectNodes = [
-  vocab.rdfs.Property,
+  vocab.rdf.Property,
   vocab.owl.ObjectProperty,
   vocab.owl.DatatypeProperty,
   vocab.owl.AnnotationProperty
@@ -254,7 +254,7 @@ class GraphStoreService {
       })
     ).iterator) {
       if (
-        (quad.object.equals(vocab.owl.ObjectProperty) || quad.object.equals(vocab.rdfs.Property)) &&
+        (quad.object.equals(vocab.owl.ObjectProperty) || quad.object.equals(vocab.rdf.Property)) &&
         quad.subject.value.includes('hasPart') &&
         !hasPartPropertyUris.includes(quad.subject.value)
       ) {
@@ -435,7 +435,7 @@ class GraphStoreService {
           quad.object.termType === 'NamedNode' &&
           quad.object.value !== vocab.rdfs.Class.value &&
           quad.object.value !== vocab.owl.Class.value &&
-          quad.object.value !== vocab.rdfs.Property.value &&
+          quad.object.value !== vocab.rdf.Property.value &&
           quad.object.value !== vocab.owl.ObjectProperty.value &&
           quad.object.value !== vocab.owl.DatatypeProperty.value &&
           quad.object.value !== vocab.owl.AnnotationProperty.value &&
@@ -445,7 +445,8 @@ class GraphStoreService {
           quad.object.value !== vocab.owl.Ontology.value &&
           quad.object.value !== vocab.skos.ConceptScheme.value &&
           quad.object.value !== vocab.owl.NamedIndividual.value &&
-          quad.object.value !== vocab.sh.NodeShape.value
+          quad.object.value !== vocab.sh.NodeShape.value &&
+          quad.object.value !== vocab.sh.PropertyShape.value
         ) {
           const classUri = quad.object.value
           if (!treeNodesMap[classUri])
@@ -474,9 +475,17 @@ class GraphStoreService {
     return Object.values(treeNodesMap)
   }
 
-  public async getSubjectQuads(uri: string): Promise<Quad[]> {
+  public async getSubjectQuads(
+    subjectUri: string,
+    predicateUri?: string,
+    graphUri?: string
+  ): Promise<Quad[]> {
     await this.init()
-    const { items } = await this._store.get({ subject: this._datafactory.namedNode(uri) })
+    const { items } = await this._store.get({
+      subject: this._datafactory.namedNode(subjectUri),
+      ...(predicateUri && { predicate: this._datafactory.namedNode(predicateUri) }),
+      ...(graphUri && { graph: this._datafactory.namedNode(graphUri) })
+    })
     return items as Quad[]
   }
 
@@ -512,6 +521,23 @@ class GraphStoreService {
         }
       })
     )
+  }
+
+  public async getObjectNamedNodeSuggestions(predicateUri: string, search: string) {
+    await this.init()
+
+    const namedNodeMap = new Set<string>()
+    for await (const quad of (await this._store.getStream({})).iterator) {
+      if (
+        quad.predicate.value === predicateUri &&
+        quad.object.termType === 'NamedNode' &&
+        quad.object.value.toLowerCase().includes(search.toLowerCase())
+      ) {
+        namedNodeMap.add(quad.object.value)
+      }
+      if (namedNodeMap.size > 10) break
+    }
+    return Array.from(namedNodeMap)
   }
 
   public async getLabel(uri: string) {

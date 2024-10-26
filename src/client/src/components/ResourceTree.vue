@@ -102,8 +102,7 @@ const loading = computed(() => {
   return false
 })
 
-watch(visibleGraphs, async (graph) => {
-  console.log(graph)
+watch(visibleGraphs, async () => {
   if (props.type === TreeType.Classes) {
     await loadClassesTree()
     loadDecompositionTree()

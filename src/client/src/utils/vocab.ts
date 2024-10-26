@@ -13,6 +13,7 @@ export const vocab = {
     time: namedNode('http://www.w3.org/2001/XMLSchema#time')
   },
   rdf: {
+    Property: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property'),
     type: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
     value: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#value'),
     first: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
@@ -22,7 +23,6 @@ export const vocab = {
   },
   rdfs: {
     Class: namedNode('http://www.w3.org/2000/01/rdf-schema#Class'),
-    Property: namedNode('http://www.w3.org/2000/01/rdf-schema#Property'),
     Datatype: namedNode('http://www.w3.org/2000/01/rdf-schema#Datatype'),
     label: namedNode('http://www.w3.org/2000/01/rdf-schema#label'),
     domain: namedNode('http://www.w3.org/2000/01/rdf-schema#domain'),
@@ -57,7 +57,8 @@ export const vocab = {
     name: namedNode('http://www.w3.org/ns/shacl#name'),
     property: namedNode('http://www.w3.org/ns/shacl#property'),
     rule: namedNode('http://www.w3.org/ns/shacl#rule'),
-    NodeShape: namedNode('http://www.w3.org/ns/shacl#NodeShape')
+    NodeShape: namedNode('http://www.w3.org/ns/shacl#NodeShape'),
+    PropertyShape: namedNode('http://www.w3.org/ns/shacl#PropertyShape')
   },
   vann: {
     preferredNamespacePrefix: namedNode('http://purl.org/vocab/vann/preferredNamespacePrefix'),

@@ -1,71 +1,12 @@
 # OntoManager
 
-OntoManager is a web-based application designed to manage and visualize ontologies. It supports importing, editing, and visualizing ontologies from various sources, including GitHub repositories.
-
-## Features
-
-- **Import Ontologies**: Import ontologies from URLs or GitHub repositories.
-- **Edit Ontologies**: Edit ontology details and manage their visibility.
-- **Visualize Ontologies**: Visualize ontology classes and relationships.
-- **Local Storage**: Save and load user-specific ontology configurations from local storage.
-
-## Getting Started
-
-### Prerequisites
-
-- Node.js (version ^18.18.0 or >=20.0.0)
-- pnpm (version 7 or higher)
-
-### Installation
-
-1. Clone the repository:
-
-   ```sh
-   git clone https://github.com/yourusername/ontomanager.git
-   cd ontomanager
-   ```
-
-2. Install dependencies:
-
-   ```sh
-   pnpm install
-   ```
-
-### Running the Application
-
-To start the development server, run:
-
-```sh
-pnpm run dev
-```
-
-The application will be available at <http://localhost:5173>.
-
-### Building for Production
-
-To build the application for production, run:
-
-```sh
-pnpm run build
-
-```
-
-The built files will be in the dist directory.
-
-### Running Tests
-
-To run unit tests, use:
-
-```sh
-pnpm run test:unit
-
-```
+OntoManager is a web-based application designed to manage and visualize ontologies. It supports importing and visualizing ontologies from various sources, including GitHub repositories. For ontologies stored in GitHub repositories, it also supports editing and committing changes back to the repository.
 
 ## Usage
 
 ### Importing Ontologies
 
-- Click on the "Import Ontology" button in the header.
+- Click on the "Import Ontology" button in the header or go to the main getting started page.
 - Enter the URL of the ontology or the GitHub repository.
 - Click "Import" to add the ontology to the list.
 
@@ -77,8 +18,21 @@ pnpm run test:unit
 
 ### Visualizing Ontologies
 
-- The ontology classes and relationships are visualized in a tree structure.
-- Click on a class to view its details and relationships.
+- The ontology classes and properties are visualized in a tree structure.
+- Click on a resource to view its details and relationships.
+- The trees are generated as follows:
+  - **Classes**: The ontology quads with subClassOf predicate are used to generate the class tree. All nodes of type rdfs:Class or owl:Class are considered to be classes.
+  - **Decomposition**: The decomposition (or partonomy) of classes is visualized by following the restrictions on any property that has 'hasPart' in its URI (should be configurable in the future).
+  - **Properties**: The ontology quads with subPropertyOf predicate are used to generate the class tree. All nodes of type rdfs:Property, owl:ObjectProperty, owl:DatatypeProperty, owl:AnnotationProperty are considered to be properties.
+  - **Individuals**: The ontology quads with rdf:type predicate are used to generate the tree. Nodes that had an rdf:type object that is not a class or property are considered to be individuals.
+
+### Editing Resources
+
+- Make sure to select an ontology to edit in the header.
+- Editing is only possible in ontologies stored in Github repository with write access.
+- Click on a resource to view its details. The resource is defined in the selected ontology if it's bold, but additional information can be added in different ontologies as well.
+- Either add/edit/remove objects from any of the existing properties, add new properties or remove properties.
+- Either commit the changes or discard them. Committing the changes will serialize the ontology to turtle and will overwrite the existing file in the repository.
 
 ## Contact
 

@@ -88,14 +88,13 @@ const builtinGraphs: BuiltinGraphDetails[] = [
 ]
 
 export const commonDataTypes = [
-  vocab.xsd.string,
-  vocab.xsd.integer,
-  vocab.xsd.decimal,
-  vocab.xsd.boolean,
-  vocab.xsd.dateTime,
-  vocab.xsd.date,
-  vocab.xsd.time
-  // vocab.rdf.langString
+  { label: 'String', uri: vocab.xsd.string.value },
+  { label: 'Integer', uri: vocab.xsd.integer.value },
+  { label: 'Decimal', uri: vocab.xsd.decimal.value },
+  { label: 'Boolean', uri: vocab.xsd.boolean.value },
+  { label: 'DateTime', uri: vocab.xsd.dateTime.value },
+  { label: 'Date', uri: vocab.xsd.date.value },
+  { label: 'Time', uri: vocab.xsd.time.value }
 ]
 
 interface QuadChange {
@@ -234,7 +233,7 @@ export const useGraphStore = defineStore('graph', () => {
 
   const addGraph = async (url: string | string[]): Promise<void> => {
     const urls = Array.isArray(url) ? url : [url]
-    userGraphs.value = await Promise.all(
+    const addedGraphs = await Promise.all(
       urls.map(async (url) => {
         const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
         if (existingUserGraphIndex !== -1) {
@@ -263,6 +262,9 @@ export const useGraphStore = defineStore('graph', () => {
         return graph
       })
     )
+
+    // Dupliaces should have already been removed
+    userGraphs.value.push(...addedGraphs)
 
     saveUserGraphsToLocalStorage()
   }

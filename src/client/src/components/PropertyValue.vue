@@ -41,9 +41,9 @@ const openDialog = (predicate: string) => {
       modal: true
     },
     data: {
-      subject: props.subject,
-      predicate,
-      graphId: selectedOntology.value.url
+      subjectUri: props.subject,
+      predicateUri: predicate,
+      graphUri: selectedOntology.value.node?.value
     }
   })
 }
