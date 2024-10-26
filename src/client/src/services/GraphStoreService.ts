@@ -1,22 +1,13 @@
 import { BrowserLevel } from 'browser-level'
-import {
-  // BlankNode,
-  DataFactory,
-  NamedNode,
-  Parser,
-  Quad,
-  Writer,
-  // type BlankTriple,
-  type DataFactoryInterface,
-  type Quad_Object,
-  type Quad_Predicate,
-  type Quad_Subject
-} from 'n3'
+import { DataFactory, NamedNode, Parser, Quad, type DataFactoryInterface } from 'n3'
 import { Quadstore } from 'quadstore'
 // import { Engine } from 'quadstore-comunica'
 import { vocab } from '@/utils/vocab'
 import type { ResourceTreeNode } from '@/stores/graph'
 import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
+import rdf from '@rdfjs/data-model'
+import * as RDF from '@rdfjs/types'
+import Serializer, { type SerializerOptions } from '@rdfjs/serializer-turtle'
 
 export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
 export const propertyObjectNodes = [
@@ -133,98 +124,31 @@ class GraphStoreService {
   }
 
   public async writeGraph(graph: NamedNode, prefixes?: { [prefix: string]: NamedNode<string> }) {
-    const writer = new Writer({
-      end: false,
-      prefixes: prefixes
-    })
-
-    /*     const retrieveBlankNodeContentRecursive = async (
-      blankNode: BlankNode
-    ): Promise<BlankNode | Quad_Object[]> => {
-      const { items: blankNodeQuads } = await this._store.get({
-        subject: blankNode,
-        graph
-      })
-      if (
-        blankNodeQuads.length > 1 &&
-        blankNodeQuads.every(
-          (q) =>
-            q.predicate.value === vocab.rdf.first.value ||
-            q.predicate.value === vocab.rdf.rest.value
-        )
-      ) {
-        const quadObjects: Quad_Object[] = []
-
-        for (const q of blankNodeQuads) {
-          if (q.object.termType === 'BlankNode') {
-            quadObjects.push(await retrieveBlankNodeContentRecursive(q.object as BlankNode))
-          } else {
-            quadObjects.push(q.object as Quad_Object)
-          }
-        }
-        return writer.list(quadObjects)
-      } else {
-        const blankTriples: BlankTriple[] = []
-        for (const q of blankNodeQuads) {
-          if (q.object.termType === 'BlankNode') {
-            blankTriples.push({
-              predicate: q.predicate,
-              object: await retrieveBlankNodeContentRecursive(q.object as BlankNode)
-            })
-          } else {
-            blankTriples.push({
-              predicate: q.predicate,
-              object: q.object
-            })
-          }
-        }
-        return writer.blank(blankTriples)
-      }
-    } */
+    const serializerOptions: SerializerOptions = {
+      baseIRI: graph.value,
+      prefixes: Object.entries(prefixes || {}) as unknown as SerializerOptions['prefixes']
+    }
+    const serializer = new Serializer(serializerOptions)
 
     let count = 0
+
+    const input: RDF.Quad[] = []
 
     const { iterator } = await this._store.getStream({ graph })
 
     for await (const quad of iterator) {
-      if (quad.subject.termType !== 'NamedNode') {
-        // Skip writing quads with blank node subjects
-        continue
-      }
-
-      if (quad.object.termType === 'BlankNode') {
-        // Recursively retrieve and write quads for blank node objects
-        /* const blankNodeContent = retrieveBlankNodeContentRecursive(quad.object as BlankNode)
-        const writeQuad = new Quad(
-          quad.subject as Quad_Subject,
-          quad.predicate as Quad_Predicate,
-          blankNodeContent
+      input.push(
+        rdf.quad(
+          quad.subject as RDF.Quad_Subject,
+          quad.predicate as RDF.Quad_Predicate,
+          quad.object as RDF.Quad_Object
         )
-        writer.addQuad(writeQuad) */
-      } else {
-        writer.addQuad(
-          new Quad(
-            quad.subject as Quad_Subject,
-            quad.predicate as Quad_Predicate,
-            quad.object as Quad_Object
-          )
-        )
-      }
+      )
       count++
-      console.log(count, quad)
     }
+    console.log('Writing graph with ' + count + ' quads')
 
-    return await new Promise<string>((resolve, reject) => {
-      writer.end((error, result) => {
-        if (error) {
-          console.error(`Failed to write graph: ${error}`)
-          reject(error)
-        } else {
-          console.log(result)
-          resolve(result)
-        }
-      })
-    })
+    return serializer.transform(input)
   }
 
   public async getClassesTree(graphs: NamedNode[]) {
