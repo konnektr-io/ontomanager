@@ -42,6 +42,7 @@ export const vocab = {
     NamedIndividual: namedNode('http://www.w3.org/2002/07/owl#NamedIndividual'),
     Ontology: namedNode('http://www.w3.org/2002/07/owl#Ontology'),
     Restriction: namedNode('http://www.w3.org/2002/07/owl#Restriction'),
+    equivalentClass: namedNode('http://www.w3.org/2002/07/owl#equivalentClass'),
     intersectionOf: namedNode('http://www.w3.org/2002/07/owl#intersectionOf'),
     unionOf: namedNode('http://www.w3.org/2002/07/owl#unionOf'),
     complementOf: namedNode('http://www.w3.org/2002/07/owl#complementOf'),

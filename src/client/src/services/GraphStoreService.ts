@@ -258,7 +258,7 @@ class GraphStoreService {
     ).iterator) {
       if (
         (quad.object.equals(vocab.owl.ObjectProperty) || quad.object.equals(vocab.rdf.Property)) &&
-        quad.subject.value.includes('hasPart') &&
+        quad.subject.value.includes('has') &&
         !hasPartPropertyUris.includes(quad.subject.value)
       ) {
         hasPartPropertyUris.push(quad.subject.value)
@@ -307,33 +307,35 @@ class GraphStoreService {
               children: []
             }
           }
-          partQuads.forEach(async (partQuad) => {
-            const part = partQuad.object
-            if (!allChildClassUris.find((value) => value === part.value)) {
-              allChildClassUris.push(part.value)
-            }
-
-            if (!allDecompositionTreeNodesMap[part.value]) {
-              allDecompositionTreeNodesMap[part.value] = {
-                key: part.value,
-                label: await this.getLabel(part.value),
-                data: {
-                  // prefixedUri: part.value,
-                  graph: quad.graph.value
-                },
-                children: []
+          await Promise.all(
+            partQuads.map(async (partQuad) => {
+              const part = partQuad.object
+              if (!allChildClassUris.find((value) => value === part.value)) {
+                allChildClassUris.push(part.value)
               }
-            }
-            if (
-              !allDecompositionTreeNodesMap[parentClass.value].children.find(
-                (child) => child.key === part.value
-              )
-            ) {
-              allDecompositionTreeNodesMap[parentClass.value].children.push(
-                allDecompositionTreeNodesMap[part.value]
-              )
-            }
-          })
+
+              if (!allDecompositionTreeNodesMap[part.value]) {
+                allDecompositionTreeNodesMap[part.value] = {
+                  key: part.value,
+                  label: await this.getLabel(part.value),
+                  data: {
+                    // prefixedUri: part.value,
+                    graph: quad.graph.value
+                  },
+                  children: []
+                }
+              }
+              if (
+                !allDecompositionTreeNodesMap[parentClass.value].children.find(
+                  (child) => child.key === part.value
+                )
+              ) {
+                allDecompositionTreeNodesMap[parentClass.value].children.push(
+                  allDecompositionTreeNodesMap[part.value]
+                )
+              }
+            })
+          )
         })
       )
     }

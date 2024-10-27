@@ -8,12 +8,14 @@ import Dialog from 'primevue/dialog'
 import ProgressSpinner from 'primevue/progressspinner'
 import Textarea from 'primevue/textarea'
 import { useConfirm } from 'primevue/useconfirm'
+import { useToast } from 'primevue/usetoast'
 import gitHubService from '@/services/GitHubService'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import UserMenu from './UserMenu.vue'
 
+const toast = useToast()
 const confirm = useConfirm()
-const { userGraphs, graphsLoading, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
+const { selectedResource, userGraphs, graphsLoading, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
 const {
   toggleGraphVisibility,
   addGraph,
@@ -30,22 +32,14 @@ const openUrl = (url: string) => {
   }
 }
 
-const importDialogVisible = ref(false)
-const newOntologyUrl = ref('')
 
-const openImportDialog = () => {
-  importDialogVisible.value = true
-}
-
-const importOntology = () => {
-  addGraph(newOntologyUrl.value)
-  importDialogVisible.value = false
-  newOntologyUrl.value = ''
+const showLoadOntologyPage = () => {
+  selectedResource.value = null
 }
 
 const fetchBranches = async (graph: GraphDetails) => {
   if (graph.owner && graph.repo && !graph.branches?.length) {
-    graph.branches = (await gitHubService.getBranches(graph.owner, graph.repo)).map(b => b.name)
+    graph.branches = await gitHubService.getBranches(graph.owner, graph.repo)
   }
 }
 
@@ -126,6 +120,31 @@ const changeBranch = async (graph: GraphDetails, branch: string) => {
     }
   }
 }
+const newBranchDialogVisible = ref(false)
+const newBranchName = ref('')
+const createNewBranch = async () => {
+  try {
+    const currentBranch = selectedOntology.value?.branches?.find(b => b.name === selectedOntology.value?.branch)
+    if (selectedOntology.value &&
+      newBranchName.value &&
+      selectedOntology.value.owner &&
+      selectedOntology.value.repo &&
+      currentBranch?.commit?.sha &&
+      selectedOntology.value.branch) {
+      await gitHubService.createNewBranch(
+        selectedOntology.value.owner,
+        selectedOntology.value.repo,
+        currentBranch.commit.sha,
+        newBranchName.value)
+      newBranchDialogVisible.value = false
+      newBranchName.value = ''
+      changeBranch(selectedOntology.value, newBranchName.value)
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: error, life: 3000 })
+    console.error(error)
+  }
+}
 
 const commitDialogVisible = ref(false)
 const commitMessage = ref('')
@@ -180,6 +199,7 @@ const commitChanges = async () => {
         style="width: 1.5rem; height: 1.5rem"
       ></ProgressSpinner>
       <Select
+        v-if="userGraphs.length"
         :model-value="selectedOntology"
         :options="userGraphs"
         v-ripple="false"
@@ -243,7 +263,7 @@ const commitChanges = async () => {
               text
               size="small"
               icon="pi pi-plus"
-              @click="openImportDialog"
+              @click="showLoadOntologyPage"
             />
           </div>
         </template>
@@ -258,6 +278,8 @@ const commitChanges = async () => {
         v-if="selectedOntology && selectedOntology.branch"
         :model-value="selectedOntology.branch"
         :options="selectedOntology.branches ?? []"
+        option-label="name"
+        option-value="name"
         placeholder="Select Branch"
         class="w-36"
         pt:option:class="text-sm"
@@ -273,6 +295,7 @@ const commitChanges = async () => {
               text
               size="small"
               icon="pi pi-plus"
+              @click="newBranchDialogVisible = true"
             />
           </div>
         </template></Select>
@@ -304,7 +327,7 @@ const commitChanges = async () => {
 
 
     <!-- Import Ontology Dialog -->
-    <Dialog
+    <!-- <Dialog
       header="Import Ontology"
       v-model:visible="importDialogVisible"
       modal
@@ -323,18 +346,49 @@ const commitChanges = async () => {
         />
       </div>
       <template #footer>
-        <!-- <Button
-          label="Cancel"
-          text
-          severity="secondary"
-          @click="importDialogVisible = false"
-          autofocus
-        /> -->
         <Button
           label="Import"
           outlined
           severity="secondary"
           @click="importOntology"
+          autofocus
+        />
+      </template>
+    </Dialog> -->
+
+    <!-- New Branch Dialog -->
+    <Dialog
+      header="New Branch"
+      v-model:visible="newBranchDialogVisible"
+      modal
+    >
+      <span class="text-surface-500 dark:text-surface-400 block mb-8">Create new branch based.</span>
+      <div class="flex flex-col gap-2 mb-4">
+        <div
+          id="fileDetails"
+          class="text-surface-500 dark:text-surface-400"
+        >
+          <p><span class="font-semibold">Source:</span> {{ selectedOntology?.branch }}</p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2 mb-4">
+        <label
+          for="branchName"
+          class="font-semibold"
+        >Branch Name</label>
+        <InputText
+          id="branchName"
+          v-model="newBranchName"
+          class="flex-auto"
+        />
+      </div>
+      <template #footer>
+        <Button
+          label="Create"
+          outlined
+          severity="secondary"
+          @click="createNewBranch"
           autofocus
         />
       </template>

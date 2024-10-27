@@ -161,6 +161,22 @@ class GitHubService {
     return response.data
   }
 
+  public async createNewBranch(owner: string, repo: string, sha: string, newBranch: string) {
+    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
+      await this.silentLogin()
+    }
+    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
+      this.loginToGitHub()
+    }
+    const response = await this.octokit.git.createRef({
+      owner,
+      repo,
+      ref: `refs/heads/${newBranch}`,
+      sha
+    })
+    return response.data
+  }
+
   public async getLatestFileSha(owner: string, repo: string, path: string, ref?: string) {
     if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
       await this.silentLogin()

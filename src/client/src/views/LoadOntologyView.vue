@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useGraphStore } from '@/stores/graph'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 
+const { userGraphs } = storeToRefs(useGraphStore())
 const { addGraph } = useGraphStore()
 const newOntologyUrl = ref('')
 
@@ -26,10 +28,17 @@ const importOntology = (urls: string | string[]) => {
 <template>
   <div class="bg-surface-0 dark:bg-surface-950 px-6 py-12 md:px-12 lg:px-20">
     <div class="mb-4 font-bold text-xl mb-[3rem]">
-      <span class="text-surface-900 dark:text-surface-0">Get Started</span>
+      <span
+        v-if="!userGraphs.length"
+        class="text-surface-900 dark:text-surface-0"
+      >Get Started</span>
+      <span
+        v-else
+        class="text-surface-900 dark:text-surface-0"
+      >Load ontologies</span>
     </div>
     <div class="text-surface-700 dark:text-surface-0/70 mb-2">Import an ontology</div>
-    <div class="flex items-center gap-4 mb-[3rem]">
+    <div class="flex items-center gap-4 mb-4">
       <InputText
         v-model="newOntologyUrl"
         placeholder="Enter ontology URL"
@@ -42,6 +51,11 @@ const importOntology = (urls: string | string[]) => {
         @click="importOntology(newOntologyUrl)"
       />
     </div>
+    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]">Load ontologies in .ttl format from an URL or from
+      your Github repository to allow editing (eg. <span
+        class="italic hover:text-surface-900 hover:underline cursor-pointer"
+        @click="newOntologyUrl = 'https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl'"
+      >https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl)</span></div>
     <div class="text-surface-700 dark:text-surface-0/70 mb-2">Or load and extend an existing ontology</div>
     <div class="flex flex-wrap gap-4">
       <Card

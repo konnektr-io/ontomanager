@@ -32,7 +32,7 @@ export interface GraphDetails {
   url: string
   owner?: string
   repo?: string
-  branches?: string[]
+  branches?: Awaited<ReturnType<typeof gitHubService.getBranches>>
   branch?: string
   path?: string
   visible?: boolean
@@ -233,6 +233,23 @@ export const useGraphStore = defineStore('graph', () => {
 
   const addGraph = async (url: string | string[]): Promise<void> => {
     const urls = Array.isArray(url) ? url : [url]
+
+    // Adding and retrieving the graphs may cause a redirect to login to Github.
+    // Therefor, we need to make sure to load the graph details, so that it's automatically loaded on reload.
+
+    const graphsToAdd: GraphDetails[] = urls.map((url) => {
+      return {
+        url,
+        loaded: false,
+        visible: true,
+        prefixes: {},
+        ...(url.includes('github.com') && { gitHubUrl: url })
+      }
+    })
+
+    userGraphs.value = userGraphs.value.filter((g) => !urls.includes(g.url)).concat(graphsToAdd)
+    saveUserGraphsToLocalStorage()
+
     const addedGraphs = await Promise.all(
       urls.map(async (url) => {
         const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
