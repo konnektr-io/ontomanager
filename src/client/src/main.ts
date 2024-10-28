@@ -65,13 +65,17 @@ const Konnektr = definePreset(Aura, {
 
 const app = createApp(App)
 
-app.use(VueGtag, {
-  bootstrap: false,
-  config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID }
-})
-
 app.use(createPinia())
 app.use(router)
+
+app.use(
+  VueGtag,
+  {
+    bootstrap: false,
+    config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID }
+  },
+  router
+)
 
 app.use(PrimeVue, {
   ripple: true,

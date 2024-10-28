@@ -152,8 +152,8 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
   if (props.type !== TreeType.Classes && props.type !== TreeType.Properties) return
   if (!event.dataTransfer || !event.target) return
   const data = event.dataTransfer.getData('text/plain')
-
   const [sourceUri, parentUri] = data.split('|')
+  if (sourceUri === targetUri || parentUri === targetUri) return
 
   if (!selectedOntology.value?.node) {
     console.warn('No ontology selected')
