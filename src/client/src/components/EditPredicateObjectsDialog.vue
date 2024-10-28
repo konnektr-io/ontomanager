@@ -87,7 +87,7 @@ const removeObject = (index: number) => {
   objects.value.splice(index, 1)
 }
 
-const confirmChanges = () => {
+const confirmChanges = async () => {
   // Handle saving changes back to the store
   const newQuads = objects.value.map<Quad>(obj => {
     if (obj.termType === 'NamedNode') {
@@ -98,27 +98,48 @@ const confirmChanges = () => {
   })
 
   // Remove original quads that are no longer present
-  originalQuads.forEach(originalQuad => {
+  for (const originalQuad of originalQuads) {
     if (!newQuads.some(newQuad => newQuad.subject.equals(originalQuad.subject) &&
       newQuad.predicate.equals(originalQuad.predicate) &&
       newQuad.object.equals(originalQuad.object) &&
       newQuad.graph.equals(originalQuad.graph))) {
-      removeQuad(originalQuad)
+      await removeQuad(originalQuad)
     }
-  })
+  }
+
+  /* originalQuads.forEach(originalQuad => {
+    if (!newQuads.some(newQuad => newQuad.subject.equals(originalQuad.subject) &&
+      newQuad.predicate.equals(originalQuad.predicate) &&
+      newQuad.object.equals(originalQuad.object) &&
+      newQuad.graph.equals(originalQuad.graph))) {
+      await removeQuad(originalQuad)
+    }
+  }) */
 
   // Add or edit new quads
-  newQuads.forEach(newQuad => {
+  for (const newQuad of newQuads) {
     const existingQuad = originalQuads.find(originalQuad => originalQuad.subject.equals(newQuad.subject) &&
       originalQuad.predicate.equals(newQuad.predicate) &&
       originalQuad.object.equals(newQuad.object) &&
       originalQuad.graph.equals(newQuad.graph))
     if (existingQuad) {
-      editQuad(existingQuad, newQuad)
+      await editQuad(existingQuad, newQuad)
     } else {
-      addQuad(newQuad)
+      await addQuad(newQuad)
     }
-  })
+  }
+
+  /* newQuads.forEach(newQuad => {
+    const existingQuad = originalQuads.find(originalQuad => originalQuad.subject.equals(newQuad.subject) &&
+      originalQuad.predicate.equals(newQuad.predicate) &&
+      originalQuad.object.equals(newQuad.object) &&
+      originalQuad.graph.equals(newQuad.graph))
+    if (existingQuad) {
+      await editQuad(existingQuad, newQuad)
+    } else {
+      await addQuad(newQuad)
+    }
+  }) */
 
   dialogRef?.value.close()
 }

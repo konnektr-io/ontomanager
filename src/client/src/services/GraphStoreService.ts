@@ -196,12 +196,12 @@ class GraphStoreService {
       const classUri = classTypeQuad.subject.value
       // Get all subclasses
       // for (const graph of graphs) {
-      const { items: quads } = await this._store.get({
+      const { items: subClassQuads } = await this._store.get({
         predicate: vocab.rdfs.subClassOf,
         object: classTypeQuad.subject
       })
       const children: ResourceTreeNode[] = []
-      for (const subClassQuad of quads.filter<Quad>(
+      for (const subClassQuad of subClassQuads.filter<Quad>(
         (quad): quad is Quad =>
           graphs.map((g) => g.value).includes(quad.graph.value) &&
           // Make sure it's a class
@@ -220,6 +220,7 @@ class GraphStoreService {
         key: classUri,
         label: await this.getLabel(classUri),
         data: {
+          parentUri: classTypeQuad.object.value,
           graph: classTypeQuad.graph.value
         },
         children
@@ -408,6 +409,7 @@ class GraphStoreService {
         key: propertyNode.value,
         label: await this.getLabel(propertyNode.value),
         data: {
+          parentUri: propertyTypeQuad.object.value,
           graph: propertyTypeQuad.graph.value
         },
         children
@@ -668,12 +670,12 @@ class GraphStoreService {
 
   public async put(quad: Quad) {
     await this.init()
-    return this._store.put(quad, { scope: this._scope })
+    return await this._store.put(quad, { scope: this._scope })
   }
 
   public async del(quad: Quad) {
     await this.init()
-    return this._store.del(quad, { scope: this._scope })
+    return await this._store.del(quad, { scope: this._scope })
   }
 }
 

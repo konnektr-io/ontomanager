@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { TreeType, useGraphStore } from '@/stores/graph'
@@ -36,7 +36,6 @@ watch(() => userGraphs.value, (value) => {
 })
 
 const drawerExpanded = ref(true)
-const activeTreeType = ref(TreeType.Classes)
 
 const navigationItems = [
   { icon: 'pi pi-box', title: 'Classes', value: TreeType.Classes },
@@ -45,14 +44,7 @@ const navigationItems = [
   { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
 ]
 
-watch(() => props.type, (value) => {
-  activeTreeType.value = value
-})
-
-const selectTreeType = (type: TreeType) => {
-  router.push(`/${type}`)
-  // activeTreeType.value = type
-}
+const activeTreeType = computed(() => props.type || TreeType.Classes)
 
 const toggleDrawer = () => {
   drawerExpanded.value = !drawerExpanded.value
@@ -73,22 +65,26 @@ onMounted(initialize)
         <li
           v-for="item in navigationItems"
           :key="item.value"
+          class="my-1"
         >
-          <Button
-            :icon="item.icon"
-            :label="drawerExpanded ? item.title : undefined"
-            text
-            :pt:label:class="{
-              'font-semibold': activeTreeType === item.value,
-              'font-normal': activeTreeType !== item.value
-            }"
-            :class="{
-              'text-slate-700': activeTreeType === item.value
-            }"
-            class="w-full justify-start"
-            style="padding-left: var(--p-button-padding-x)"
-            @click="selectTreeType(item.value)"
-          />
+          <router-link :to="`/${item.value}`">
+            <Button
+              :icon="item.icon"
+              :label="drawerExpanded ? item.title : undefined"
+              text
+              :pt:label:class="{
+                'font-boldbold': activeTreeType === item.value,
+                'font-normal': activeTreeType !== item.value
+              }"
+              :class="{
+                'bg-slate-100': activeTreeType === item.value,
+                'text-slate-800': activeTreeType === item.value
+              }"
+              class="w-full justify-start"
+              style="padding-left: var(--p-button-padding-x)"
+            >
+            </Button>
+          </router-link>
         </li>
       </ul>
       <div>

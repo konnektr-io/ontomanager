@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia'
+import { DataFactory } from 'n3'
 import Tree from 'primevue/tree'
 import ProgressSpinner from 'primevue/progressspinner'
 import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
+import { vocab } from '@/utils/vocab'
 
 
 const props = defineProps<{
@@ -14,15 +16,20 @@ const props = defineProps<{
 const {
   visibleGraphs,
   selectedOntology,
-  selectedResource
+  selectedResource,
 } = storeToRefs(useGraphStore())
+
+const {
+  removeQuad,
+  addQuad,
+} = useGraphStore()
 
 const selectedKeys = computed({
   get: () => ({ ...selectedResource.value && { [selectedResource.value]: true } }),
   set: (value: { [uri: string]: boolean }) => selectedResource.value = Object.keys(value)[0],
 })
 
-const classesTree = shallowRef<ResourceTreeNode[]>()
+const classesTree = shallowRef<ResourceTreeNode[]>([])
 const classesTreeLoading = ref(false)
 const classesTreeLoadingId = ref(0)
 const loadClassesTree = async () => {
@@ -34,7 +41,7 @@ const loadClassesTree = async () => {
     classesTreeLoading.value = false
   }
 }
-const decompositionTree = shallowRef<ResourceTreeNode[]>()
+const decompositionTree = shallowRef<ResourceTreeNode[]>([])
 const decompositionTreeLoading = ref(false)
 const decompositionTreeLoadingId = ref(0)
 const loadDecompositionTree = async () => {
@@ -46,7 +53,7 @@ const loadDecompositionTree = async () => {
     decompositionTreeLoading.value = false
   }
 }
-const propertiesTree = shallowRef<ResourceTreeNode[]>()
+const propertiesTree = shallowRef<ResourceTreeNode[]>([])
 const propertiesTreeLoading = ref(false)
 const propertiesTreeLoadingId = ref(0)
 const loadPropertiesTree = async () => {
@@ -58,7 +65,7 @@ const loadPropertiesTree = async () => {
     propertiesTreeLoading.value = false
   }
 }
-const individualsTree = shallowRef<ResourceTreeNode[]>()
+const individualsTree = shallowRef<ResourceTreeNode[]>([])
 const individualsTreeLoading = ref(false)
 const individualsTreeLoadingId = ref(0)
 const loadIndividualsTree = async () => {
@@ -126,23 +133,65 @@ watch(visibleGraphs, async () => {
   }
 }, { immediate: true, deep: true })
 
-const onDragStart = (event: DragEvent) => {
+const onDragStart = (event: DragEvent, sourceId: string, parentId: string) => {
   if (!event.dataTransfer || !event.target) return
-  event.dataTransfer?.setData('text', (event.target as EventTarget & { id: string }).id)
+  const data = `${sourceId}|${parentId}`
+  event.dataTransfer?.setData('text/plain', data)
+}
+
+const onDragOver = (event: DragEvent, targetUri?: string) => {
+  if (!event.dataTransfer) return
+  const data = event.dataTransfer.getData('text/plain')
+  const [sourceUri, parentUri] = data.split('|')
+  if (sourceUri === targetUri || parentUri === targetUri) return
+
   event.dataTransfer.dropEffect = 'move'
 }
 
-const onDrop = (event: DragEvent) => {
+const onDrop = async (event: DragEvent, targetUri?: string) => {
+  if (props.type !== TreeType.Classes && props.type !== TreeType.Properties) return
   if (!event.dataTransfer || !event.target) return
-  const source = event.dataTransfer.getData('text')
-  const target = (event.target as EventTarget & { id: string }).id
-  console.log('onDrop', source, target)
-}
+  const data = event.dataTransfer.getData('text/plain')
 
+  const [sourceUri, parentUri] = data.split('|')
+
+  if (!selectedOntology.value?.node) {
+    console.warn('No ontology selected')
+    return
+  }
+
+  const childParentPedicate = props.type === TreeType.Classes ? vocab.rdfs.subClassOf : vocab.rdfs.subPropertyOf
+
+  await removeQuad(DataFactory.quad(
+    DataFactory.namedNode(sourceUri),
+    childParentPedicate,
+    DataFactory.namedNode(parentUri),
+    selectedOntology.value.node
+  ))
+
+  if (targetUri) {
+    await addQuad(DataFactory.quad(
+      DataFactory.namedNode(sourceUri),
+      childParentPedicate,
+      DataFactory.namedNode(targetUri),
+      selectedOntology.value.node
+    ))
+  }
+
+  if (props.type === TreeType.Classes) {
+    await loadClassesTree()
+  } else if (props.type === TreeType.Properties) {
+    await loadPropertiesTree()
+  }
+}
 </script>
 
 <template>
-  <div>
+  <div
+    class="h-full"
+    @dragover.prevent="onDragOver"
+    @drop.prevent="$event => onDrop($event)"
+  >
     <div
       v-if="loading"
       class="flex justify-start p-2 gap-2"
@@ -169,12 +218,12 @@ const onDrop = (event: DragEvent) => {
         <div
           :id="slotProps.node.key"
           v-tooltip="slotProps.node.key"
-          draggable
-          @dragstart="onDragStart"
+          :draggable="slotProps.node.data.graph === selectedOntology?.node?.value && (props.type === TreeType.Classes || props.type === TreeType.Properties)"
+          @dragstart="$event => onDragStart($event, slotProps.node.key, slotProps.node.data.parentUri)"
           @dragenter.prevent
           @dragleave.prevent
-          @dragover.prevent
-          @drop.prevent="onDrop"
+          @dragover.prevent="$event => onDragOver($event, slotProps.node.key)"
+          @drop.prevent="$event => onDrop($event, slotProps.node.key)"
         >
           <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
             {{ slotProps.node.label }}

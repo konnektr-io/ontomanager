@@ -20,7 +20,8 @@ export enum TreeType {
 export interface ResourceTreeNode {
   key: string
   label: string
-  data?: {
+  data: {
+    parentUri?: string
     graph: string
     // prefixedUri: string
   }
@@ -367,22 +368,22 @@ export const useGraphStore = defineStore('graph', () => {
   const undoStack = ref<QuadChange[]>([])
   const redoStack = ref<QuadChange[]>([])
 
-  const addQuad = (quad: Quad) => {
-    graphStoreService.put(quad)
+  const addQuad = async (quad: Quad) => {
+    await graphStoreService.put(quad)
     undoStack.value.push({ action: 'add', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
-  const editQuad = (oldQuad: Quad, newQuad: Quad) => {
-    graphStoreService.del(oldQuad)
-    graphStoreService.put(newQuad)
+  const editQuad = async (oldQuad: Quad, newQuad: Quad) => {
+    await graphStoreService.del(oldQuad)
+    await graphStoreService.put(newQuad)
     undoStack.value.push({ action: 'remove', quad: oldQuad })
     undoStack.value.push({ action: 'add', quad: newQuad })
     redoStack.value = [] // Clear redo stack on new action
   }
 
-  const removeQuad = (quad: Quad) => {
-    graphStoreService.del(quad)
+  const removeQuad = async (quad: Quad) => {
+    await graphStoreService.del(quad)
     undoStack.value.push({ action: 'remove', quad })
     redoStack.value = [] // Clear redo stack on new action
   }
