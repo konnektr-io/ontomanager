@@ -36,7 +36,6 @@ watch(() => userGraphs.value, (value) => {
 })
 
 const drawerExpanded = ref(true)
-const drawerPinned = ref(true)
 const activeTreeType = ref(TreeType.Classes)
 
 const navigationItems = [
@@ -55,21 +54,8 @@ const selectTreeType = (type: TreeType) => {
   // activeTreeType.value = type
 }
 
-const expandDrawer = () => {
-  if (!drawerPinned.value) {
-    drawerExpanded.value = true
-  }
-}
-
-const collapseDrawer = () => {
-  if (!drawerPinned.value) {
-    drawerExpanded.value = false
-  }
-}
-
 const toggleDrawer = () => {
-  drawerPinned.value = !drawerPinned.value
-  drawerExpanded.value = drawerPinned.value
+  drawerExpanded.value = !drawerExpanded.value
 }
 
 const { initialize } = useGraphStore()
@@ -80,10 +66,8 @@ onMounted(initialize)
   <div class="flex h-full">
     <!-- Navigation Drawer -->
     <div
-      class="flex flex-col justify-between bg-surface-100 transition-all duration-300 ease-in-out"
-      :class="{ 'w-48': drawerExpanded, 'w-10': !drawerExpanded }"
-      @mouseenter="expandDrawer"
-      @mouseleave="collapseDrawer"
+      class="flex flex-col justify-between p-1 bg-surface-100 transition-all duration-300 ease-in-out"
+      :class="{ 'w-48': drawerExpanded, 'w-12': !drawerExpanded }"
     >
       <ul class="list-none">
         <li
@@ -92,7 +76,7 @@ onMounted(initialize)
         >
           <Button
             :icon="item.icon"
-            :label="drawerExpanded ? item.title : ''"
+            :label="drawerExpanded ? item.title : undefined"
             text
             :pt:label:class="{
               'font-semibold': activeTreeType === item.value,
@@ -101,6 +85,8 @@ onMounted(initialize)
             :class="{
               'text-slate-700': activeTreeType === item.value
             }"
+            class="w-full justify-start"
+            style="padding-left: var(--p-button-padding-x)"
             @click="selectTreeType(item.value)"
           />
         </li>
@@ -109,7 +95,7 @@ onMounted(initialize)
         <Button
           icon="pi pi-angle-double-left"
           text
-          :class="{ 'rotate-180': drawerPinned }"
+          :class="{ 'rotate-180': drawerExpanded }"
           @click="toggleDrawer"
         />
       </div>
@@ -141,9 +127,3 @@ onMounted(initialize)
     </div>
   </div>
 </template>
-<style scoped>
-.p-button.p-button-text:not(.p-disabled):hover {
-  background: rgba(var(--p-primary-color), 0);
-  color: var(--primary-color);
-}
-</style>

@@ -38,13 +38,13 @@ const showLoadOntologyPage = () => {
 }
 
 const fetchBranches = async (graph: GraphDetails) => {
-  if (graph.owner && graph.repo && !graph.branches?.length) {
+  if (graph.owner && graph.repo) {
     graph.branches = await gitHubService.getBranches(graph.owner, graph.repo)
   }
 }
 
 watch(selectedOntology, async (graph) => {
-  if (graph && graph.owner && graph.repo && !graph.branches?.length) {
+  if (graph && graph.owner && graph.repo) {
     await fetchBranches(graph)
   }
 })
@@ -136,9 +136,10 @@ const createNewBranch = async () => {
         selectedOntology.value.repo,
         currentBranch.commit.sha,
         newBranchName.value)
+      selectedOntology.value.branches = await gitHubService.getBranches(selectedOntology.value.owner, selectedOntology.value.repo)
+      changeBranch(selectedOntology.value, newBranchName.value)
       newBranchDialogVisible.value = false
       newBranchName.value = ''
-      changeBranch(selectedOntology.value, newBranchName.value)
     }
   } catch (error) {
     toast.add({ severity: 'error', summary: 'Error', detail: error, life: 3000 })
@@ -275,7 +276,7 @@ const commitChanges = async () => {
       >
       </i>
       <Select
-        v-if="selectedOntology && selectedOntology.branch"
+        v-if="userGraphs.length && selectedOntology && selectedOntology.branch"
         :model-value="selectedOntology.branch"
         :options="selectedOntology.branches ?? []"
         option-label="name"
