@@ -149,12 +149,15 @@ const createNewBranch = async () => {
 
 const commitDialogVisible = ref(false)
 const commitMessage = ref('')
-const cancelChanges = () => {
+const discardChanges = () => {
   // reload the graph
 
   if (selectedOntology.value) {
     loadGraph(selectedOntology.value)
   }
+
+  clearUndoRedoStacks()
+
   commitDialogVisible.value = false
   commitMessage.value = ''
 }
@@ -432,10 +435,10 @@ const commitChanges = async () => {
 
       <template #footer>
         <Button
-          label="Cancel"
+          label="Discard"
           text
           severity="secondary"
-          @click="cancelChanges"
+          @click="discardChanges"
           autofocus
         />
         <Button
