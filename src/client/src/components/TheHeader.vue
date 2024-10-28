@@ -298,7 +298,8 @@ const commitChanges = async () => {
               @click="newBranchDialogVisible = true"
             />
           </div>
-        </template></Select>
+        </template>
+      </Select>
       <Button
         v-if="selectedOntology && selectedOntology.branch && undoStackSize"
         label="Commit"
