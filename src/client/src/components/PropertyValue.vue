@@ -4,6 +4,7 @@ import { storeToRefs } from 'pinia'
 import type { Quad_Object } from 'n3'
 import { useDialog } from 'primevue/usedialog'
 import Button from 'primevue/button'
+import Divider from 'primevue/divider'
 import Panel from 'primevue/panel'
 import graphStoreService from '@/services/GraphStoreService'
 import { useGraphStore } from '@/stores/graph'
@@ -108,12 +109,16 @@ const openDialog = (predicate: string) => {
   </div>
   <div
     v-else-if="predicate === vocab.rdf.first.value || predicate === vocab.rdf.rest.value"
-    class="pt-1 flex flex-col gap-1"
+    class="flex flex-col"
   >
     <PropertyValues
       v-for="object of predicateObjects.objects.filter(object => object.termType === 'BlankNode')"
       :key="object.id"
       :subject="object.value"
+    />
+    <Divider
+      v-if="predicate === vocab.rdf.first.value"
+      class="my-2"
     />
   </div>
 </template>

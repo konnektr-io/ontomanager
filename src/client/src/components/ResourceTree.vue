@@ -126,6 +126,19 @@ watch(visibleGraphs, async () => {
   }
 }, { immediate: true, deep: true })
 
+const onDragStart = (event: DragEvent) => {
+  if (!event.dataTransfer || !event.target) return
+  event.dataTransfer?.setData('text', (event.target as EventTarget & { id: string }).id)
+  event.dataTransfer.dropEffect = 'move'
+}
+
+const onDrop = (event: DragEvent) => {
+  if (!event.dataTransfer || !event.target) return
+  const source = event.dataTransfer.getData('text')
+  const target = (event.target as EventTarget & { id: string }).id
+  console.log('onDrop', source, target)
+}
+
 </script>
 
 <template>
@@ -153,7 +166,16 @@ watch(visibleGraphs, async () => {
       class="w-full"
     >
       <template #default="slotProps">
-        <div v-tooltip="slotProps.node.key">
+        <div
+          :id="slotProps.node.key"
+          v-tooltip="slotProps.node.key"
+          draggable
+          @dragstart="onDragStart"
+          @dragenter.prevent
+          @dragleave.prevent
+          @dragover.prevent
+          @drop.prevent="onDrop"
+        >
           <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
             {{ slotProps.node.label }}
           </span>
