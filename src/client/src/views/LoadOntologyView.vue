@@ -51,8 +51,8 @@ const importOntology = (urls: string | string[]) => {
         @click="importOntology(newOntologyUrl)"
       />
     </div>
-    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]">Load ontologies in .ttl format from an URL or from
-      your Github repository to allow editing (eg. <span
+    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]">Load ontologies in .ttl format from a URL or from
+      your Github repository (eg. <span
         class="italic hover:text-surface-900 hover:underline cursor-pointer"
         @click="newOntologyUrl = 'https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl'"
       >https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl)</span></div>
