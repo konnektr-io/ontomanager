@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, inject, type Ref, onMounted } from 'vue'
-import { useGraphStore, commonDataTypes } from '@/stores/graph'
+import { storeToRefs } from 'pinia'
 import { DataFactory, Literal, Quad } from 'n3'
 import { useDebounceFn } from '@vueuse/core'
 import AutoComplete, { type AutoCompleteCompleteEvent } from 'primevue/autocomplete'
@@ -8,7 +8,9 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
+import { useGraphStore, commonDataTypes } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
+import { vocab } from '@/utils/vocab'
 
 const { namedNode, literal, quad } = DataFactory
 
@@ -21,6 +23,7 @@ const subjectUri = computed(() => dialogRef?.value.data?.subjectUri)
 const predicateUri = computed(() => dialogRef?.value.data.predicateUri)
 const graphUri = computed(() => dialogRef?.value.data.graphUri)
 
+const { reloadTrigger } = storeToRefs(useGraphStore())
 const { addQuad, editQuad, removeQuad } = useGraphStore()
 
 const originalQuads: Quad[] = []
@@ -118,6 +121,11 @@ const confirmChanges = async () => {
     } else {
       await addQuad(newQuad)
     }
+  }
+
+  // When changing labels, subClassOf etc. need to update the tree (the trigger is watched in ResourceTree.vue)
+  if (predicateUri.value === vocab.rdfs.label || predicateUri.value === vocab.skos.prefLabel.value || predicateUri.value === vocab.rdfs.subClassOf || predicateUri.value === vocab.rdfs.subPropertyOf) {
+    reloadTrigger.value++
   }
 
   dialogRef?.value.close()

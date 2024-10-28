@@ -112,6 +112,8 @@ export const useGraphStore = defineStore('graph', () => {
       .map<NamedNode>((graph) => graph.node as NamedNode)
   )
 
+  const reloadTrigger = ref<number>(0)
+
   const selectedOntology = ref<GraphDetails | null>(null)
   const selectedResource = ref<string | null>(null)
 
@@ -429,6 +431,8 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   return {
+    reloadTrigger,
+
     userGraphs,
     selectedOntology,
     selectedResource,

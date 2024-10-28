@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, computed, watch, shallowRef } from 'vue'
+import { ref, computed, watch, shallowRef, type ComponentPublicInstance } from 'vue'
 import { storeToRefs } from 'pinia'
 import { DataFactory } from 'n3'
+import Button from 'primevue/button'
+import Menu, { type MenuProps } from 'primevue/menu'
 import Tree from 'primevue/tree'
 import ProgressSpinner from 'primevue/progressspinner'
 import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
@@ -14,6 +16,7 @@ const props = defineProps<{
 }>()
 
 const {
+  reloadTrigger,
   visibleGraphs,
   selectedOntology,
   selectedResource,
@@ -133,6 +136,39 @@ watch(visibleGraphs, async () => {
   }
 }, { immediate: true, deep: true })
 
+watch(reloadTrigger, async () => {
+  if (props.type === TreeType.Classes) {
+    await loadClassesTree()
+  } else if (props.type === TreeType.Decomposition) {
+    await loadDecompositionTree()
+  } else if (props.type === TreeType.Properties) {
+    await loadPropertiesTree()
+  } else if (props.type === TreeType.Individuals) {
+    await loadIndividualsTree()
+  }
+})
+
+const contextMenuRefs = ref<{ [key: string]: InstanceType<typeof Menu> }>({})
+const contextMenuItems = [
+  {
+    label: 'Add class',
+    icon: 'pi pi-plus',
+    command: (event: { originalEvent: Event; item: any }) => {
+      // TODO
+    },
+  },
+  {
+    label: 'Remove',
+    icon: 'pi pi-trash',
+    command: (event: { originalEvent: Event; item: any }) => {
+      // TODO
+    },
+  }
+]
+const toggleMenu = (event: Event, key: string) => {
+  contextMenuRefs.value[key]?.toggle(event)
+}
+
 const onDragStart = (event: DragEvent, sourceId: string, parentId: string) => {
   if (!event.dataTransfer || !event.target) return
   const data = `${sourceId}|${parentId}`
@@ -192,7 +228,7 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
     @dragover.prevent="onDragOver"
     @drop.prevent="$event => onDrop($event)"
   >
-    <div
+    <!-- <div
       v-if="loading"
       class="flex justify-start p-2 gap-2"
     >
@@ -200,7 +236,7 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
         <ProgressSpinner style="width: 1.5rem; height: 1.5rem" />
       </div>
       <div class="text-surface-600">Loading ...</div>
-    </div>
+    </div> -->
     <div
       v-if="!treeData?.length && !loading"
       class="flex justify-start p-2 gap-2"
@@ -213,21 +249,42 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
       :value="treeData"
       selectionMode="single"
       class="w-full"
+      :loading="loading"
     >
       <template #default="slotProps">
-        <div
-          :id="slotProps.node.key"
-          v-tooltip="slotProps.node.key"
-          :draggable="slotProps.node.data.graph === selectedOntology?.node?.value && (props.type === TreeType.Classes || props.type === TreeType.Properties)"
-          @dragstart="$event => onDragStart($event, slotProps.node.key, slotProps.node.data.parentUri)"
-          @dragenter.prevent
-          @dragleave.prevent
-          @dragover.prevent="$event => onDragOver($event, slotProps.node.key)"
-          @drop.prevent="$event => onDrop($event, slotProps.node.key)"
-        >
-          <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
-            {{ slotProps.node.label }}
-          </span>
+        <div class="flex w-full justify-between items-center">
+          <div
+            :id="slotProps.node.key"
+            v-tooltip="slotProps.node.key"
+            :draggable="slotProps.node.data.graph === selectedOntology?.node?.value && (props.type === TreeType.Classes || props.type === TreeType.Properties)"
+            @dragstart="$event => onDragStart($event, slotProps.node.key, slotProps.node.data.parentUri)"
+            @dragenter.prevent
+            @dragleave.prevent
+            @dragover.prevent="$event => onDragOver($event, slotProps.node.key)"
+            @drop.prevent="$event => onDrop($event, slotProps.node.key)"
+          >
+            <span :class="{ 'font-semibold': slotProps.node.data.graph === selectedOntology?.node?.value }">
+              {{ slotProps.node.label }}
+            </span>
+          </div>
+          <div>
+            <Button
+              type="button"
+              icon="pi pi-ellipsis-v"
+              size="small"
+              text
+              rounded
+              aria-haspopup="true"
+              :aria-controls="`overlay_menu_${slotProps.node.key}`"
+              @click="event => toggleMenu(event, slotProps.node.key)"
+            />
+            <Menu
+              :ref="el => { contextMenuRefs[slotProps.node.key] = el as unknown as InstanceType<typeof Menu> }"
+              :id="`overlay_menu_${slotProps.node.key}`"
+              :model="contextMenuItems"
+              :popup="true"
+            />
+          </div>
         </div>
       </template>
     </Tree>
