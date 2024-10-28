@@ -278,6 +278,7 @@ const commitChanges = async () => {
         class="pi pi-info-circle text-red-500"
       >
       </i>
+      <!-- Branch Select -->
       <Select
         v-if="userGraphs.length && selectedOntology && selectedOntology.branch"
         :model-value="selectedOntology.branch"

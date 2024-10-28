@@ -107,15 +107,6 @@ const confirmChanges = async () => {
     }
   }
 
-  /* originalQuads.forEach(originalQuad => {
-    if (!newQuads.some(newQuad => newQuad.subject.equals(originalQuad.subject) &&
-      newQuad.predicate.equals(originalQuad.predicate) &&
-      newQuad.object.equals(originalQuad.object) &&
-      newQuad.graph.equals(originalQuad.graph))) {
-      await removeQuad(originalQuad)
-    }
-  }) */
-
   // Add or edit new quads
   for (const newQuad of newQuads) {
     const existingQuad = originalQuads.find(originalQuad => originalQuad.subject.equals(newQuad.subject) &&
@@ -128,18 +119,6 @@ const confirmChanges = async () => {
       await addQuad(newQuad)
     }
   }
-
-  /* newQuads.forEach(newQuad => {
-    const existingQuad = originalQuads.find(originalQuad => originalQuad.subject.equals(newQuad.subject) &&
-      originalQuad.predicate.equals(newQuad.predicate) &&
-      originalQuad.object.equals(newQuad.object) &&
-      originalQuad.graph.equals(newQuad.graph))
-    if (existingQuad) {
-      await editQuad(existingQuad, newQuad)
-    } else {
-      await addQuad(newQuad)
-    }
-  }) */
 
   dialogRef?.value.close()
 }
@@ -198,7 +177,7 @@ const cancelChanges = () => {
             v-model="object.datatype"
             :options="commonDataTypes"
             option-value="uri"
-            option-name="label"
+            option-label="label"
             placeholder="Select Datatype"
             showClear
           />
