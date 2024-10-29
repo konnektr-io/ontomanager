@@ -93,7 +93,20 @@ class GraphStoreService {
     await this._store.clear()
   }
 
+  public async getAllGraphNodes() {
+    await this.init()
+
+    const graphNodeUris: string[] = []
+    for await (const quad of (await this._store.getStream({})).iterator) {
+      if (quad.graph.termType === 'NamedNode' && !graphNodeUris.includes(quad.graph.value))
+        graphNodeUris.push(quad.graph.value)
+    }
+
+    return graphNodeUris.map((uri) => this._datafactory.namedNode(uri))
+  }
+
   public async isGraphLoaded(graph: NamedNode) {
+    await this.init()
     const { items } = await this._store.get({ graph }, { limit: 1 })
     return items.length > 0
   }
@@ -747,6 +760,23 @@ class GraphStoreService {
         }
       })
     )
+  }
+
+  public async getPredicateNodeSuggestions(existingPredicates: string[], search: string) {
+    await this.init()
+
+    const nodeMap = new Set<string>()
+    for await (const quad of (await this._store.getStream({})).iterator) {
+      if (
+        !existingPredicates.includes(quad.predicate.value) &&
+        quad.predicate.termType === 'NamedNode' &&
+        quad.predicate.value.toLowerCase().includes(search.toLowerCase())
+      ) {
+        nodeMap.add(quad.predicate.value)
+      }
+      if (nodeMap.size > 10) break
+    }
+    return Array.from(nodeMap)
   }
 
   public async getObjectNamedNodeSuggestions(predicateUri: string, search: string) {

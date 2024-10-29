@@ -19,12 +19,25 @@ const dialogRef = inject<Ref<DynamicDialogInstance & {
 }>>('dialogRef')
 
 const predicateLabel = ref<string>('')
-const subjectUri = computed(() => dialogRef?.value.data?.subjectUri)
-const predicateUri = computed(() => dialogRef?.value.data.predicateUri)
-const graphUri = computed(() => dialogRef?.value.data.graphUri)
+const subjectUri = computed<string>(() => dialogRef?.value.data?.subjectUri)
+const existingPredicateUri = computed<string>(() => dialogRef?.value.data.predicateUri)
+const graphUri = computed<string>(() => dialogRef?.value.data.graphUri)
 
 const { reloadTrigger } = storeToRefs(useGraphStore())
 const { addQuad, editQuad, removeQuad } = useGraphStore()
+
+const existingPredicates = ref<string[]>([])
+const fetchExistingPredicates = async (subjUri: string) => {
+  existingPredicates.value = (await graphStoreService.getSubjectQuads(subjUri))
+    .map(q => q.predicate.value).filter((value, index, self) => self.indexOf(value) === index)
+}
+const predicateNodeSuggestions = ref<string[]>([])
+const fetchPredicateNodeSuggestions = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
+  predicateNodeSuggestions.value = await graphStoreService.getPredicateNodeSuggestions(existingPredicates.value, event.query)
+}, 250, { maxWait: 1000 })
+
+const predicateUri = ref<string>()
+const currentPredicateUri = computed(() => existingPredicateUri.value || predicateUri.value)
 
 const originalQuads: Quad[] = []
 interface EditableObject {
@@ -35,15 +48,23 @@ interface EditableObject {
 }
 const objects = ref<EditableObject[]>([])
 const namedNodeSuggestions = ref<string[]>([])
+// Fetch suggestions for NamedNode URIs
+const fetchNamedNodeSuggestions = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
+  if (!currentPredicateUri.value) return
+  namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(currentPredicateUri.value, event.query)
+}, 250, { maxWait: 1000 })
 
 // Language options
 const languageOptions = ['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']
 
-// Get quads on mount
+// Get quads on mount (if predicate defined, otherwise it's a new predicate with all new objects)
 onMounted(async () => {
-  if (!subjectUri.value || !predicateUri.value || !graphUri.value) return
-  predicateLabel.value = await graphStoreService.getLabel(predicateUri.value)
-  const qs = await graphStoreService.getSubjectQuads(subjectUri.value, predicateUri.value, graphUri.value)
+  if (subjectUri.value && graphUri.value && !existingPredicateUri.value) {
+    await fetchExistingPredicates(subjectUri.value)
+  }
+  if (!subjectUri.value || !existingPredicateUri.value || !graphUri.value) return
+  predicateLabel.value = await graphStoreService.getLabel(existingPredicateUri.value)
+  const qs = await graphStoreService.getSubjectQuads(subjectUri.value, existingPredicateUri.value, graphUri.value)
   originalQuads.push(...qs)
   objects.value = qs
     .filter((q) => q.object.termType === 'NamedNode' || q.object.termType === 'Literal')
@@ -65,11 +86,7 @@ onMounted(async () => {
     }, [] as EditableObject[])
 })
 
-// Fetch suggestions for NamedNode URIs
-// TODO: add debounce
-const fetchNamedNodeSuggestions = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
-  namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(predicateUri.value, event.query)
-}, 250, { maxWait: 1000 })
+
 
 const addObject = (type: 'NamedNode' | 'Literal') => {
   if (!subjectUri.value || !predicateUri.value || !graphUri.value) return
@@ -91,12 +108,14 @@ const removeObject = (index: number) => {
 }
 
 const confirmChanges = async () => {
+  if (!currentPredicateUri.value || !subjectUri.value || !graphUri.value) return
   // Handle saving changes back to the store
   const newQuads = objects.value.map<Quad>(obj => {
+    if (!currentPredicateUri.value) throw new Error('Predicate URI is required')
     if (obj.termType === 'NamedNode') {
-      return quad(namedNode(subjectUri.value), namedNode(predicateUri.value), namedNode(obj.value), namedNode(graphUri.value))
+      return quad(namedNode(subjectUri.value), namedNode(currentPredicateUri.value), namedNode(obj.value), namedNode(graphUri.value))
     } else {
-      return quad(namedNode(subjectUri.value), namedNode(predicateUri.value), literal(obj.value, obj.language || obj.datatype), namedNode(graphUri.value))
+      return quad(namedNode(subjectUri.value), namedNode(currentPredicateUri.value), literal(obj.value, obj.language || obj.datatype), namedNode(graphUri.value))
     }
   })
 
@@ -124,7 +143,10 @@ const confirmChanges = async () => {
   }
 
   // When changing labels, subClassOf etc. need to update the tree (the trigger is watched in ResourceTree.vue)
-  if (predicateUri.value === vocab.rdfs.label || predicateUri.value === vocab.skos.prefLabel.value || predicateUri.value === vocab.rdfs.subClassOf || predicateUri.value === vocab.rdfs.subPropertyOf) {
+  if (currentPredicateUri.value === vocab.rdfs.label.value ||
+    currentPredicateUri.value === vocab.skos.prefLabel.value ||
+    currentPredicateUri.value === vocab.rdfs.subClassOf.value ||
+    currentPredicateUri.value === vocab.rdfs.subPropertyOf.value) {
     reloadTrigger.value++
   }
 
@@ -138,7 +160,20 @@ const cancelChanges = () => {
 
 <template>
   <div class="flex flex-col gap-2 w-full">
-    <div class="font-medium mb-4">{{ predicateLabel || predicateUri }}</div>
+    <div
+      v-if="existingPredicateUri"
+      class="font-medium mb-4"
+    >{{ predicateLabel || existingPredicateUri }}</div>
+    <AutoComplete
+      v-else
+      v-model="predicateUri"
+      :suggestions="predicateNodeSuggestions"
+      @complete="fetchPredicateNodeSuggestions"
+      placeholder="Edit Predicate"
+      fluid
+      class="grow"
+      showClear
+    />
     <div
       v-for="(object, index) in objects"
       :key="index"
@@ -233,6 +268,7 @@ const cancelChanges = () => {
         label="Confirm"
         severity="secondary"
         outlined
+        :disabled="!currentPredicateUri"
         @click="confirmChanges"
       />
     </div>

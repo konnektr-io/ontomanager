@@ -142,6 +142,19 @@ export const useGraphStore = defineStore('graph', () => {
 
     await graphStoreService.init()
 
+    // Get all graphs in the database
+    const graphs = await graphStoreService.getAllGraphNodes()
+
+    // Start deletion of all graphs that are no longer defined in the user graphs
+    const graphsToDelete = graphs.filter(
+      (graph) => !userGraphs.value.find((g) => g.node?.value === graph.value)
+    )
+    console.log('Deleting graphs:', graphsToDelete)
+    // Don't wait for deletion to finish
+    graphsToDelete.forEach(async (graph) => {
+      graphStoreService.deleteGraph(graph)
+    })
+
     await Promise.all(
       builtinGraphs.map(async (graph) => {
         if (graph.node) {
