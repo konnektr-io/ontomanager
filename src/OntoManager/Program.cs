@@ -123,4 +123,7 @@ app.MapPost("/api/github/oauth/refresh-token", async (HttpContext context, IHttp
     await context.Response.WriteAsync(responseContent);
 });
 
+// Fallback route to redirect to the main SPA
+app.MapFallbackToFile("/index.html");
+
 app.Run();
