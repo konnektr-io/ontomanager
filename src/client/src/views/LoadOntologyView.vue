@@ -10,13 +10,27 @@ const { userGraphs } = storeToRefs(useGraphStore())
 const { addGraph } = useGraphStore()
 const newOntologyUrl = ref('')
 
-const predefinedOntologies = [
-  { name: 'SML', description: 'Building information modelling (BIM) - Semantic modelling and linking (SML) - CEN-EN 17632', urls: ['https://docs.crow.nl/sml/data/concat/sml.ttl'] },
-  { name: 'BOT', description: 'The Building Topology Ontology (BOT) is a minimal ontology for describing the core topological concepts of a building.', urls: ['http://www.w3id.org/bot/bot.ttl'] },
-  { name: 'RealEstateCore + Brick', description: 'RealEstateCore is an ontology for building-related data and applications. Brick defines HVAC, lighting, spatial and electrical concepts and relationships.', urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl'] },
-  {
-    name: 'DPROD + DCAT', description: 'The Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabulary, designed to describe Data Products. ', urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl']
-  }
+const predefinedOntologies = [{
+  name: 'SML',
+  description: 'Building information modelling (BIM) - Semantic modelling and linking (SML) - CEN-EN 17632',
+  urls: ['https://docs.crow.nl/sml/data/concat/sml.ttl']
+}, {
+  name: 'BOT',
+  description: 'The Building Topology Ontology (BOT) is a minimal ontology for describing the core topological concepts of a building.',
+  urls: ['http://www.w3id.org/bot/bot.ttl']
+}, {
+  name: 'RealEstateCore + Brick',
+  description: 'RealEstateCore is an ontology for building-related data and applications. Brick defines HVAC, lighting, spatial and electrical concepts and relationships.',
+  urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl']
+}, {
+  name: 'ASHRAE Standard 223',
+  description: 'Interoperable semantic framework for representing building automation and control data, and other building system information.',
+  urls: ['https://open223.info/223p.ttl']
+}, {
+  name: 'DPROD + DCAT',
+  description: 'The Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabulary, designed to describe Data Products. ',
+  urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl']
+}
 ]
 
 const importOntology = (urls: string | string[]) => {

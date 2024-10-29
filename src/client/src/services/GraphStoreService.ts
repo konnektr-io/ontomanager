@@ -28,12 +28,35 @@ export const propertyObjectNodes = [
 ]
 export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
+const prefixes = {
+  rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+  rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
+  owl: 'http://www.w3.org/2002/07/owl#',
+  skos: 'http://www.w3.org/2004/02/skos/core#',
+  dc: 'http://purl.org/dc/elements/1.1/',
+  shacl: 'http://www.w3.org/ns/shacl#'
+}
+
 class GraphStoreService {
   public constructor() {
     this._datafactory = DataFactory
     this._store = new Quadstore({
       dataFactory: this._datafactory,
-      backend: new BrowserLevel('quadstore')
+      backend: new BrowserLevel('quadstore'),
+      prefixes: {
+        expandTerm: (term: string) => {
+          const [prefix, localName] = term.split(':')
+          return prefixes[prefix] ? prefixes[prefix] + localName : term
+        },
+        compactIri: (iri: string) => {
+          for (const [prefix, namespace] of Object.entries(prefixes)) {
+            if (iri.startsWith(namespace)) {
+              return iri.replace(namespace, `${prefix}:`)
+            }
+          }
+          return iri
+        }
+      }
     })
     this._parser = new Parser()
     // this._engine = new Engine(this._store)
@@ -76,14 +99,17 @@ class GraphStoreService {
   }
 
   public async loadGraph(ontologyContent: string) {
+    console.log('Init DB', new Date().toISOString())
     await this.init()
     // if (graph.node) this._store.deleteGraph(graph.node)
 
     const graphPrefixes: { [prefix: string]: NamedNode<string> } = {}
 
+    console.log('Parsing graph', new Date().toISOString())
     const quads = this._parser.parse(ontologyContent, null, (prefix, ns) => {
       if (prefix && ns) graphPrefixes[prefix] = ns as NamedNode<string>
     })
+    console.log('Graph parsed', quads.length, new Date().toISOString())
 
     // Find the owl:Ontology data, which we will use the graph node
     const ontologySubject = quads.find(
@@ -97,19 +123,23 @@ class GraphStoreService {
       throw new Error('Ontology subject not found')
     }
 
+    console.log('Delete existing graph', new Date().toISOString())
     // Delete existing graph in case it exists in the store
-    await new Promise((resolve, reject) =>
+    /* await new Promise((resolve, reject) =>
       this._store.deleteGraph(ontologySubject).on('end', resolve).on('error', reject)
-    )
+    ) */
 
+    console.log('Get prefix', new Date().toISOString())
     // Make sure that the preferred prefix is stored in the graph prefixes
     const preferredPrefixObject = quads.find(
       (quad) =>
         quad.subject.value === ontologySubject.value &&
         quad.predicate.value === vocab.vann.preferredNamespacePrefix.value
     )?.object
+    console.log('Found prefix', new Date().toISOString())
     // Store the preferred prefix for the ontology
     if (preferredPrefixObject && preferredPrefixObject.termType === 'Literal') {
+      console.log('Find namespace uri prefix', new Date().toISOString())
       const preferredNamespaceUri = quads.find(
         (quad) =>
           quad.subject.value === ontologySubject.value &&
@@ -118,7 +148,15 @@ class GraphStoreService {
       )?.object as NamedNode<string>
 
       graphPrefixes[preferredPrefixObject.value] = preferredNamespaceUri || ontologySubject
+      console.log(
+        'Found namespace stuff',
+        preferredNamespaceUri,
+        ontologySubject,
+        new Date().toISOString()
+      )
     }
+
+    console.log('Put quads', new Date().toISOString())
 
     await this._store.multiPut(
       quads.map(
@@ -127,6 +165,17 @@ class GraphStoreService {
         { scope: this._scope }
       )
     )
+
+    /* await Promise.all(
+      quads.map((quad) =>
+        this._store.put(
+          this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject),
+          { scope: this._scope }
+        )
+      )
+    ) */
+
+    console.log('Import done', new Date().toISOString())
 
     return {
       node: ontologySubject,

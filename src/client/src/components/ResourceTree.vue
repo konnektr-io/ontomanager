@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, shallowRef, type ComponentPublicInstance } from 'vue'
+import { ref, computed, watch, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia'
 import { DataFactory } from 'n3'
 import Button from 'primevue/button'

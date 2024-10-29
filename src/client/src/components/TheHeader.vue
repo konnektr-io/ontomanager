@@ -25,6 +25,8 @@ const {
   clearUndoRedoStacks
 } = useGraphStore()
 
+const ontologySelectRef = ref<InstanceType<typeof Select>>()
+
 const openUrl = (url: string) => {
   // Implement GitHub link opening logic
   if (url) {
@@ -32,15 +34,9 @@ const openUrl = (url: string) => {
   }
 }
 
-
 const showLoadOntologyPage = () => {
-  selectedResource.value = null
-}
-
-const fetchBranches = async (graph: GraphDetails) => {
-  if (graph.owner && graph.repo) {
-    graph.branches = await gitHubService.getBranches(graph.owner, graph.repo)
-  }
+  selectedResource.value = null;
+  (ontologySelectRef.value as unknown as { hide: () => void }).hide()
 }
 
 watch(selectedOntology, async (graph) => {
@@ -76,6 +72,12 @@ const changeSelectedOntology = async (graph: GraphDetails | null) => {
     })
   } else {
     selectedOntology.value = graph
+  }
+}
+
+const fetchBranches = async (graph: GraphDetails) => {
+  if (graph.owner && graph.repo) {
+    graph.branches = await gitHubService.getBranches(graph.owner, graph.repo)
   }
 }
 
@@ -204,6 +206,7 @@ const commitChanges = async () => {
       ></ProgressSpinner>
       <Select
         v-if="userGraphs.length"
+        ref="ontologySelectRef"
         :model-value="selectedOntology"
         :options="userGraphs"
         v-ripple="false"
