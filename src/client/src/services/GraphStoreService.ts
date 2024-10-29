@@ -116,6 +116,7 @@ class GraphStoreService {
           quad.predicate.value === vocab.vann.preferredNamespaceUri.value &&
           quad.object.termType === 'NamedNode'
       )?.object as NamedNode<string>
+
       graphPrefixes[preferredPrefixObject.value] = preferredNamespaceUri || ontologySubject
     }
 
