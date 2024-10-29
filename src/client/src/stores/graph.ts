@@ -9,6 +9,7 @@ import rdfVocab from '../assets/vocab/rdf.ttl?raw'
 import rdfsVocab from '../assets/vocab/rdfs.ttl?raw'
 import owlVocab from '../assets/vocab/owl.ttl?raw'
 import skosVocab from '../assets/vocab/skos.ttl?raw'
+import shaclVocab from '../assets/vocab/shacl.ttl?raw'
 
 export enum TreeType {
   Classes = 'classes',
@@ -85,6 +86,15 @@ const builtinGraphs: BuiltinGraphDetails[] = [
     loaded: false,
     prefixes: {},
     node: DataFactory.namedNode('http://www.w3.org/2004/02/skos/core')
+  },
+  {
+    content: shaclVocab,
+    url: 'http://www.w3.org/ns/shacl',
+    namespace: 'http://www.w3.org/ns/shacl#',
+    visible: false,
+    loaded: false,
+    prefixes: {},
+    node: DataFactory.namedNode('http://www.w3.org/ns/shacl#')
   }
 ]
 

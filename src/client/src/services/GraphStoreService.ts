@@ -340,6 +340,73 @@ class GraphStoreService {
           )
         })
       )
+
+      // Now do the same thing for shacl property shapes
+      const { items: pathQuads } = await this._store.get({
+        predicate: vocab.sh.path,
+        object: this._datafactory.namedNode(propertyUri)
+      })
+      await Promise.all(
+        pathQuads.map(async (quad) => {
+          const blankNode = quad.subject
+          if (quad.subject.termType !== 'BlankNode') return // continue // must be something weird ...
+          const { items: partQuads } = await this._store.get({
+            subject: blankNode,
+            predicate: vocab.sh.class
+          })
+          const { items: parentClassQuads } = await this._store.get(
+            {
+              predicate: vocab.sh.property,
+              object: blankNode
+            },
+            { limit: 1 }
+          )
+          const parentClass = parentClassQuads.filter((q) =>
+            graphs.map((q) => q.value).includes(q.graph.value)
+          )[0]?.subject
+          if (!parentClass) return // continue
+          if (!allDecompositionTreeNodesMap[parentClass.value]) {
+            allDecompositionTreeNodesMap[parentClass.value] = {
+              key: parentClass.value,
+              label: await this.getLabel(parentClass.value),
+              data: {
+                // prefixedUri: parentClass.value,
+                graph: quad.graph.value
+              },
+              children: []
+            }
+          }
+          await Promise.all(
+            partQuads.map(async (partQuad) => {
+              const part = partQuad.object
+              if (!allChildClassUris.find((value) => value === part.value)) {
+                allChildClassUris.push(part.value)
+              }
+
+              if (!allDecompositionTreeNodesMap[part.value]) {
+                allDecompositionTreeNodesMap[part.value] = {
+                  key: part.value,
+                  label: await this.getLabel(part.value),
+                  data: {
+                    // prefixedUri: part.value,
+                    graph: quad.graph.value
+                  },
+                  children: []
+                }
+              }
+              if (
+                !allDecompositionTreeNodesMap[parentClass.value].children.find(
+                  (child) => child.key === part.value
+                )
+              ) {
+                allDecompositionTreeNodesMap[parentClass.value].children.push(
+                  allDecompositionTreeNodesMap[part.value]
+                )
+              }
+            })
+          )
+        })
+      )
     }
 
     // Now return the root nodes
@@ -442,6 +509,7 @@ class GraphStoreService {
           quad.subject.termType === 'NamedNode' &&
           quad.object.termType === 'NamedNode' &&
           quad.object.value !== vocab.rdfs.Class.value &&
+          quad.object.value !== vocab.rdf.List.value &&
           quad.object.value !== vocab.owl.Class.value &&
           quad.object.value !== vocab.owl.Thing.value &&
           quad.object.value !== vocab.rdf.Property.value &&
@@ -450,6 +518,10 @@ class GraphStoreService {
           quad.object.value !== vocab.owl.AnnotationProperty.value &&
           quad.object.value !== vocab.owl.TransitiveProperty.value &&
           quad.object.value !== vocab.owl.FunctionalProperty.value &&
+          quad.object.value !== vocab.owl.AsymmetricProperty.value &&
+          quad.object.value !== vocab.owl.SymmetricProperty.value &&
+          quad.object.value !== vocab.owl.ReflexiveProperty.value &&
+          quad.object.value !== vocab.owl.IrreflexiveProperty.value &&
           quad.object.value !== vocab.owl.InverseFunctionalProperty.value &&
           quad.object.value !== vocab.rdfs.Datatype.value &&
           quad.object.value !== vocab.owl.Restriction.value &&

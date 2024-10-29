@@ -14,6 +14,7 @@ export const vocab = {
   },
   rdf: {
     Property: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#Property'),
+    List: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#List'),
     type: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
     value: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#value'),
     first: namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#first'),
@@ -39,6 +40,10 @@ export const vocab = {
     TransitiveProperty: namedNode('http://www.w3.org/2002/07/owl#TransitiveProperty'),
     FunctionalProperty: namedNode('http://www.w3.org/2002/07/owl#FunctionalProperty'),
     InverseFunctionalProperty: namedNode('http://www.w3.org/2002/07/owl#InverseFunctionalProperty'),
+    AsymmetricProperty: namedNode('http://www.w3.org/2002/07/owl#AsymmetricProperty'),
+    SymmetricProperty: namedNode('http://www.w3.org/2002/07/owl#SymmetricProperty'),
+    ReflexiveProperty: namedNode('http://www.w3.org/2002/07/owl#ReflexiveProperty'),
+    IrreflexiveProperty: namedNode('http://www.w3.org/2002/07/owl#IrreflexiveProperty'),
     NamedIndividual: namedNode('http://www.w3.org/2002/07/owl#NamedIndividual'),
     Ontology: namedNode('http://www.w3.org/2002/07/owl#Ontology'),
     Restriction: namedNode('http://www.w3.org/2002/07/owl#Restriction'),
@@ -59,6 +64,8 @@ export const vocab = {
   sh: {
     name: namedNode('http://www.w3.org/ns/shacl#name'),
     property: namedNode('http://www.w3.org/ns/shacl#property'),
+    path: namedNode('http://www.w3.org/ns/shacl#path'),
+    class: namedNode('http://www.w3.org/ns/shacl#class'),
     rule: namedNode('http://www.w3.org/ns/shacl#rule'),
     NodeShape: namedNode('http://www.w3.org/ns/shacl#NodeShape'),
     PropertyShape: namedNode('http://www.w3.org/ns/shacl#PropertyShape')
