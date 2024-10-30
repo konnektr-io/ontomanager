@@ -6,6 +6,7 @@ import Button from 'primevue/button'
 import Menu, { type MenuProps } from 'primevue/menu'
 import Tree from 'primevue/tree'
 import ProgressSpinner from 'primevue/progressspinner'
+import { useConfirm } from 'primevue/useconfirm'
 import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import { vocab } from '@/utils/vocab'
@@ -14,6 +15,8 @@ import { vocab } from '@/utils/vocab'
 const props = defineProps<{
   type: TreeType;
 }>()
+
+const confirm = useConfirm()
 
 const {
   reloadTrigger,
@@ -161,7 +164,27 @@ const contextMenuItems = [
     label: 'Remove',
     icon: 'pi pi-trash',
     command: (event: { originalEvent: Event; item: any }) => {
-      // TODO
+      confirm.require({
+        header: 'Delete class',
+        message: 'Deleting class. Do you want to proceed?',
+        icon: 'pi pi-exclamation-triangle',
+        modal: false,
+        rejectProps: {
+          label: 'Cancel',
+          severity: 'secondary',
+          text: true
+        },
+        acceptProps: {
+          label: 'Delete',
+          severity: 'secondary',
+          outlined: true
+        },
+        accept: () => {
+          console.log('accept remove', event)
+        },
+        reject: () => {
+        }
+      })
     },
   }
 ]
@@ -280,7 +303,7 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
             />
             <Menu
               :ref="el => { contextMenuRefs[slotProps.node.key] = el as unknown as InstanceType<typeof Menu> }"
-              :id="`overlay_menu_${slotProps.node.key}`"
+              :id="slotProps.node.key"
               :model="contextMenuItems"
               :popup="true"
             />

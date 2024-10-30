@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { Quad_Object } from 'n3'
+import Button from 'primevue/button'
 import { useDialog } from 'primevue/usedialog'
 import { useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
@@ -68,7 +69,7 @@ const openDialog = () => {
 </script>
 
 <template>
-  <div>
+  <div class="flex-col">
     <div
       v-for="(predicateObjects, predicate) in groupedObjectValues"
       :key="`${predicate}`"
@@ -80,15 +81,15 @@ const openDialog = () => {
         :predicateObjects="predicateObjects"
       />
     </div>
-
-    <Button
-      v-if="editMode"
-      icon="pi pi-pencil"
-      size="small"
-      label="Add Annotation"
-      text
-      rounded
-      @click="() => openDialog()"
-    />
+    <div>
+      <Button
+        v-if="editMode"
+        icon="pi pi-pencil"
+        size="small"
+        label="Add Annotation"
+        text
+        @click="() => openDialog()"
+      />
+    </div>
   </div>
 </template>
