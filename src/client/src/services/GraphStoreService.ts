@@ -359,7 +359,7 @@ class GraphStoreService {
           const parentClass = parentClassQuads.filter((q) =>
             graphs.map((q) => q.value).includes(q.graph.value)
           )[0]?.subject
-          if (!parentClass) return // continue
+          if (!parentClass || parentClass.termType !== 'NamedNode') return // continue
           if (!allDecompositionTreeNodesMap[parentClass.value]) {
             allDecompositionTreeNodesMap[parentClass.value] = {
               key: parentClass.value,
@@ -426,7 +426,7 @@ class GraphStoreService {
           const parentClass = parentClassQuads.filter((q) =>
             graphs.map((q) => q.value).includes(q.graph.value)
           )[0]?.subject
-          if (!parentClass) return // continue
+          if (!parentClass || parentClass.termType !== 'NamedNode') return // continue
           if (!allDecompositionTreeNodesMap[parentClass.value]) {
             allDecompositionTreeNodesMap[parentClass.value] = {
               key: parentClass.value,

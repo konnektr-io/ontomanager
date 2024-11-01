@@ -148,7 +148,9 @@ export const useGraphStore = defineStore('graph', () => {
 
     // Start deletion of all graphs that are no longer defined in the user graphs
     const graphsToDelete = graphs.filter(
-      (graph) => !userGraphs.value.find((g) => g.node?.value === graph.value)
+      (graph) =>
+        !userGraphs.value.find((g) => g.node?.value === graph.value) &&
+        !builtinGraphs.find((g) => g.node?.value === graph.value)
     )
     console.log('Deleting graphs:', graphsToDelete)
     // Don't wait for deletion to finish
@@ -156,21 +158,8 @@ export const useGraphStore = defineStore('graph', () => {
       graphStoreService.deleteGraph(graph)
     })
 
-    await Promise.all(
-      builtinGraphs.map(async (graph) => {
-        if (graph.node) {
-          const isLoaded = await graphStoreService.isGraphLoaded(graph.node)
-          if (isLoaded) {
-            graph.loaded = true
-            return // already loaded
-          }
-        }
-        const { node, prefixes } = await graphStoreService.loadGraph(graph.content)
-        graph.loaded = true
-        graph.node = node
-        graph.prefixes = prefixes
-      })
-    )
+    // Load all builtin graphs
+    initBuiltinGraphs()
 
     userGraphs.value = await Promise.all(
       userGraphs.value.map(async (graph) => {
@@ -202,6 +191,24 @@ export const useGraphStore = defineStore('graph', () => {
     )
 
     saveUserGraphsToLocalStorage()
+  }
+
+  const initBuiltinGraphs = async () => {
+    await Promise.all(
+      builtinGraphs.map(async (graph) => {
+        if (graph.node) {
+          const isLoaded = await graphStoreService.isGraphLoaded(graph.node)
+          if (isLoaded) {
+            graph.loaded = true
+            return // already loaded
+          }
+        }
+        const { node, prefixes } = await graphStoreService.loadGraph(graph.content)
+        graph.loaded = true
+        graph.node = node
+        graph.prefixes = prefixes
+      })
+    )
   }
 
   const getUserGraphsFromLocalStorage = () => {
@@ -314,6 +321,11 @@ export const useGraphStore = defineStore('graph', () => {
   }
 
   const removeGraph = async (g: GraphDetails): Promise<void> => {
+    if (selectedOntology.value?.node?.value === g.node?.value) {
+      undoStack.value = []
+      redoStack.value = []
+      selectedOntology.value = null
+    }
     const graphIndex = userGraphs.value.findIndex((graph) => graph.node?.value === g.node?.value)
     if (graphIndex !== -1) {
       userGraphs.value.splice(graphIndex, 1)
@@ -321,6 +333,12 @@ export const useGraphStore = defineStore('graph', () => {
       if (g.node?.value) {
         await graphStoreService.deleteGraph(g.node)
       }
+    }
+
+    if (userGraphs.value.length === 0) {
+      // clear all data if no graphs are loaded
+      await graphStoreService.clear()
+      await initBuiltinGraphs()
     }
   }
 

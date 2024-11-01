@@ -67,6 +67,7 @@ export const vocab = {
     path: namedNode('http://www.w3.org/ns/shacl#path'),
     class: namedNode('http://www.w3.org/ns/shacl#class'),
     rule: namedNode('http://www.w3.org/ns/shacl#rule'),
+    or: namedNode('http://www.w3.org/ns/shacl#or'),
     NodeShape: namedNode('http://www.w3.org/ns/shacl#NodeShape'),
     PropertyShape: namedNode('http://www.w3.org/ns/shacl#PropertyShape')
   },
