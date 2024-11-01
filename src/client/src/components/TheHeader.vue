@@ -230,11 +230,12 @@ const commitChanges = async () => {
         </template>
         <template #option="slotProps">
           <div class="flex items-center justify-between w-full text-sm gap-4">
-            <div>
+            <div class="flex items-center gap-2">
               <ProgressSpinner
                 v-if="graphsLoading[slotProps.option.url]"
                 style="width: 1.5rem; height: 1.5rem"
-              ></ProgressSpinner><span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
+              ></ProgressSpinner>
+              <span>{{ slotProps.option.name || slotProps.option.url || slotProps.option }}</span>
             </div>
             <div class="flex items-center gap-2">
               <Button
