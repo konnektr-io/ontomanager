@@ -10,6 +10,7 @@ import rdfsVocab from '../assets/vocab/rdfs.ttl?raw'
 import owlVocab from '../assets/vocab/owl.ttl?raw'
 import skosVocab from '../assets/vocab/skos.ttl?raw'
 import shaclVocab from '../assets/vocab/shacl.ttl?raw'
+import type { Pattern } from 'quadstore'
 
 export enum TreeType {
   Classes = 'classes',
@@ -390,6 +391,20 @@ export const useGraphStore = defineStore('graph', () => {
     return uri
   }
 
+  const removeClass = async (classUri: string, graph: NamedNode) => {
+    const patterns: Pattern[] = [
+      { subject: DataFactory.namedNode(classUri), graph },
+      { object: DataFactory.namedNode(classUri), graph }
+    ]
+    await Promise.all(
+      patterns.map(async (pattern) => {
+        for await (const quad of (await graphStoreService.getStream(pattern)).iterator) {
+          await graphStoreService.del(quad as Quad)
+        }
+      })
+    )
+  }
+
   const undoStack = ref<QuadChange[]>([])
   const redoStack = ref<QuadChange[]>([])
 
@@ -488,6 +503,9 @@ export const useGraphStore = defineStore('graph', () => {
     // getRdfTypes,
 
     // getQuads,
+
+    removeClass,
+
     addQuad,
     editQuad,
     removeQuad,

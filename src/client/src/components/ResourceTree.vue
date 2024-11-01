@@ -26,6 +26,7 @@ const {
 } = storeToRefs(useGraphStore())
 
 const {
+  removeClass,
   removeQuad,
   addQuad,
 } = useGraphStore()
@@ -139,7 +140,8 @@ watch(visibleGraphs, async () => {
   }
 }, { immediate: true, deep: true })
 
-watch(reloadTrigger, async () => {
+
+const loadCurrentTree = async () => {
   if (props.type === TreeType.Classes) {
     await loadClassesTree()
   } else if (props.type === TreeType.Decomposition) {
@@ -149,7 +151,8 @@ watch(reloadTrigger, async () => {
   } else if (props.type === TreeType.Individuals) {
     await loadIndividualsTree()
   }
-})
+}
+watch(reloadTrigger, loadCurrentTree)
 
 const contextMenuRefs = ref<{ [key: string]: InstanceType<typeof Menu> }>({})
 const contextMenuItems = [
@@ -157,7 +160,8 @@ const contextMenuItems = [
     label: 'Add class',
     icon: 'pi pi-plus',
     command: (event: { originalEvent: Event; item: any }) => {
-      // TODO
+      newClassParentUri.value = event.item.id
+      newClassDialogVisible.value = true
     },
   },
   {
@@ -166,7 +170,7 @@ const contextMenuItems = [
     command: (event: { originalEvent: Event; item: any }) => {
       confirm.require({
         header: 'Delete class',
-        message: 'Deleting class. Do you want to proceed?',
+        message: 'Deleting class from currently selected graph. Do you want to proceed?',
         icon: 'pi pi-exclamation-triangle',
         modal: false,
         rejectProps: {
@@ -179,8 +183,13 @@ const contextMenuItems = [
           severity: 'secondary',
           outlined: true
         },
-        accept: () => {
-          console.log('accept remove', event)
+        accept: async () => {
+          if (!selectedOntology.value?.node) {
+            console.warn('No ontology selected')
+            return
+          }
+          await removeClass(event.item.id, selectedOntology.value.node)
+          loadCurrentTree()
         },
         reject: () => {
         }
@@ -191,6 +200,45 @@ const contextMenuItems = [
 const toggleMenu = (event: Event, key: string) => {
   contextMenuRefs.value[key]?.toggle(event)
 }
+
+const newClassDialogVisible = ref(false)
+const newClassParentUri = ref('')
+const newClassUri = ref('')
+const newClassLabel = ref('')
+const onNewClass = async () => {
+  if (!selectedOntology.value?.node) {
+    console.warn('No ontology selected')
+    return
+  }
+  if (!newClassUri.value || !newClassLabel.value) {
+    console.warn('URI and label are required')
+    return
+  }
+  await addQuad(DataFactory.quad(
+    DataFactory.namedNode(newClassUri.value),
+    vocab.rdf.type,
+    vocab.rdfs.Class,
+    selectedOntology.value.node
+  ))
+  await addQuad(DataFactory.quad(
+    DataFactory.namedNode(newClassParentUri.value),
+    vocab.rdfs.subClassOf,
+    DataFactory.namedNode(selectedOntology.value.node.value),
+    selectedOntology.value.node
+  ))
+  await addQuad(DataFactory.quad(
+    DataFactory.namedNode(newClassUri.value),
+    vocab.rdfs.label,
+    DataFactory.literal(newClassLabel.value),
+    selectedOntology.value.node
+  ))
+  await loadClassesTree()
+  newClassDialogVisible.value = false
+  newClassParentUri.value = ''
+  newClassUri.value = ''
+  newClassLabel.value = ''
+}
+
 
 const onDragStart = (event: DragEvent, sourceId: string, parentId: string) => {
   if (!event.dataTransfer || !event.target) return
@@ -311,5 +359,50 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
         </div>
       </template>
     </Tree>
+    <Dialog
+      v-model:visible="newClassDialogVisible"
+      modal
+      header="New Class"
+      :style="{ width: '25rem' }"
+    >
+      <span class="text-surface-500 dark:text-surface-400 block mb-8">Provide URI and label for new subclass of {{
+        newClassParentUri }}.</span>
+      <div class="flex items-center gap-4 mb-4">
+        <label
+          for="uri"
+          class="font-semibold w-24"
+        >URI</label>
+        <InputText
+          id="uri"
+          class="flex-auto"
+          autocomplete="off"
+        />
+      </div>
+      <div class="flex items-center gap-4 mb-8">
+        <label
+          for="label"
+          class="font-semibold w-24"
+        >Label</label>
+        <InputText
+          id="label"
+          class="flex-auto"
+          autocomplete="off"
+        />
+      </div>
+      <div class="flex justify-end gap-2">
+        <Button
+          type="button"
+          label="Cancel"
+          severity="secondary"
+          @click="newClassDialogVisible = false"
+        ></Button>
+        <Button
+          type="button"
+          label="Save"
+          @click="onNewClass"
+        ></Button>
+      </div>
+    </Dialog>
+
   </div>
 </template>

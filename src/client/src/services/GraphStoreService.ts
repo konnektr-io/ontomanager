@@ -12,7 +12,7 @@ import {
   type Quad_Subject,
   type Term
 } from 'n3'
-import { Quadstore } from 'quadstore'
+import { Quadstore, type Pattern } from 'quadstore'
 // import { Engine } from 'quadstore-comunica'
 import { vocab } from '@/utils/vocab'
 import type { ResourceTreeNode } from '@/stores/graph'
@@ -818,6 +818,16 @@ class GraphStoreService {
       }
     }
     return uri?.split('/').pop()?.split('#').pop() || uri
+  }
+
+  public async getStream(pattern: Pattern) {
+    await this.init()
+    return await this._store.getStream(pattern)
+  }
+
+  public async get(pattern: Pattern) {
+    await this.init()
+    return await this._store.get(pattern)
   }
 
   public async put(quad: Quad) {
