@@ -71,9 +71,12 @@ app.use(router)
 app.use(
   VueGtag,
   {
+    appName: 'OntoManager',
     bootstrap: false,
     pageTrackerScreenviewEnabled: true,
-    config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID }
+    config: {
+      id: import.meta.env.VITE_GA_MEASUREMENT_ID
+    }
   },
   router
 )

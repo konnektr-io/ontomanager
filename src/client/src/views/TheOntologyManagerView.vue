@@ -42,7 +42,7 @@ const navigationItems = [
   { icon: 'pi pi-sitemap', title: 'Decomposition', value: TreeType.Decomposition },
   { icon: 'pi pi-link', title: 'Properties', value: TreeType.Properties },
   { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
-  { icon: 'pi pi-sitemap', title: 'Ontologies', value: TreeType.Ontologies },
+  { icon: 'pi pi-globe', title: 'Ontologies', value: TreeType.Ontologies },
 ]
 
 const activeTreeType = computed(() => props.type || TreeType.Classes)

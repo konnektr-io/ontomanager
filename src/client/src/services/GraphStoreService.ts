@@ -247,15 +247,19 @@ class GraphStoreService {
     return false
   }
 
-  public async getOntologies() {
+  public async getOntologies(graphs: NamedNode[]) {
     await this.init()
     const ontologies: ResourceTreeNode[] = []
-    for await (const quad of (await this._store.getStream({ predicate: vocab.rdf.type }))
-      .iterator) {
+    for await (const quad of (
+      await this._store.getStream({
+        predicate: vocab.rdf.type
+      })
+    ).iterator) {
       if (
-        quad.object.value === vocab.owl.Ontology.value ||
-        quad.object.value === vocab.skos.ConceptScheme.value ||
-        quad.object.value === vocab.voaf.Vocabulary.value
+        graphs.map((g) => g.value).includes(quad.graph.value) &&
+        (quad.object.value === vocab.owl.Ontology.value ||
+          quad.object.value === vocab.skos.ConceptScheme.value ||
+          quad.object.value === vocab.voaf.Vocabulary.value)
       ) {
         ontologies.push({
           key: quad.subject.value,

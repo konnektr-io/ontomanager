@@ -91,7 +91,7 @@ const ontologiesTreeLoadingId = ref(0)
 const loadOntologiesTree = async () => {
   const loadingId = ontologiesTreeLoadingId.value = ontologiesTreeLoadingId.value++
   ontologiesTreeLoading.value = true
-  const result = await graphStoreService.getOntologies()
+  const result = await graphStoreService.getOntologies(visibleGraphs.value)
   if (ontologiesTreeLoadingId.value === loadingId) {
     ontologiesTree.value = result
     ontologiesTreeLoading.value = false
