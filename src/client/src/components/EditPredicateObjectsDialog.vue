@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject, type Ref, onMounted } from 'vue'
+import { ref, watch, computed, inject, type Ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { DataFactory, Literal, Quad } from 'n3'
 import { useDebounceFn } from '@vueuse/core'
@@ -38,6 +38,11 @@ const fetchPredicateNodeSuggestions = useDebounceFn(async (event: SelectFilterEv
 
 const predicateUri = ref<string>()
 const currentPredicateUri = computed(() => existingPredicateUri.value || predicateUri.value)
+watch(() => predicateUri.value, () => {
+  if (predicateUri.value) {
+    fetchNamedNodeSuggestions({ value: '' })
+  }
+})
 
 const originalQuads: Quad[] = []
 interface EditableObject {
@@ -49,7 +54,7 @@ interface EditableObject {
 const objects = ref<EditableObject[]>([])
 const namedNodeSuggestions = ref<string[]>([])
 // Fetch suggestions for NamedNode URIs
-const fetchNamedNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent) => {
+const fetchNamedNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent | { value: string }) => {
   if (!currentPredicateUri.value) return
   namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(currentPredicateUri.value, event.value)
 }, 250, { maxWait: 1000 })
@@ -61,6 +66,7 @@ const languageOptions = ['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']
 onMounted(async () => {
   if (subjectUri.value && graphUri.value && !existingPredicateUri.value) {
     await fetchExistingPredicates(subjectUri.value)
+    predicateNodeSuggestions.value = await graphStoreService.getPredicateNodeSuggestions(existingPredicates.value, '')
   }
   if (!subjectUri.value || !existingPredicateUri.value || !graphUri.value) return
   predicateLabel.value = await graphStoreService.getLabel(existingPredicateUri.value)
@@ -172,6 +178,7 @@ const cancelChanges = () => {
       fluid
       class="grow"
       showClear
+      editable
       @filter="fetchPredicateNodeSuggestions"
     />
     <div
@@ -183,12 +190,13 @@ const cancelChanges = () => {
       <Select
         v-if="object.termType === 'NamedNode'"
         v-model="object.value"
-        :suggestions="namedNodeSuggestions"
-        @filter="fetchNamedNodeSuggestions"
+        :options="namedNodeSuggestions"
         placeholder="Edit URI"
         fluid
         class="grow"
         showClear
+        editable
+        @filter="fetchNamedNodeSuggestions"
       />
 
       <!-- Literal Value -->

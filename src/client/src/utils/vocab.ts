@@ -71,11 +71,19 @@ export const vocab = {
     NodeShape: namedNode('http://www.w3.org/ns/shacl#NodeShape'),
     PropertyShape: namedNode('http://www.w3.org/ns/shacl#PropertyShape')
   },
+  voaf: {
+    Vocabulary: namedNode('http://purl.org/vocommons/voaf#Vocabulary')
+  },
   vann: {
     preferredNamespacePrefix: namedNode('http://purl.org/vocab/vann/preferredNamespacePrefix'),
     preferredNamespaceUri: namedNode('http://purl.org/vocab/vann/preferredNamespaceUri')
   },
-  voaf: {
-    Vocabulary: namedNode('http://purl.org/vocommons/voaf#Vocabulary')
+  dc: {
+    title: namedNode('http://purl.org/dc/elements/1.1/title'),
+    description: namedNode('http://purl.org/dc/elements/1.1/description'),
+    creator: namedNode('http://purl.org/dc/elements/1.1/creator'),
+    publisher: namedNode('http://purl.org/dc/elements/1.1/publisher'),
+    created: namedNode('http://purl.org/dc/elements/1.1/created'),
+    modified: namedNode('http://purl.org/dc/elements/1.1/modified')
   }
 }

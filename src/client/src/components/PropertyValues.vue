@@ -75,6 +75,16 @@ const openDialog = () => {
 
 <template>
   <div class="flex-col">
+    <div>
+      <Button
+        v-if="editMode"
+        icon="pi pi-pencil"
+        size="small"
+        label="Add Annotation"
+        text
+        @click="() => openDialog()"
+      />
+    </div>
     <div
       v-for="(predicateObjects, predicate) in groupedObjectValues"
       :key="`${predicate}`"
@@ -84,16 +94,6 @@ const openDialog = () => {
         :subject="props.subject"
         :predicate="predicate"
         :predicateObjects="predicateObjects"
-      />
-    </div>
-    <div>
-      <Button
-        v-if="editMode"
-        icon="pi pi-pencil"
-        size="small"
-        label="Add Annotation"
-        text
-        @click="() => openDialog()"
       />
     </div>
   </div>
