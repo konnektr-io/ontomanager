@@ -72,6 +72,7 @@ app.use(
   VueGtag,
   {
     bootstrap: false,
+    pageTrackerScreenviewEnabled: true,
     config: { id: import.meta.env.VITE_GA_MEASUREMENT_ID }
   },
   router

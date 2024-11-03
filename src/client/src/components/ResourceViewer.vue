@@ -52,6 +52,12 @@ watch([
   }
 }, { immediate: true, deep: true })
 
+const isClass = ref<boolean>(false)
+watch(selectedResource, async () => {
+  if (selectedResource.value) {
+    isClass.value = await graphStoreService.isClass(selectedResource.value)
+  }
+}, { immediate: true })
 
 </script>
 
@@ -74,7 +80,7 @@ watch([
         <PropertyValues :subject="selectedResource" />
       </div>
       <div class="space-y-6">
-        <div v-if="properties.length || editMode">
+        <div v-if="properties.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
             <h3 class="text-lg font-semibold">Properties</h3>
             <Button
@@ -121,7 +127,7 @@ watch([
           </div>
         </div>
 
-        <div v-if="restrictions.length || editMode">
+        <div v-if="restrictions.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
             <h3 class="text-lg font-semibold">Restrictions</h3>
             <Button
@@ -168,7 +174,7 @@ watch([
           </div>
         </div>
 
-        <div v-if="individuals.length || editMode">
+        <div v-if="individuals.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
             <h3 class="text-lg font-semibold">Individuals</h3>
             <Button

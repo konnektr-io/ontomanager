@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@gtm-support/vue-gtm':
+        specifier: ^3.1.0
+        version: 3.1.0(vue@3.5.12(typescript@5.4.5))
       '@octokit/rest':
         specifier: ^21.0.2
         version: 21.0.2
@@ -448,6 +451,14 @@ packages:
   '@eslint/js@8.57.1':
     resolution: {integrity: sha512-d9zaMRSTIKDLhctzH12MtXvJKSSUhaHcjV+2Z+GK+EEY7XKpP5yR4x+N3TAcHTcu963nIr+TMcCb4DBCYX1z6Q==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@gtm-support/core@3.0.1':
+    resolution: {integrity: sha512-SctcoqvvAbGAgZzOb7DZ4wjbZF3ZS7Las3qIEByv6g7mzPf4E9LpRXcQzjmywYLcUx2jys7PWJAa3s5slvj/0w==}
+
+  '@gtm-support/vue-gtm@3.1.0':
+    resolution: {integrity: sha512-kGUnCI+Z5lBeCKd7rzgU7UoFU8Q0EkJfh17SgeyAyx8cLdISqeq54BNJKZrME3WXersoigLZVJ1GLs0buYD3lA==}
+    peerDependencies:
+      vue: '>= 3.2.26 < 4.0.0'
 
   '@humanwhocodes/config-array@0.13.0':
     resolution: {integrity: sha512-DZLEEqFWQFiyK6h5YIeynKx7JlvCYWL0cImfSRXZ9l4Sg2efkFGTuFf6vzXjK1cq6IYkU+Eg/JizXw+TD2vRNw==}
@@ -2857,6 +2868,15 @@ snapshots:
       - supports-color
 
   '@eslint/js@8.57.1': {}
+
+  '@gtm-support/core@3.0.1': {}
+
+  '@gtm-support/vue-gtm@3.1.0(vue@3.5.12(typescript@5.4.5))':
+    dependencies:
+      '@gtm-support/core': 3.0.1
+      vue: 3.5.12(typescript@5.4.5)
+    optionalDependencies:
+      vue-router: 4.4.5(vue@3.5.12(typescript@5.4.5))
 
   '@humanwhocodes/config-array@0.13.0':
     dependencies:

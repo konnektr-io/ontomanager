@@ -85,6 +85,19 @@ const loadIndividualsTree = async () => {
     individualsTreeLoading.value = false
   }
 }
+const ontologiesTree = shallowRef<ResourceTreeNode[]>([])
+const ontologiesTreeLoading = ref(false)
+const ontologiesTreeLoadingId = ref(0)
+const loadOntologiesTree = async () => {
+  const loadingId = ontologiesTreeLoadingId.value = ontologiesTreeLoadingId.value++
+  ontologiesTreeLoading.value = true
+  const result = await graphStoreService.getOntologies()
+  if (ontologiesTreeLoadingId.value === loadingId) {
+    ontologiesTree.value = result
+    ontologiesTreeLoading.value = false
+  }
+}
+
 const treeData = computed(() => {
   if (props.type === TreeType.Classes) {
     return classesTree.value
@@ -97,6 +110,9 @@ const treeData = computed(() => {
   }
   if (props.type === TreeType.Individuals) {
     return individualsTree.value
+  }
+  if (props.type === TreeType.Ontologies) {
+    return ontologiesTree.value
   }
   return []
 })
@@ -114,46 +130,49 @@ const loading = computed(() => {
   if (props.type === TreeType.Individuals) {
     return individualsTreeLoading.value
   }
+  if (props.type === TreeType.Ontologies) {
+    return ontologiesTreeLoading.value
+  }
   return false
 })
 
-watch(visibleGraphs, async () => {
+const loadByPriority = async () => {
   if (props.type === TreeType.Classes) {
     await loadClassesTree()
     loadDecompositionTree()
     loadPropertiesTree()
     loadIndividualsTree()
+    loadOntologiesTree()
   } else if (props.type === TreeType.Decomposition) {
     await loadDecompositionTree()
     loadClassesTree()
     loadPropertiesTree()
     loadIndividualsTree()
+    loadOntologiesTree()
   } else if (props.type === TreeType.Properties) {
     await loadPropertiesTree()
     loadClassesTree()
     loadDecompositionTree()
     loadIndividualsTree()
+    loadOntologiesTree()
   } else if (props.type === TreeType.Individuals) {
     await loadIndividualsTree()
     loadClassesTree()
     loadDecompositionTree()
     loadPropertiesTree()
-  }
-}, { immediate: true, deep: true })
-
-
-const loadCurrentTree = async () => {
-  if (props.type === TreeType.Classes) {
-    await loadClassesTree()
-  } else if (props.type === TreeType.Decomposition) {
-    await loadDecompositionTree()
-  } else if (props.type === TreeType.Properties) {
-    await loadPropertiesTree()
-  } else if (props.type === TreeType.Individuals) {
-    await loadIndividualsTree()
+    loadOntologiesTree()
+  } else if (props.type === TreeType.Ontologies) {
+    await loadOntologiesTree()
+    loadIndividualsTree()
+    loadClassesTree()
+    loadDecompositionTree()
+    loadPropertiesTree()
   }
 }
-watch(reloadTrigger, loadCurrentTree)
+
+watch(visibleGraphs, loadByPriority, { immediate: true, deep: true })
+
+watch(reloadTrigger, loadByPriority)
 
 const contextMenuRefs = ref<{ [key: string]: InstanceType<typeof Menu> }>({})
 const contextMenuItems = [
@@ -190,7 +209,7 @@ const contextMenuItems = [
             return
           }
           await removeClass(event.item.id, selectedOntology.value.node)
-          loadCurrentTree()
+          loadByPriority()
         },
         reject: () => {
         }
@@ -320,7 +339,8 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
       v-model:selectionKeys="selectedKeys"
       :value="treeData"
       selectionMode="single"
-      class="w-full"
+      class="w-full h-full pb-0"
+      pt:wrapper:class="h-full"
       :loading="loading"
     >
       <template #default="slotProps">

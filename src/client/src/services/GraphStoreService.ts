@@ -231,6 +231,45 @@ class GraphStoreService {
     return serializer.transform(input)
   }
 
+  public async isClass(uri: string) {
+    await this.init()
+    for (const classNode of classObjectNodes) {
+      const { items } = await this._store.get(
+        {
+          subject: this._datafactory.namedNode(uri),
+          predicate: vocab.rdf.type,
+          object: classNode
+        },
+        { limit: 1 }
+      )
+      if (items.length) return true
+    }
+    return false
+  }
+
+  public async getOntologies() {
+    await this.init()
+    const ontologies: ResourceTreeNode[] = []
+    for await (const quad of (await this._store.getStream({ predicate: vocab.rdf.type }))
+      .iterator) {
+      if (
+        quad.object.value === vocab.owl.Ontology.value ||
+        quad.object.value === vocab.skos.ConceptScheme.value ||
+        quad.object.value === vocab.voaf.Vocabulary.value
+      ) {
+        ontologies.push({
+          key: quad.subject.value,
+          label: quad.subject.value,
+          data: {
+            graph: quad.graph.value
+          },
+          children: []
+        })
+      }
+    }
+    return ontologies
+  }
+
   public async getClassesTree(graphs: NamedNode[]) {
     await this.init()
 

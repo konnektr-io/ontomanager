@@ -16,7 +16,8 @@ export enum TreeType {
   Classes = 'classes',
   Decomposition = 'decomposition',
   Properties = 'properties',
-  Individuals = 'individuals'
+  Individuals = 'individuals',
+  Ontologies = 'ontologies'
 }
 
 export interface ResourceTreeNode {
@@ -152,7 +153,7 @@ export const useGraphStore = defineStore('graph', () => {
         !userGraphs.value.find((g) => g.node?.value === graph.value) &&
         !builtinGraphs.find((g) => g.node?.value === graph.value)
     )
-    console.log('Deleting graphs:', graphsToDelete)
+    // console.log('Deleting graphs:', graphsToDelete)
     // Don't wait for deletion to finish
     graphsToDelete.forEach(async (graph) => {
       graphStoreService.deleteGraph(graph)

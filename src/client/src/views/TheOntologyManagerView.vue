@@ -42,6 +42,7 @@ const navigationItems = [
   { icon: 'pi pi-sitemap', title: 'Decomposition', value: TreeType.Decomposition },
   { icon: 'pi pi-link', title: 'Properties', value: TreeType.Properties },
   { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
+  { icon: 'pi pi-sitemap', title: 'Ontologies', value: TreeType.Ontologies },
 ]
 
 const activeTreeType = computed(() => props.type || TreeType.Classes)
@@ -58,7 +59,7 @@ onMounted(initialize)
   <div class="flex h-full">
     <!-- Navigation Drawer -->
     <div
-      class="flex flex-col justify-between p-1 bg-surface-100 transition-all duration-300 ease-in-out"
+      class="flex flex-col h-full justify-between p-1 bg-surface-100 transition-all duration-300 ease-in-out"
       :class="{ 'w-48': drawerExpanded, 'w-12': !drawerExpanded }"
     >
       <ul class="list-none">
