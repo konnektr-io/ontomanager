@@ -13,7 +13,11 @@ const props = defineProps<{
   subject: string;
 }>()
 
-const { selectedOntology, editMode } = storeToRefs(useGraphStore())
+const {
+  selectedOntology,
+  editMode,
+  reloadTrigger
+} = storeToRefs(useGraphStore())
 
 type GroupedPropertyValues = Record<string, {
   editable: boolean;
@@ -41,6 +45,7 @@ const groupedObjectValues = ref<GroupedPropertyValues>({})
 watch([
   () => props.subject,
   () => selectedOntology.value,
+  reloadTrigger
 ], async () => {
   groupedObjectValues.value = await getGroupedObjectValues()
 }, { immediate: true })

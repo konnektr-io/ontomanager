@@ -59,8 +59,8 @@ onMounted(initialize)
   <div class="flex h-full">
     <!-- Navigation Drawer -->
     <div
-      class="flex flex-col h-full justify-between p-1 bg-surface-100 transition-all duration-300 ease-in-out"
-      :class="{ 'w-48': drawerExpanded, 'w-12': !drawerExpanded }"
+      class="flex-none flex flex-col h-full justify-between p-1 bg-surface-100 transition-all duration-300 ease-in-out"
+      :class="{ 'w-[192px]': drawerExpanded, 'w-[48px]': !drawerExpanded }"
     >
       <ul class="list-none">
         <li

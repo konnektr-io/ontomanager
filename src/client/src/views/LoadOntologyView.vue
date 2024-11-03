@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
-import { useGraphStore } from '@/stores/graph'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
+import { useGitHubStore } from '@/stores/github'
+import { useGraphStore } from '@/stores/graph'
+import gitHubService from '@/services/GitHubService'
 
+const { isSignedIn, username } = storeToRefs(useGitHubStore())
+const { loginToGitHub } = useGitHubStore()
 const { userGraphs } = storeToRefs(useGraphStore())
 const { addGraph } = useGraphStore()
 const newOntologyUrl = ref('')
@@ -13,23 +18,28 @@ const newOntologyUrl = ref('')
 const predefinedOntologies = [{
   name: 'SML',
   description: 'Building information modelling (BIM) - Semantic modelling and linking (SML) - CEN-EN 17632',
-  urls: ['https://docs.crow.nl/sml/data/concat/sml.ttl']
+  urls: ['https://docs.crow.nl/sml/data/concat/sml.ttl'],
+  visible: true
 }, {
   name: 'BOT',
   description: 'The Building Topology Ontology (BOT) is a minimal ontology for describing the core topological concepts of a building.',
-  urls: ['http://www.w3id.org/bot/bot.ttl']
+  urls: ['http://www.w3id.org/bot/bot.ttl'],
+  visible: true
 }, {
   name: 'RealEstateCore + Brick',
   description: 'RealEstateCore is an ontology for building-related data and applications. Brick defines HVAC, lighting, spatial and electrical concepts and relationships.',
-  urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl']
+  urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl'],
+  visible: () => isSignedIn.value
 }, {
   name: 'ASHRAE Standard 223',
   description: 'Interoperable semantic framework for representing building automation and control data, and other building system information.',
-  urls: ['https://open223.info/223p.ttl']
+  urls: ['https://open223.info/223p.ttl'],
+  visible: true
 }, {
   name: 'DPROD + DCAT',
   description: 'The Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabulary, designed to describe Data Products. ',
-  urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl']
+  urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl'],
+  visible: true
 }
 ]
 
@@ -37,6 +47,17 @@ const importOntology = (urls: string | string[]) => {
   addGraph(urls)
   newOntologyUrl.value = ''
 }
+
+const repositories = ref<string[]>([])
+watch(isSignedIn, async () => {
+  if (isSignedIn.value && username.value) {
+    repositories.value = (await gitHubService.getRepositories(username.value)).map(repo => repo.full_name)
+  }
+}, { immediate: true })
+const createNewOntologySelectedRepository = ref<string>()
+const createNewOntologyFilePath = ref<string>()
+
+
 </script>
 
 <template>
@@ -49,9 +70,55 @@ const importOntology = (urls: string | string[]) => {
       <span
         v-else
         class="text-surface-900 dark:text-surface-0"
-      >Load ontologies</span>
+      >Create or import ontologies</span>
     </div>
-    <div class="text-surface-700 dark:text-surface-0/70 mb-2">Import an ontology</div>
+    <div
+      v-if="!isSignedIn"
+      class="text-lg font-bold text-surface-700 dark:text-surface-0/70 mb-2"
+    >Sign in to GitHub</div>
+    <Button
+      v-if="!isSignedIn"
+      label="Sign in"
+      icon="pi pi-github"
+      iconPos="left"
+      class="mb-[3rem]"
+      outlined
+      @click="loginToGitHub()"
+    />
+
+
+    <div
+      v-if="isSignedIn"
+      class="text-lg font-bold text-surface-700 dark:text-surface-0/70 mb-2"
+    >Create a new ontology</div>
+    <div
+      v-if="isSignedIn"
+      class="flex items-center gap-4 mb-4"
+    >
+      <Select
+        v-model="createNewOntologySelectedRepository"
+        :options="repositories"
+        filter
+        placeholder="Choose repository"
+        class="flex-auto"
+      />
+      <InputText
+        v-model="createNewOntologyFilePath"
+        placeholder="new-ontology.ttl"
+        class="flex-auto"
+      />
+      <Button
+        label="Create"
+        outlined
+        severity="secondary"
+      />
+    </div>
+    <div
+      v-if="isSignedIn"
+      class="text-surface-700 dark:text-surface-0/70 mb-[3rem]"
+    >Select the repository and file path to create a new ontology.</div>
+
+    <div class="text-lg font-bold text-surface-700 dark:text-surface-0/70 mb-2">Import an ontology</div>
     <div class="flex items-center gap-4 mb-4">
       <InputText
         v-model="newOntologyUrl"
@@ -69,13 +136,17 @@ const importOntology = (urls: string | string[]) => {
       your Github repository (eg. <span
         class="italic hover:text-surface-900 hover:underline cursor-pointer"
         @click="newOntologyUrl = 'https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl'"
-      >https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl)</span></div>
-    <div class="text-surface-700 dark:text-surface-0/70 mb-2">Or load and extend an existing ontology</div>
+      >https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl</span>). <span
+        class="hover:text-surface-900 hover:underline cursor-pointer"
+        @click="loginToGitHub"
+      >Sign in</span> to load (and edit) ontologies
+      hosted on GitHub.</div>
+    <div class="text-surface-700 dark:text-surface-0/70 mb-2">Or import one of these ontologies:</div>
     <div class="flex flex-wrap gap-4">
       <Card
-        v-for="ontology in predefinedOntologies"
-        v-ripple
+        v-for="ontology in predefinedOntologies.filter(ontology => typeof ontology.visible === 'function' ? ontology.visible() : ontology.visible)"
         :key="ontology.urls.join('_')"
+        v-ripple
         class="cursor-pointer w-[15rem]"
         @click="importOntology(ontology.urls)"
       >

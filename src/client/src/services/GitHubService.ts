@@ -146,7 +146,7 @@ class GitHubService {
     if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
       this.loginToGitHub()
     }
-    const response = await this.octokit.repos.listForUser({ username })
+    const response = await this.octokit.repos.listForAuthenticatedUser({ username })
     return response.data
   }
 

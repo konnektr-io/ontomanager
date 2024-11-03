@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import { DataFactory, Literal, Quad } from 'n3'
 import { useDebounceFn } from '@vueuse/core'
 import AutoComplete, { type AutoCompleteCompleteEvent } from 'primevue/autocomplete'
-import Select from 'primevue/select'
+import Select, { type SelectFilterEvent } from 'primevue/select'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
@@ -32,8 +32,8 @@ const fetchExistingPredicates = async (subjUri: string) => {
     .map(q => q.predicate.value).filter((value, index, self) => self.indexOf(value) === index)
 }
 const predicateNodeSuggestions = ref<string[]>([])
-const fetchPredicateNodeSuggestions = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
-  predicateNodeSuggestions.value = await graphStoreService.getPredicateNodeSuggestions(existingPredicates.value, event.query)
+const fetchPredicateNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent) => {
+  predicateNodeSuggestions.value = await graphStoreService.getPredicateNodeSuggestions(existingPredicates.value, event.value)
 }, 250, { maxWait: 1000 })
 
 const predicateUri = ref<string>()
@@ -49,9 +49,9 @@ interface EditableObject {
 const objects = ref<EditableObject[]>([])
 const namedNodeSuggestions = ref<string[]>([])
 // Fetch suggestions for NamedNode URIs
-const fetchNamedNodeSuggestions = useDebounceFn(async (event: AutoCompleteCompleteEvent) => {
+const fetchNamedNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent) => {
   if (!currentPredicateUri.value) return
-  namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(currentPredicateUri.value, event.query)
+  namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(currentPredicateUri.value, event.value)
 }, 250, { maxWait: 1000 })
 
 // Language options
@@ -86,10 +86,8 @@ onMounted(async () => {
     }, [] as EditableObject[])
 })
 
-
-
 const addObject = (type: 'NamedNode' | 'Literal') => {
-  if (!subjectUri.value || !predicateUri.value || !graphUri.value) return
+  if (!subjectUri.value || !currentPredicateUri.value || !graphUri.value) return
   if (type === 'NamedNode') {
     objects.value.push({
       termType: 'NamedNode',
@@ -143,12 +141,14 @@ const confirmChanges = async () => {
   }
 
   // When changing labels, subClassOf etc. need to update the tree (the trigger is watched in ResourceTree.vue)
-  if (currentPredicateUri.value === vocab.rdfs.label.value ||
+  /* if (currentPredicateUri.value === vocab.rdfs.label.value ||
     currentPredicateUri.value === vocab.skos.prefLabel.value ||
     currentPredicateUri.value === vocab.rdfs.subClassOf.value ||
     currentPredicateUri.value === vocab.rdfs.subPropertyOf.value) {
     reloadTrigger.value++
-  }
+  } */
+
+  reloadTrigger.value++
 
   dialogRef?.value.close()
 }
@@ -164,15 +164,15 @@ const cancelChanges = () => {
       v-if="existingPredicateUri"
       class="font-medium mb-4"
     >{{ predicateLabel || existingPredicateUri }}</div>
-    <AutoComplete
+    <Select
       v-else
       v-model="predicateUri"
-      :suggestions="predicateNodeSuggestions"
-      @complete="fetchPredicateNodeSuggestions"
+      :options="predicateNodeSuggestions"
       placeholder="Edit Predicate"
       fluid
       class="grow"
       showClear
+      @filter="fetchPredicateNodeSuggestions"
     />
     <div
       v-for="(object, index) in objects"
@@ -180,11 +180,11 @@ const cancelChanges = () => {
       class="flex items-center gap-2 w-full"
     >
       <!-- Named Node URI with AutoComplete -->
-      <AutoComplete
+      <Select
         v-if="object.termType === 'NamedNode'"
         v-model="object.value"
         :suggestions="namedNodeSuggestions"
-        @complete="fetchNamedNodeSuggestions"
+        @filter="fetchNamedNodeSuggestions"
         placeholder="Edit URI"
         fluid
         class="grow"

@@ -265,7 +265,7 @@ const commitChanges = async () => {
         <template #footer>
           <div class="p-3">
             <Button
-              label="Import Ontology"
+              label="Create or Import Ontology"
               fluid
               severity="secondary"
               text

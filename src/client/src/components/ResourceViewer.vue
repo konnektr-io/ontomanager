@@ -13,13 +13,11 @@ import TermValue from './TermValue.vue'
 const {
   editMode,
   selectedResource,
-  userGraphs } = storeToRefs(useGraphStore())
+  userGraphs,
+  reloadTrigger
+} = storeToRefs(useGraphStore())
 const {
-  // getProperties,
-  // getIndividuals,
-  // getLabel,
-  getPrefixedUri,
-  // getRanges
+  getPrefixedUri
 } = useGraphStore()
 
 const label = ref<string>('')
@@ -37,7 +35,8 @@ const restrictions = ref<{
 const individuals = ref<{ label: string, node: NamedNode }[]>([])
 watch([
   selectedResource,
-  userGraphs
+  userGraphs,
+  reloadTrigger
 ], async () => {
   if (!selectedResource.value) {
     label.value = ''

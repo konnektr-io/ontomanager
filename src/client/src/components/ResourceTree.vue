@@ -311,6 +311,10 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
     await loadPropertiesTree()
   }
 }
+
+const showLoadOntologyPage = () => {
+  selectedResource.value = null
+}
 </script>
 
 <template>
@@ -328,6 +332,18 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
       </div>
       <div class="text-surface-600">Loading ...</div>
     </div> -->
+    <div
+      v-if="type === TreeType.Ontologies && selectedResource"
+      class="flex justify-start pl-2 pt-2"
+    >
+      <Button
+        type="button"
+        icon="pi pi-plus"
+        label="Create or import ontology"
+        text
+        @click="showLoadOntologyPage"
+      ></Button>
+    </div>
     <div
       v-if="!treeData?.length && !loading"
       class="flex justify-start p-2 gap-2"
