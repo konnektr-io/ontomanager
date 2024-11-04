@@ -2,7 +2,7 @@
 import { ref, computed, inject, type Ref } from 'vue'
 import { DataFactory, type Quad } from 'n3'
 import { storeToRefs } from 'pinia'
-import { useGraphStore } from '@/stores/graph'
+import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import { vocab } from '@/utils/vocab'
@@ -10,10 +10,18 @@ import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
 
 const { namedNode, literal, quad } = DataFactory
 
-const dialogRef = inject<Ref<DynamicDialogInstance>>('dialogRef')
+const dialogRef = inject<Ref<DynamicDialogInstance & {
+  repository: string;
+  filePath: string;
+  branch: string;
+}>>('dialogRef')
 
+const repository = computed(() => dialogRef?.value.repository)
+const filePath = computed(() => dialogRef?.value.filePath)
+const branch = computed(() => dialogRef?.value.branch)
 
-const { addQuad } = useGraphStore()
+const { userGraphs } = storeToRefs(useGraphStore())
+const { addQuad, saveUserGraphsToLocalStorage } = useGraphStore()
 const reloadTrigger = ref(0)
 
 interface EditableObject {
@@ -26,32 +34,62 @@ const predicates = ref<EditableObject[]>([
   { predicate: vocab.vann.preferredNamespacePrefix.value, label: 'Prefix', value: '' },
   { predicate: vocab.vann.preferredNamespaceUri.value, label: 'Namespace URI', value: '' },
   { predicate: vocab.dc.title.value, label: 'Title', value: '' },
-  { predicate: vocab.dc.description.value, label: 'Label', value: '' },
+  { predicate: vocab.dc.description.value, label: 'Description', value: '' },
   { predicate: vocab.dc.creator.value, label: 'Creator', value: '' }
 ])
 
 const quads = ref<Quad[]>([])
 
 const confirmCreation = async () => {
+  if (!repository.value || !filePath.value || !branch.value) return
+
   const preferredNamespaceUri = predicates.value.find(p => p.predicate === vocab.vann.preferredNamespaceUri.value)?.value
   if (!preferredNamespaceUri) return
+
+  const preferredNamespacePrefix = predicates.value.find(p => p.predicate === vocab.vann.preferredNamespacePrefix.value)?.value
+
+  const graphNode = namedNode(preferredNamespaceUri)
 
   // Add predicates
   predicates.value.forEach(({ predicate, value }) => {
     if (value) {
-      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value), namedNode(preferredNamespaceUri)))
+      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value), graphNode))
     }
   })
 
   // Add rdf:type owl:Ontology
-  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.rdf.type.value), namedNode(vocab.owl.Ontology.value), namedNode(preferredNamespaceUri)))
+  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.rdf.type.value), namedNode(vocab.owl.Ontology.value), graphNode))
 
   // Add dc:created
-  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.dc.created.value), literal(new Date().toISOString()), namedNode(preferredNamespaceUri)))
+  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.dc.created.value), literal(new Date().toISOString()), graphNode))
 
   // Save quads to the store
   for (const q of quads.value) {
     await addQuad(q)
+  }
+
+  // TODO: Now prepare and load UserGraphs and commit to github
+  const graphDetails: GraphDetails = {
+    url: `https://github.com/${repository.value}/blob/${branch.value}/${filePath.value}`,
+    owner: repository.value.split('/')[0],
+    repo: repository.value.split('/')[1],
+    branch: branch.value,
+    path: filePath.value,
+    visible: true,
+    loaded: true,
+    namespace: preferredNamespaceUri,
+    node: graphNode,
+    prefixes: {
+      ...preferredNamespacePrefix && { [preferredNamespacePrefix]: namedNode(preferredNamespaceUri) },
+      'rdf': namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
+      'rdfs': namedNode('http://www.w3.org/2000/01/rdf-schema#'),
+      'owl': namedNode('http://www.w3.org/2002/07/owl#'),
+      'dc': namedNode('http://purl.org/dc/elements/1.1/'),
+      'vann': namedNode('http://purl.org/vocab/vann/'),
+      'xsd': namedNode('http://www.w3.org/2001/XMLSchema#'),
+      'skos': namedNode('http://www.w3.org/2004/02/skos/core#')
+    }
+    // sha: ''
   }
 
   reloadTrigger.value++
@@ -75,13 +113,13 @@ const cancelCreation = () => {
       <label
         for="value"
         class="w-1/4"
+        v-tooltip="predicate.predicate"
       >{{ predicate.label }}</label>
       <Textarea
         id="value"
         v-model="predicate.value"
-        :placeholder="predicate.predicate"
-        autogrow
         showClear
+        :autogrow="predicate.predicate === vocab.dc.description.value"
         class="w-3/4"
       />
     </div>

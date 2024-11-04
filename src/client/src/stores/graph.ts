@@ -494,6 +494,7 @@ export const useGraphStore = defineStore('graph', () => {
     reloadTrigger,
 
     userGraphs,
+    saveUserGraphsToLocalStorage,
     selectedOntology,
     selectedResource,
     visibleGraphs,

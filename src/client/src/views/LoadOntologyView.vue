@@ -50,15 +50,24 @@ const importOntology = (urls: string | string[]) => {
   newOntologyUrl.value = ''
 }
 
-const repositories = ref<string[]>([])
+const repositories = ref<Awaited<ReturnType<typeof gitHubService.getRepositories>>>([])
 watch(isSignedIn, async () => {
   if (isSignedIn.value && username.value) {
-    repositories.value = (await gitHubService.getRepositories(username.value)).map(repo => repo.full_name)
+    repositories.value = await gitHubService.getRepositories(username.value)
   }
 }, { immediate: true })
 const createNewOntologySelectedRepository = ref<string>()
+const branches = ref<string[]>([])
+watch(createNewOntologySelectedRepository, async () => {
+  if (createNewOntologySelectedRepository.value) {
+    const repo = repositories.value.find(repo => repo.full_name === createNewOntologySelectedRepository.value)
+    const owner = repo?.owner.name
+    if (!owner) return
+    branches.value = (await gitHubService.getBranches(owner, createNewOntologySelectedRepository.value)).map(branch => branch.name)
+  }
+}, { immediate: true })
 const createNewOntologyFilePath = ref<string>()
-
+const createNewOntologyBranch = ref<string>('main')
 
 const dialog = useDialog()
 const openNewOntologyDialog = () => {
@@ -73,6 +82,11 @@ const openNewOntologyDialog = () => {
         '640px': '90vw'
       },
       modal: true
+    },
+    data: {
+      repository: createNewOntologySelectedRepository.value,
+      filePath: createNewOntologyFilePath.value,
+      branch: createNewOntologyBranch.value
     }
   })
 }
@@ -115,8 +129,17 @@ const openNewOntologyDialog = () => {
       <Select
         v-model="createNewOntologySelectedRepository"
         :options="repositories"
+        option-label="full_name"
+        option-value="full_name"
         filter
         placeholder="Choose repository"
+        class="flex-auto"
+      />
+      <Select
+        v-model="createNewOntologyBranch"
+        :options="branches"
+        filter
+        placeholder="Choose branch"
         class="flex-auto"
       />
       <InputText
