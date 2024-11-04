@@ -10,56 +10,44 @@ import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
 
 const { namedNode, literal, quad } = DataFactory
 
-const dialogRef = inject<Ref<DynamicDialogInstance & {
-  data: { graphId: string }
-}>>('dialogRef')
+const dialogRef = inject<Ref<DynamicDialogInstance>>('dialogRef')
 
-const graphUri = computed<string>(() => dialogRef?.value.data.graphId)
 
 const { addQuad } = useGraphStore()
 const reloadTrigger = ref(0)
 
 interface EditableObject {
   predicate: string;
+  label: string;
   value: string;
 }
 
-const vannPredicates: EditableObject[] = [
-  { predicate: vocab.vann.preferredNamespacePrefix.value, value: '' },
-  { predicate: vocab.vann.preferredNamespaceUri.value, value: '' }
-]
-
-const dcPredicates: EditableObject[] = [
-  { predicate: vocab.dc.title.value, value: '' },
-  { predicate: vocab.dc.description.value, value: '' },
-  { predicate: vocab.dc.creator.value, value: '' },
-  { predicate: vocab.dc.publisher.value, value: '' },
-  { predicate: vocab.dc.created.value, value: '' },
-  { predicate: vocab.dc.modified.value, value: '' }
-]
+const predicates = ref<EditableObject[]>([
+  { predicate: vocab.vann.preferredNamespacePrefix.value, label: 'Prefix', value: '' },
+  { predicate: vocab.vann.preferredNamespaceUri.value, label: 'Namespace URI', value: '' },
+  { predicate: vocab.dc.title.value, label: 'Title', value: '' },
+  { predicate: vocab.dc.description.value, label: 'Label', value: '' },
+  { predicate: vocab.dc.creator.value, label: 'Creator', value: '' }
+])
 
 const quads = ref<Quad[]>([])
 
 const confirmCreation = async () => {
-  const preferredNamespaceUri = vannPredicates.find(p => p.predicate === vocab.vann.preferredNamespaceUri.value)?.value
-  if (!preferredNamespaceUri || !graphUri.value) return
+  const preferredNamespaceUri = predicates.value.find(p => p.predicate === vocab.vann.preferredNamespaceUri.value)?.value
+  if (!preferredNamespaceUri) return
 
-  // Add vann predicates
-  vannPredicates.forEach(({ predicate, value }) => {
+  // Add predicates
+  predicates.value.forEach(({ predicate, value }) => {
     if (value) {
-      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value), namedNode(graphUri.value)))
-    }
-  })
-
-  // Add dc predicates
-  dcPredicates.forEach(({ predicate, value }) => {
-    if (value) {
-      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value), namedNode(graphUri.value)))
+      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value), namedNode(preferredNamespaceUri)))
     }
   })
 
   // Add rdf:type owl:Ontology
-  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.rdf.type.value), namedNode(vocab.owl.Ontology.value), namedNode(graphUri.value)))
+  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.rdf.type.value), namedNode(vocab.owl.Ontology.value), namedNode(preferredNamespaceUri)))
+
+  // Add dc:created
+  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.dc.created.value), literal(new Date().toISOString()), namedNode(preferredNamespaceUri)))
 
   // Save quads to the store
   for (const q of quads.value) {
@@ -79,33 +67,22 @@ const cancelCreation = () => {
   <div class="flex flex-col gap-2 w-full">
     <div class="font-medium mb-4">Create New Ontology</div>
 
-    <div class="font-medium mb-2">VANN Predicates</div>
     <div
-      v-for="(predicate, index) in vannPredicates"
+      v-for="(predicate, index) in predicates"
       :key="index"
       class="flex items-center gap-2 w-full"
     >
+      <label
+        for="value"
+        class="w-1/4"
+      >{{ predicate.label }}</label>
       <Textarea
+        id="value"
         v-model="predicate.value"
         :placeholder="predicate.predicate"
         autogrow
         showClear
-        class="w-full"
-      />
-    </div>
-
-    <div class="font-medium mb-2 mt-4">DC Predicates</div>
-    <div
-      v-for="(predicate, index) in dcPredicates"
-      :key="index"
-      class="flex items-center gap-2 w-full"
-    >
-      <Textarea
-        v-model="predicate.value"
-        :placeholder="predicate.predicate"
-        autogrow
-        showClear
-        class="w-full"
+        class="w-3/4"
       />
     </div>
 

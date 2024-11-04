@@ -3,12 +3,13 @@ import { ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
-import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
+import { useDialog } from 'primevue/usedialog'
 import { useGitHubStore } from '@/stores/github'
 import { useGraphStore } from '@/stores/graph'
 import gitHubService from '@/services/GitHubService'
+import CreateOntologyDialog from '@/components/CreateOntologyDialog.vue'
 
 const { isSignedIn, username } = storeToRefs(useGitHubStore())
 const { loginToGitHub } = useGitHubStore()
@@ -59,6 +60,22 @@ const createNewOntologySelectedRepository = ref<string>()
 const createNewOntologyFilePath = ref<string>()
 
 
+const dialog = useDialog()
+const openNewOntologyDialog = () => {
+  dialog.open(CreateOntologyDialog, {
+    props: {
+      header: 'New Annotation',
+      style: {
+        width: '50vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    }
+  })
+}
 </script>
 
 <template>
@@ -87,7 +104,6 @@ const createNewOntologyFilePath = ref<string>()
       @click="loginToGitHub()"
     />
 
-
     <div
       v-if="isSignedIn"
       class="text-lg font-bold text-surface-700 dark:text-surface-0/70 mb-2"
@@ -112,6 +128,7 @@ const createNewOntologyFilePath = ref<string>()
         label="Create"
         outlined
         severity="secondary"
+        @click="openNewOntologyDialog"
       />
     </div>
     <div
