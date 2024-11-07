@@ -11,14 +11,16 @@ import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
 const { namedNode, literal, quad } = DataFactory
 
 const dialogRef = inject<Ref<DynamicDialogInstance & {
-  repository: string;
-  filePath: string;
-  branch: string;
+  data: {
+    repository: string;
+    filePath: string;
+    branch: string;
+  }
 }>>('dialogRef')
 
-const repository = computed(() => dialogRef?.value.repository)
-const filePath = computed(() => dialogRef?.value.filePath)
-const branch = computed(() => dialogRef?.value.branch)
+const repository = computed(() => dialogRef?.value.data.repository)
+const filePath = computed(() => dialogRef?.value.data.filePath)
+const branch = computed(() => dialogRef?.value.data.branch)
 
 const { userGraphs } = storeToRefs(useGraphStore())
 const { addQuad, saveUserGraphsToLocalStorage } = useGraphStore()

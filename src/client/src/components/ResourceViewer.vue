@@ -9,12 +9,15 @@ import { useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import type { BlankNode, NamedNode, Term } from 'n3'
 import TermValue from './TermValue.vue'
+import { useDialog } from 'primevue/usedialog'
+import AddPropertyDialog from './AddPropertyDialog.vue'
 
 const {
   editMode,
   selectedResource,
   userGraphs,
-  reloadTrigger
+  reloadTrigger,
+  selectedOntology
 } = storeToRefs(useGraphStore())
 const {
   getPrefixedUri
@@ -58,6 +61,28 @@ watch(selectedResource, async () => {
   }
 }, { immediate: true })
 
+const dialog = useDialog()
+const openAddPropertyDialog = () => {
+  if (!selectedResource.value || !selectedOntology.value?.node) return
+  dialog.open(AddPropertyDialog, {
+    props: {
+      header: 'Add Property',
+      style: {
+        width: '50vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    },
+    data: {
+      existingPropertyNodes: properties.value.map(p => p.node.value),
+      domain: selectedResource.value,
+      graphId: selectedOntology.value.node.value
+    }
+  })
+}
 </script>
 
 <template>
@@ -88,6 +113,7 @@ watch(selectedResource, async () => {
               size="small"
               text
               label="Add"
+              @click="openAddPropertyDialog"
             />
           </div>
           <p

@@ -45,6 +45,12 @@ watch(selectedOntology, async (graph) => {
   }
 })
 
+watch(userGraphs, graphs => {
+  if (!graphs.length) {
+    selectedResource.value = null
+  }
+}, { immediate: true, deep: true })
+
 const changeSelectedOntology = async (graph: GraphDetails | null) => {
   // If the undo stack is not empty, ask for confirmation
   if (undoStackSize.value) {

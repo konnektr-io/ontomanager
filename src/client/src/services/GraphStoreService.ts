@@ -73,14 +73,18 @@ class GraphStoreService {
   public async init() {
     await this._store.open()
 
+    console.log('scope', this._scope?.id, this._scope)
+
     if (this._scope) return
 
     // Try to get scope id from local storage
     const scopeId = localStorage.getItem('scopeId')
     if (scopeId) {
       this._scope = await this._store.loadScope(scopeId)
+      console.log('scope from stored scope id', scopeId, this._scope)
     } else {
       this._scope = await this._store.initScope()
+      console.log('new scope', this._scope.id, this._scope)
       localStorage.setItem('scopeId', this._scope.id)
     }
   }
@@ -817,7 +821,7 @@ class GraphStoreService {
       ) {
         nodeMap.add(quad.predicate.value)
       }
-      if (nodeMap.size > 10) break
+      if (nodeMap.size > 20) break
     }
     return Array.from(nodeMap)
   }
@@ -834,8 +838,35 @@ class GraphStoreService {
       ) {
         namedNodeMap.add(quad.object.value)
       }
-      if (namedNodeMap.size > 10) break
+      if (namedNodeMap.size > 20) break
     }
+    return Array.from(namedNodeMap)
+  }
+
+  public async getPropertyNodeSuggestions(existingPropertyNodes: string[], search: string) {
+    await this.init()
+
+    const namedNodeMap = new Set<string>()
+
+    await Promise.all(
+      propertyObjectNodes.map(async (propertyNode) => {
+        for await (const quad of (
+          await this._store.getStream({
+            predicate: vocab.rdf.type,
+            object: propertyNode
+          })
+        ).iterator) {
+          if (
+            quad.subject.termType === 'NamedNode' &&
+            !existingPropertyNodes.includes(quad.subject.value) &&
+            quad.subject.value.toLowerCase().includes(search.toLowerCase())
+          ) {
+            namedNodeMap.add(quad.subject.value)
+          }
+          if (namedNodeMap.size > 20) break
+        }
+      })
+    )
     return Array.from(namedNodeMap)
   }
 

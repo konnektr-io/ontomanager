@@ -15,7 +15,11 @@ import { vocab } from '@/utils/vocab'
 const { namedNode, literal, quad } = DataFactory
 
 const dialogRef = inject<Ref<DynamicDialogInstance & {
-  data: { subject: string, predicate: string, graphId: string }
+  data: {
+    subject: string,
+    predicate: string,
+    graphId: string
+  }
 }>>('dialogRef')
 
 const predicateLabel = ref<string>('')
@@ -32,11 +36,16 @@ const fetchExistingPredicates = async (subjUri: string) => {
     .map(q => q.predicate.value).filter((value, index, self) => self.indexOf(value) === index)
 }
 const predicateNodeSuggestions = ref<string[]>([])
-const fetchPredicateNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent) => {
+const fetchPredicateNodeSuggestions = async (event: SelectFilterEvent) => {
   predicateNodeSuggestions.value = await graphStoreService.getPredicateNodeSuggestions(existingPredicates.value, event.value)
-}, 250, { maxWait: 1000 })
-
+}
 const predicateUri = ref<string>()
+/* watch(predicateUri, (val) => {
+  if (predicateUri.value) {
+    fetchPredicateNodeSuggestions({ value: val })
+  }
+}) */
+
 const currentPredicateUri = computed(() => existingPredicateUri.value || predicateUri.value)
 watch(() => predicateUri.value, () => {
   if (predicateUri.value) {
@@ -179,6 +188,7 @@ const cancelChanges = () => {
       class="grow"
       showClear
       editable
+      filter
       @filter="fetchPredicateNodeSuggestions"
     />
     <div
@@ -196,6 +206,7 @@ const cancelChanges = () => {
         class="grow"
         showClear
         editable
+        filter
         @filter="fetchNamedNodeSuggestions"
       />
 
