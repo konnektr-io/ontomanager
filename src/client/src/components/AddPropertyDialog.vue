@@ -19,12 +19,13 @@ const dialogRef = inject<Ref<DynamicDialogInstance & {
   }
 }>>('dialogRef')
 
-const { reloadTrigger } = storeToRefs(useGraphStore())
+const { reloadTrigger, userGraphs } = storeToRefs(useGraphStore())
 const { addQuad } = useGraphStore()
 
 const existingPropertyNodes = computed(() => dialogRef?.value.data.existingPropertyNodes)
 const object = computed(() => dialogRef?.value.data.domain)
 const graphId = computed(() => dialogRef?.value.data.graphId)
+const scopeId = computed(() => userGraphs.value.find(g => g.node?.value === graphId.value)?.scopeId)
 
 const propertyNodeSuggestions = ref<string[]>([])
 const fetchPropertyNodeSuggestions = async (event: { value: string }) => {
@@ -37,7 +38,7 @@ onMounted(() => {
 const propertyNodeUri = ref<string>()
 
 const confirmCreation = async () => {
-  if (!propertyNodeUri.value || !object.value) return
+  if (!propertyNodeUri.value || !object.value || !scopeId.value) return
 
   // Add current object as domain of the property node
   await addQuad(quad(
@@ -45,7 +46,7 @@ const confirmCreation = async () => {
     namedNode(vocab.rdfs.domain.value),
     namedNode(object.value),
     namedNode(graphId.value)
-  ))
+  ), scopeId.value)
 
   reloadTrigger.value++
 

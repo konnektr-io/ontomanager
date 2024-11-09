@@ -65,28 +65,13 @@ class GraphStoreService {
   private _datafactory: DataFactoryInterface
   private _store: Quadstore
   private _parser: Parser
-  // private _engine: Engine
 
-  // Avoid blank node collisions
-  private _scope: Scope | undefined
+  private _scopeMap: Map<string, Scope> = new Map()
 
   public async init() {
     await this._store.open()
 
-    console.log('scope', this._scope?.id, this._scope)
-
-    if (this._scope) return
-
-    // Try to get scope id from local storage
-    const scopeId = localStorage.getItem('scopeId')
-    if (scopeId) {
-      this._scope = await this._store.loadScope(scopeId)
-      console.log('scope from stored scope id', scopeId, this._scope)
-    } else {
-      this._scope = await this._store.initScope()
-      console.log('new scope', this._scope.id, this._scope)
-      localStorage.setItem('scopeId', this._scope.id)
-    }
+    // console.log('scope', this._scope?.id, this._scope)
   }
 
   public async close() {
@@ -115,10 +100,18 @@ class GraphStoreService {
     return items.length > 0
   }
 
-  public async loadGraph(ontologyContent: string) {
+  public async loadGraph(ontologyContent: string, scopeId?: string) {
     console.log('Init DB', new Date().toISOString())
     await this.init()
-    // if (graph.node) this._store.deleteGraph(graph.node)
+
+    let scope: Scope | undefined
+    if (scopeId) {
+      scope = await this._store.loadScope(scopeId)
+    } else if (!scopeId) {
+      scope = await this._store.initScope()
+      scopeId = scope.id
+      this._scopeMap.set(scopeId, scope)
+    }
 
     const graphPrefixes: { [prefix: string]: NamedNode<string> } = {}
 
@@ -175,33 +168,27 @@ class GraphStoreService {
 
     console.log('Put quads', new Date().toISOString())
 
-    await this._store.multiPut(
-      quads.map(
-        (quad) =>
-          this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject),
-        { scope: this._scope }
-      )
+    const ontologyQuads = quads.map((quad) =>
+      this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject)
     )
 
-    /* await Promise.all(
-      quads.map((quad) =>
-        this._store.put(
-          this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject),
-          { scope: this._scope }
-        )
-      )
-    ) */
+    await this._store.multiPut(ontologyQuads, { scope })
 
-    console.log('Import done', new Date().toISOString())
+    console.log('Import done', new Date().toISOString(), 'blankNodesMap', scope)
 
     return {
       node: ontologySubject,
-      prefixes: graphPrefixes
+      prefixes: graphPrefixes,
+      scopeId
     }
   }
 
-  public async deleteGraph(graph: NamedNode) {
+  public async deleteGraph(graph: NamedNode, scopeId?: string) {
     await this.init()
+    if (scopeId) {
+      this._store.deleteScope(scopeId)
+      this._scopeMap.delete(scopeId)
+    }
     return await new Promise((resolve, reject) =>
       this._store.deleteGraph(graph).on('end', resolve).on('error', reject)
     )
@@ -900,18 +887,25 @@ class GraphStoreService {
   }
 
   public async get(pattern: Pattern) {
-    await this.init()
     return await this._store.get(pattern)
   }
 
-  public async put(quad: Quad) {
-    await this.init()
-    return await this._store.put(quad, { scope: this._scope })
+  public async put(quad: Quad, scopeId: string) {
+    let scope = this._scopeMap[scopeId]
+    if (!scope) {
+      scope = await this._store.loadScope(scopeId)
+      this._scopeMap.set(scopeId, scope)
+    }
+    return await this._store.put(quad, { scope })
   }
 
-  public async del(quad: Quad) {
-    await this.init()
-    return await this._store.del(quad, { scope: this._scope })
+  public async del(quad: Quad, scopeId: string) {
+    let scope = this._scopeMap[scopeId]
+    if (!scope) {
+      scope = await this._store.loadScope(scopeId)
+      this._scopeMap.set(scopeId, scope)
+    }
+    return await this._store.del(quad, { scope })
   }
 }
 

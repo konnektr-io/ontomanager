@@ -46,6 +46,7 @@ export interface GraphDetails {
   prefixes?: { [prefix: string]: NamedNode<string> }
   error?: string
   sha?: string
+  scopeId?: string
 }
 
 interface BuiltinGraphDetails extends GraphDetails {
@@ -113,6 +114,7 @@ export const commonDataTypes = [
 interface QuadChange {
   action: 'add' | 'remove'
   quad: Quad
+  scopeId: string
 }
 
 export const useGraphStore = defineStore('graph', () => {
@@ -204,10 +206,11 @@ export const useGraphStore = defineStore('graph', () => {
             return // already loaded
           }
         }
-        const { node, prefixes } = await graphStoreService.loadGraph(graph.content)
+        const { node, prefixes, scopeId } = await graphStoreService.loadGraph(graph.content)
         graph.loaded = true
         graph.node = node
         graph.prefixes = prefixes
+        graph.scopeId = scopeId
       })
     )
   }
@@ -245,10 +248,10 @@ export const useGraphStore = defineStore('graph', () => {
         const response = await axios.get(graph.url)
         content = response.data
       }
-      const { node, prefixes } = await graphStoreService.loadGraph(content)
+      const { node, prefixes, scopeId } = await graphStoreService.loadGraph(content)
       graph.node = node
       graph.prefixes = prefixes
-
+      graph.scopeId = scopeId
       graph.loaded = true
       graph.error = undefined
     } catch (error) {
@@ -290,7 +293,7 @@ export const useGraphStore = defineStore('graph', () => {
         const existingUserGraphIndex = userGraphs.value.findIndex((g) => g?.url === url)
         if (existingUserGraphIndex !== -1) {
           const g = userGraphs.value[existingUserGraphIndex]
-          if (g.node) await graphStoreService.deleteGraph(g.node)
+          if (g.node) await graphStoreService.deleteGraph(g.node, g.scopeId)
           userGraphs.value.splice(existingUserGraphIndex, 1)
         }
 
@@ -332,7 +335,7 @@ export const useGraphStore = defineStore('graph', () => {
       userGraphs.value.splice(graphIndex, 1)
       saveUserGraphsToLocalStorage()
       if (g.node?.value) {
-        await graphStoreService.deleteGraph(g.node)
+        await graphStoreService.deleteGraph(g.node, g.scopeId)
       }
     }
 
@@ -427,23 +430,23 @@ export const useGraphStore = defineStore('graph', () => {
   const undoStack = ref<QuadChange[]>([])
   const redoStack = ref<QuadChange[]>([])
 
-  const addQuad = async (quad: Quad) => {
-    await graphStoreService.put(quad)
-    undoStack.value.push({ action: 'add', quad })
+  const addQuad = async (quad: Quad, scopeId: string) => {
+    await graphStoreService.put(quad, scopeId)
+    undoStack.value.push({ action: 'add', quad, scopeId })
     redoStack.value = [] // Clear redo stack on new action
   }
 
-  const editQuad = async (oldQuad: Quad, newQuad: Quad) => {
-    await graphStoreService.del(oldQuad)
-    await graphStoreService.put(newQuad)
-    undoStack.value.push({ action: 'remove', quad: oldQuad })
-    undoStack.value.push({ action: 'add', quad: newQuad })
+  const editQuad = async (oldQuad: Quad, newQuad: Quad, scopeId: string) => {
+    await graphStoreService.del(oldQuad, scopeId)
+    await graphStoreService.put(newQuad, scopeId)
+    undoStack.value.push({ action: 'remove', quad: oldQuad, scopeId })
+    undoStack.value.push({ action: 'add', quad: newQuad, scopeId })
     redoStack.value = [] // Clear redo stack on new action
   }
 
-  const removeQuad = async (quad: Quad) => {
-    await graphStoreService.del(quad)
-    undoStack.value.push({ action: 'remove', quad })
+  const removeQuad = async (quad: Quad, scopeId: string) => {
+    await graphStoreService.del(quad, scopeId)
+    undoStack.value.push({ action: 'remove', quad, scopeId })
     redoStack.value = [] // Clear redo stack on new action
   }
 
@@ -451,13 +454,13 @@ export const useGraphStore = defineStore('graph', () => {
     const lastChange = undoStack.value.pop()
     if (!lastChange) return
 
-    const { action, quad } = lastChange
+    const { action, quad, scopeId } = lastChange
     if (action === 'add') {
-      graphStoreService.del(quad)
-      redoStack.value.push({ action: 'remove', quad })
+      graphStoreService.del(quad, scopeId)
+      redoStack.value.push({ action: 'remove', quad, scopeId })
     } else if (action === 'remove') {
-      graphStoreService.put(quad)
-      redoStack.value.push({ action: 'add', quad })
+      graphStoreService.put(quad, scopeId)
+      redoStack.value.push({ action: 'add', quad, scopeId })
     }
   }
 
@@ -465,13 +468,13 @@ export const useGraphStore = defineStore('graph', () => {
     const lastUndo = redoStack.value.pop()
     if (!lastUndo) return
 
-    const { action, quad } = lastUndo
+    const { action, quad, scopeId } = lastUndo
     if (action === 'add') {
-      graphStoreService.put(quad)
-      undoStack.value.push({ action: 'add', quad })
+      graphStoreService.put(quad, scopeId)
+      undoStack.value.push({ action: 'add', quad, scopeId })
     } else if (action === 'remove') {
-      graphStoreService.del(quad)
-      undoStack.value.push({ action: 'remove', quad })
+      graphStoreService.del(quad, scopeId)
+      undoStack.value.push({ action: 'remove', quad, scopeId })
     }
   }
 

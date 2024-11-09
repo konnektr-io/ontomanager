@@ -3,14 +3,12 @@ import { ref, watch, computed, inject, type Ref, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { DataFactory, Literal, Quad } from 'n3'
 import { useDebounceFn } from '@vueuse/core'
-import AutoComplete, { type AutoCompleteCompleteEvent } from 'primevue/autocomplete'
 import Select, { type SelectFilterEvent } from 'primevue/select'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
 import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
 import { useGraphStore, commonDataTypes } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
-import { vocab } from '@/utils/vocab'
 
 const { namedNode, literal, quad } = DataFactory
 
@@ -26,8 +24,9 @@ const predicateLabel = ref<string>('')
 const subjectUri = computed<string>(() => dialogRef?.value.data?.subjectUri)
 const existingPredicateUri = computed<string>(() => dialogRef?.value.data.predicateUri)
 const graphUri = computed<string>(() => dialogRef?.value.data.graphUri)
+const scopeId = computed(() => userGraphs.value.find(g => g.node?.value === graphUri.value)?.scopeId)
 
-const { reloadTrigger } = storeToRefs(useGraphStore())
+const { reloadTrigger, userGraphs } = storeToRefs(useGraphStore())
 const { addQuad, editQuad, removeQuad } = useGraphStore()
 
 const existingPredicates = ref<string[]>([])
@@ -121,7 +120,7 @@ const removeObject = (index: number) => {
 }
 
 const confirmChanges = async () => {
-  if (!currentPredicateUri.value || !subjectUri.value || !graphUri.value) return
+  if (!currentPredicateUri.value || !subjectUri.value || !graphUri.value || !scopeId.value) return
   // Handle saving changes back to the store
   const newQuads = objects.value.map<Quad>(obj => {
     if (!currentPredicateUri.value) throw new Error('Predicate URI is required')
@@ -138,7 +137,7 @@ const confirmChanges = async () => {
       newQuad.predicate.equals(originalQuad.predicate) &&
       newQuad.object.equals(originalQuad.object) &&
       newQuad.graph.equals(originalQuad.graph))) {
-      await removeQuad(originalQuad)
+      await removeQuad(originalQuad, scopeId.value)
     }
   }
 
@@ -149,9 +148,9 @@ const confirmChanges = async () => {
       originalQuad.object.equals(newQuad.object) &&
       originalQuad.graph.equals(newQuad.graph))
     if (existingQuad) {
-      await editQuad(existingQuad, newQuad)
+      await editQuad(existingQuad, newQuad, scopeId.value)
     } else {
-      await addQuad(newQuad)
+      await addQuad(newQuad, scopeId.value)
     }
   }
 

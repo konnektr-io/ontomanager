@@ -42,6 +42,11 @@ const predefinedOntologies = [{
   description: 'The Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabulary, designed to describe Data Products. ',
   urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl'],
   visible: true
+}, {
+  name: 'International Data Spaces (IDS)',
+  description: 'The International Data Spaces (IDS) is a peer-to-peer network, a virtual data space that supports the secure exchange and the simple linking of data in business eco-systems on the basis of standards.',
+  urls: ['https://international-data-spaces-association.github.io/InformationModel/docs/serializations/ontology.ttl'],
+  visible: true
 }
 ]
 
@@ -53,7 +58,7 @@ const importOntology = (urls: string | string[]) => {
 const repositories = ref<Awaited<ReturnType<typeof gitHubService.getRepositories>>>([])
 watch(isSignedIn, async () => {
   if (isSignedIn.value && username.value) {
-    repositories.value = await gitHubService.getRepositories(username.value)
+    repositories.value = (await gitHubService.getRepositories(username.value)).filter(repo => repo.permissions?.push)
   }
 }, { immediate: true })
 const createNewOntologySelectedRepository = ref<string>()
@@ -61,9 +66,9 @@ const branches = ref<string[]>([])
 watch(createNewOntologySelectedRepository, async () => {
   if (createNewOntologySelectedRepository.value) {
     const repo = repositories.value.find(repo => repo.full_name === createNewOntologySelectedRepository.value)
-    const owner = repo?.owner.name
-    if (!owner) return
-    branches.value = (await gitHubService.getBranches(owner, createNewOntologySelectedRepository.value)).map(branch => branch.name)
+    if (!repo) return
+    const [owner, repoName] = repo.full_name.split('/')
+    branches.value = (await gitHubService.getBranches(owner, repoName)).map(branch => branch.name)
   }
 }, { immediate: true })
 const createNewOntologyFilePath = ref<string>()

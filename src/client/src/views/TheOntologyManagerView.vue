@@ -38,11 +38,11 @@ watch(() => userGraphs.value, (value) => {
 const drawerExpanded = ref(true)
 
 const navigationItems = [
+  { icon: 'pi pi-globe', title: 'Ontologies', value: TreeType.Ontologies },
   { icon: 'pi pi-box', title: 'Classes', value: TreeType.Classes },
   { icon: 'pi pi-sitemap', title: 'Decomposition', value: TreeType.Decomposition },
   { icon: 'pi pi-link', title: 'Properties', value: TreeType.Properties },
-  { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals },
-  { icon: 'pi pi-globe', title: 'Ontologies', value: TreeType.Ontologies },
+  { icon: 'pi pi-user', title: 'Individuals', value: TreeType.Individuals }
 ]
 
 const activeTreeType = computed(() => props.type || TreeType.Classes)

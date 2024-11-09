@@ -2,6 +2,7 @@
 import { ref, computed, inject, type Ref } from 'vue'
 import { DataFactory, type Quad } from 'n3'
 import { storeToRefs } from 'pinia'
+import {uid} from 'quadstore'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
@@ -67,7 +68,7 @@ const confirmCreation = async () => {
 
   // Save quads to the store
   for (const q of quads.value) {
-    await addQuad(q)
+    await addQuad(q, uid())
   }
 
   // TODO: Now prepare and load UserGraphs and commit to github
@@ -117,11 +118,20 @@ const cancelCreation = () => {
         class="w-1/4"
         v-tooltip="predicate.predicate"
       >{{ predicate.label }}</label>
-      <Textarea
+      <InputText
+        v-if="predicate.predicate !== vocab.dc.description.value"
         id="value"
         v-model="predicate.value"
         showClear
         :autogrow="predicate.predicate === vocab.dc.description.value"
+        class="w-3/4"
+      />
+      <Textarea
+        v-else
+        id="value"
+        v-model="predicate.value"
+        showClear
+        autogrow
         class="w-3/4"
       />
     </div>
