@@ -230,6 +230,10 @@ const newClassDialogVisible = ref(false)
 const newClassParentUri = ref('')
 const newClassUri = ref('')
 const newClassLabel = ref('')
+watch(newClassLabel, (value) => {
+  const namespace = selectedOntology.value?.node?.value
+  newClassUri.value = `${namespace}${value.replace(/\w+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).replace(/\s/g, '')}`
+})
 const onNewClass = async () => {
   if (!selectedOntology.value?.node) {
     console.warn('No ontology selected')
@@ -419,23 +423,25 @@ const showLoadOntologyPage = () => {
       <span class="text-surface-500 dark:text-surface-400 block mb-8">Provide URI and label for new subclass of {{
         newClassParentUri }}.</span>
       <div class="flex items-center gap-4 mb-4">
+        <div class="flex items-center gap-4 mb-8">
+          <label
+            for="label"
+            class="font-semibold w-24"
+          >Label</label>
+          <InputText
+            id="label"
+            v-model="newClassLabel"
+            class="flex-auto"
+            autocomplete="off"
+          />
+        </div>
         <label
           for="uri"
           class="font-semibold w-24"
-        >URI</label>
+        >Uri</label>
         <InputText
           id="uri"
-          class="flex-auto"
-          autocomplete="off"
-        />
-      </div>
-      <div class="flex items-center gap-4 mb-8">
-        <label
-          for="label"
-          class="font-semibold w-24"
-        >Label</label>
-        <InputText
-          id="label"
+          v-model="newClassUri"
           class="flex-auto"
           autocomplete="off"
         />
