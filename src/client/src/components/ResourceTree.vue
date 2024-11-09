@@ -25,6 +25,7 @@ const {
   selectedOntology,
   selectedResource,
 } = storeToRefs(useGraphStore())
+const scopeId = computed(() => selectedOntology.value?.scopeId)
 
 const {
   removeClass,
@@ -208,7 +209,11 @@ const contextMenuItems = [
             console.warn('No ontology selected')
             return
           }
-          await removeClass(event.item.id, selectedOntology.value.node)
+          if (!scopeId.value) {
+            console.warn('No scopeId selected')
+            return
+          }
+          await removeClass(event.item.id, selectedOntology.value.node, scopeId.value)
           loadByPriority()
         },
         reject: () => {
@@ -230,6 +235,10 @@ const onNewClass = async () => {
     console.warn('No ontology selected')
     return
   }
+  if (!scopeId.value) {
+    console.warn('No scopeId selected')
+    return
+  }
   if (!newClassUri.value || !newClassLabel.value) {
     console.warn('URI and label are required')
     return
@@ -239,19 +248,19 @@ const onNewClass = async () => {
     vocab.rdf.type,
     vocab.rdfs.Class,
     selectedOntology.value.node
-  ))
+  ), scopeId.value)
   await addQuad(DataFactory.quad(
     DataFactory.namedNode(newClassParentUri.value),
     vocab.rdfs.subClassOf,
     DataFactory.namedNode(selectedOntology.value.node.value),
     selectedOntology.value.node
-  ))
+  ), scopeId.value)
   await addQuad(DataFactory.quad(
     DataFactory.namedNode(newClassUri.value),
     vocab.rdfs.label,
     DataFactory.literal(newClassLabel.value),
     selectedOntology.value.node
-  ))
+  ), scopeId.value)
   await loadClassesTree()
   newClassDialogVisible.value = false
   newClassParentUri.value = ''
@@ -287,6 +296,11 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
     return
   }
 
+  if (!scopeId.value) {
+    console.warn('No scopeId selected')
+    return
+  }
+
   const childParentPedicate = props.type === TreeType.Classes ? vocab.rdfs.subClassOf : vocab.rdfs.subPropertyOf
 
   await removeQuad(DataFactory.quad(
@@ -294,7 +308,7 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
     childParentPedicate,
     DataFactory.namedNode(parentUri),
     selectedOntology.value.node
-  ))
+  ), scopeId.value)
 
   if (targetUri) {
     await addQuad(DataFactory.quad(
@@ -302,7 +316,7 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
       childParentPedicate,
       DataFactory.namedNode(targetUri),
       selectedOntology.value.node
-    ))
+    ), scopeId.value)
   }
 
   if (props.type === TreeType.Classes) {
