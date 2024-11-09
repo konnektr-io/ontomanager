@@ -487,10 +487,11 @@ export const useGraphStore = defineStore('graph', () => {
 
   const writeGraph = async (graph: GraphDetails) => {
     if (!graph.node) return
-    return graphStoreService.writeGraph(graph.node as NamedNode, {
-      [':']: graph.node,
+    const prefixes = {
+      '': graph.node,
       ...graph.prefixes
-    })
+    }
+    return graphStoreService.writeGraph(graph.node as NamedNode, prefixes)
   }
 
   return {
