@@ -170,8 +170,6 @@ const discardChanges = () => {
   commitMessage.value = ''
 }
 const commitChanges = async () => {
-  // Implement commit changes logic
-  // For now just export and download the file
   if (selectedOntology.value) {
     const content = await writeGraph(selectedOntology.value)
     if (!content ||

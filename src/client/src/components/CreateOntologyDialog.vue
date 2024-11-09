@@ -2,12 +2,13 @@
 import { ref, computed, inject, type Ref } from 'vue'
 import { DataFactory, type Quad } from 'n3'
 import { storeToRefs } from 'pinia'
-import {uid} from 'quadstore'
-import { useGraphStore, type GraphDetails } from '@/stores/graph'
+import { hexoid } from 'hexoid'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
-import { vocab } from '@/utils/vocab'
 import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
+import { useGraphStore, type GraphDetails } from '@/stores/graph'
+import { vocab } from '@/utils/vocab'
+import gitHubService from '@/services/GitHubService'
 
 const { namedNode, literal, quad } = DataFactory
 
@@ -23,8 +24,8 @@ const repository = computed(() => dialogRef?.value.data.repository)
 const filePath = computed(() => dialogRef?.value.data.filePath)
 const branch = computed(() => dialogRef?.value.data.branch)
 
-const { userGraphs } = storeToRefs(useGraphStore())
-const { addQuad, saveUserGraphsToLocalStorage } = useGraphStore()
+const { userGraphs, selectedOntology } = storeToRefs(useGraphStore())
+const { addQuad, saveUserGraphsToLocalStorage, writeGraph, clearUndoRedoStacks } = useGraphStore()
 const reloadTrigger = ref(0)
 
 interface EditableObject {
@@ -66,10 +67,8 @@ const confirmCreation = async () => {
   // Add dc:created
   quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.dc.created.value), literal(new Date().toISOString()), graphNode))
 
-  // Save quads to the store
-  for (const q of quads.value) {
-    await addQuad(q, uid())
-  }
+  const scopeId = hexoid(11)()
+
 
   // TODO: Now prepare and load UserGraphs and commit to github
   const graphDetails: GraphDetails = {
@@ -91,9 +90,37 @@ const confirmCreation = async () => {
       'vann': namedNode('http://purl.org/vocab/vann/'),
       'xsd': namedNode('http://www.w3.org/2001/XMLSchema#'),
       'skos': namedNode('http://www.w3.org/2004/02/skos/core#')
-    }
+    },
+    scopeId
     // sha: ''
   }
+
+  userGraphs.value.push(graphDetails)
+  saveUserGraphsToLocalStorage()
+
+  selectedOntology.value = graphDetails
+
+  // Save quads to the store
+  for (const q of quads.value) {
+    await addQuad(q, scopeId)
+  }
+  const commitMessage = `Create new ontology ${preferredNamespaceUri}`
+  const content = await writeGraph(selectedOntology.value)
+  if (!content ||
+    !selectedOntology.value.owner ||
+    !selectedOntology.value.repo ||
+    !selectedOntology.value.path ||
+    !selectedOntology.value.branch ||
+    !commitMessage
+  ) return
+  await gitHubService.commitFile(
+    selectedOntology.value.owner,
+    selectedOntology.value.repo,
+    selectedOntology.value.path,
+    content,
+    commitMessage,
+    selectedOntology.value.branch)
+  clearUndoRedoStacks()
 
   reloadTrigger.value++
   dialogRef?.value.close()
