@@ -78,7 +78,7 @@ const dialog = useDialog()
 const openNewOntologyDialog = () => {
   dialog.open(CreateOntologyDialog, {
     props: {
-      header: 'New Annotation',
+      header: 'New Ontology',
       style: {
         width: '50vw',
       },

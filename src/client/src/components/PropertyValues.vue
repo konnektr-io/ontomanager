@@ -78,7 +78,7 @@ const openDialog = () => {
     <div>
       <Button
         v-if="editMode"
-        icon="pi pi-pencil"
+        icon="pi pi-plus"
         size="small"
         label="Add Annotation"
         text

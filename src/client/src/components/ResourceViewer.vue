@@ -5,12 +5,14 @@ import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
 import PropertyValues from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
-import { useGraphStore } from '@/stores/graph'
+import { TreeType, useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import type { BlankNode, NamedNode, Term } from 'n3'
 import TermValue from './TermValue.vue'
 import { useDialog } from 'primevue/usedialog'
 import AddPropertyDialog from './AddPropertyDialog.vue'
+import NewResourceDialog from './NewResourceDialog.vue'
+import EditRestrictionDialog from './EditRestrictionDialog.vue'
 
 const {
   editMode,
@@ -68,7 +70,7 @@ const openAddPropertyDialog = () => {
     props: {
       header: 'Add Property',
       style: {
-        width: '50vw',
+        width: '60vw',
       },
       breakpoints: {
         '960px': '75vw',
@@ -80,6 +82,49 @@ const openAddPropertyDialog = () => {
       existingPropertyNodes: properties.value.map(p => p.node.value),
       domain: selectedResource.value,
       graphId: selectedOntology.value.node.value
+    }
+  })
+}
+
+const openNewIndividualDialog = (parentUri?: string) => {
+  dialog.open(NewResourceDialog, {
+    props: {
+      header: `New Individual`,
+      style: {
+        width: '60vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    },
+    data: {
+      parentUri,
+      type: TreeType.Individuals,
+      graphId: selectedOntology.value?.node?.value
+    }
+  })
+}
+
+const openEditRestrictionDialog = (restrictionNode?: BlankNode) => {
+  if (!selectedResource.value || !selectedOntology.value?.node) return
+  dialog.open(EditRestrictionDialog, {
+    props: {
+      header: 'Edit Restriction',
+      style: {
+        width: '60vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    },
+    data: {
+      subject: selectedResource.value,
+      graphId: selectedOntology.value.node.value,
+      restrictionNode
     }
   })
 }
@@ -161,6 +206,7 @@ const openAddPropertyDialog = () => {
               size="small"
               text
               label="Add"
+              @click="openEditRestrictionDialog()"
             />
           </div>
           <p
@@ -191,8 +237,14 @@ const openAddPropertyDialog = () => {
                     class="text-sm"
                     @click-uri="selectedResource = valueNode.value"
                   />
+                  <Button
+                    v-if="editMode"
+                    icon="pi pi-pencil"
+                    size="small"
+                    text
+                    @click="openEditRestrictionDialog(restriction.blankNode)"
+                  />
                 </div>
-                <!-- TODO: add value here -->
               </template>
               <PropertyValues :subject="restriction.blankNode.value" />
             </Panel>
@@ -208,6 +260,7 @@ const openAddPropertyDialog = () => {
               size="small"
               text
               label="Add"
+              @click="openNewIndividualDialog(selectedResource)"
             />
           </div>
           <p
@@ -237,71 +290,6 @@ const openAddPropertyDialog = () => {
             </Panel>
           </div>
         </div>
-
-        <!-- <div>
-          <h3 class="text-lg font-semibold mb-4">SHACL Properties</h3>
-          <p
-            v-if="!shaclPropertyQuads.length"
-            class="text-muted-foreground"
-          >No properties defined.</p>
-          <div
-            v-else
-            class="space-y-4"
-          >
-            <Panel
-              v-for="shaclPropertyQuad in shaclPropertyQuads"
-              :key="shaclPropertyQuad"
-              toggleable
-            >
-              <template #header>
-                <div class="flex items-center gap-2">
-                  <div
-                    class="font-semibold cursor-pointer"
-                    @click="selectedResource = shaclPropertyQuad.object.value"
-                  >{{ shaclPropertyQuad.object.value }}</div>
-                </div>
-              </template>
-              <AnnotationPropertyList :subject="shaclPropertyQuad.object.value" />
-            </Panel>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-semibold mb-2">Restrictions</h3>
-          <p
-            v-if="!restrictions.length"
-            class="text-muted-foreground"
-          >No restrictions defined.</p>
-          <div
-            v-else
-            class="space-y-4"
-          >
-            <Panel
-              v-for="property in restrictions"
-              :key="property"
-              toggleable
-            >
-              <template #header>
-                <div class="flex items-center gap-2">
-                  <div
-                    v-tooltip="getPrefixedUri(property)"
-                    class="font-semibold cursor-pointer"
-                    @click="selectedResource = property"
-                  >{{ getLabel(property) }}</div>
-                </div>
-              </template>
-              <AnnotationPropertyList
-                :subject="property"
-                all-literals
-              />
-            </Panel>
-          </div>
-        </div>
-
-        <div>
-          <h3 class="text-lg font-semibold mb-2">Individuals</h3>
-          <p class="text-muted-foreground">No individuals listed.</p>
-        </div> -->
       </div>
     </div>
   </div>

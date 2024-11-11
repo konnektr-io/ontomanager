@@ -43,7 +43,7 @@ const confirmCreation = async () => {
   // Add current object as domain of the property node
   await addQuad(quad(
     namedNode(propertyNodeUri.value),
-    namedNode(vocab.rdfs.domain.value),
+    vocab.rdfs.domain,
     namedNode(object.value),
     namedNode(graphId.value)
   ), scopeId.value)

@@ -154,14 +154,6 @@ const confirmChanges = async () => {
     }
   }
 
-  // When changing labels, subClassOf etc. need to update the tree (the trigger is watched in ResourceTree.vue)
-  /* if (currentPredicateUri.value === vocab.rdfs.label.value ||
-    currentPredicateUri.value === vocab.skos.prefLabel.value ||
-    currentPredicateUri.value === vocab.rdfs.subClassOf.value ||
-    currentPredicateUri.value === vocab.rdfs.subPropertyOf.value) {
-    reloadTrigger.value++
-  } */
-
   reloadTrigger.value++
 
   dialogRef?.value.close()
@@ -253,9 +245,11 @@ const cancelChanges = () => {
         @click="removeObject(index)"
       />
     </div>
-
     <!-- Add New Named Node or Literal -->
-    <div class="flex gap-2 mt-4">
+    <div
+      v-if="currentPredicateUri"
+      class="flex gap-2 mt-4"
+    >
       <Button
         label="Add Named Node"
         icon="pi pi-plus"

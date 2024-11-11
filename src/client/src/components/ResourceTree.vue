@@ -11,6 +11,8 @@ import { useConfirm } from 'primevue/useconfirm'
 import { TreeType, useGraphStore, type ResourceTreeNode } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import { vocab } from '@/utils/vocab'
+import { useDialog } from 'primevue/usedialog'
+import NewResourceDialog from './NewResourceDialog.vue'
 
 
 const props = defineProps<{
@@ -175,23 +177,47 @@ watch(visibleGraphs, loadByPriority, { immediate: true, deep: true })
 
 watch(reloadTrigger, loadByPriority)
 
+const dialog = useDialog()
+
+const openNewResourceDialog = (parentUri?: string) => {
+  dialog.open(NewResourceDialog, {
+    props: {
+      header: `New ${props.type === TreeType.Individuals ? 'Individual' : props.type === TreeType.Classes ? 'Class' : 'Property'}`,
+      style: {
+        width: '50vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    },
+    data: {
+      parentUri,
+      type: props.type,
+      graphId: selectedOntology.value?.node?.value
+    }
+  })
+}
+
 const contextMenuRefs = ref<{ [key: string]: InstanceType<typeof Menu> }>({})
-const contextMenuItems = [
+const contextMenuItems = computed(() => [
   {
-    label: 'Add class',
+    label: `Add ${props.type === TreeType.Classes ? 'Class' : 'Property'}`,
     icon: 'pi pi-plus',
-    command: (event: { originalEvent: Event; item: any }) => {
-      newClassParentUri.value = event.item.id
-      newClassDialogVisible.value = true
+    visible: () => props.type === TreeType.Classes || props.type === TreeType.Properties,
+    command: () => {
+      openNewResourceDialog(contextMenuItemId.value)
     },
   },
   {
     label: 'Remove',
     icon: 'pi pi-trash',
-    command: (event: { originalEvent: Event; item: any }) => {
+    visible: () => (selectedOntology.value?.node?.value ? (contextMenuItemId.value.startsWith(selectedOntology.value.node.value) && (props.type === TreeType.Classes || props.type === TreeType.Properties)) : false),
+    command: () => {
       confirm.require({
-        header: 'Delete class',
-        message: 'Deleting class from currently selected graph. Do you want to proceed?',
+        header: `Delete ${props.type === TreeType.Classes ? 'Class' : 'Property'}`,
+        message: `Deleting ${props.type === TreeType.Classes ? 'class' : 'property'} from currently selected graph. Do you want to proceed?`,
         icon: 'pi pi-exclamation-triangle',
         modal: false,
         rejectProps: {
@@ -201,7 +227,6 @@ const contextMenuItems = [
         },
         acceptProps: {
           label: 'Delete',
-          severity: 'secondary',
           outlined: true
         },
         accept: async () => {
@@ -213,7 +238,7 @@ const contextMenuItems = [
             console.warn('No scopeId selected')
             return
           }
-          await removeClass(event.item.id, selectedOntology.value.node, scopeId.value)
+          await removeClass(contextMenuItemId.value, selectedOntology.value.node, scopeId.value)
           loadByPriority()
         },
         reject: () => {
@@ -221,55 +246,11 @@ const contextMenuItems = [
       })
     },
   }
-]
+])
+const contextMenuItemId = ref('')
 const toggleMenu = (event: Event, key: string) => {
+  contextMenuItemId.value = key
   contextMenuRefs.value[key]?.toggle(event)
-}
-
-const newClassDialogVisible = ref(false)
-const newClassParentUri = ref('')
-const newClassUri = ref('')
-const newClassLabel = ref('')
-watch(newClassLabel, (value) => {
-  const namespace = selectedOntology.value?.node?.value
-  newClassUri.value = `${namespace}${value.replace(/\w+/g, (w) => w[0].toUpperCase() + w.slice(1).toLowerCase()).replace(/\s/g, '')}`
-})
-const onNewClass = async () => {
-  if (!selectedOntology.value?.node) {
-    console.warn('No ontology selected')
-    return
-  }
-  if (!scopeId.value) {
-    console.warn('No scopeId selected')
-    return
-  }
-  if (!newClassUri.value || !newClassLabel.value) {
-    console.warn('URI and label are required')
-    return
-  }
-  await addQuad(DataFactory.quad(
-    DataFactory.namedNode(newClassUri.value),
-    vocab.rdf.type,
-    vocab.rdfs.Class,
-    selectedOntology.value.node
-  ), scopeId.value)
-  await addQuad(DataFactory.quad(
-    DataFactory.namedNode(newClassParentUri.value),
-    vocab.rdfs.subClassOf,
-    DataFactory.namedNode(selectedOntology.value.node.value),
-    selectedOntology.value.node
-  ), scopeId.value)
-  await addQuad(DataFactory.quad(
-    DataFactory.namedNode(newClassUri.value),
-    vocab.rdfs.label,
-    DataFactory.literal(newClassLabel.value),
-    selectedOntology.value.node
-  ), scopeId.value)
-  await loadClassesTree()
-  newClassDialogVisible.value = false
-  newClassParentUri.value = ''
-  newClassUri.value = ''
-  newClassLabel.value = ''
 }
 
 
@@ -363,6 +344,18 @@ const showLoadOntologyPage = () => {
       ></Button>
     </div>
     <div
+      v-else-if="(type === TreeType.Classes || type === TreeType.Properties) && selectedOntology"
+      class="flex justify-start pl-2 pt-2"
+    >
+      <Button
+        type="button"
+        icon="pi pi-plus"
+        :label="`New ${type === TreeType.Classes ? 'Class' : 'Property'}`"
+        text
+        @click="openNewResourceDialog()"
+      ></Button>
+    </div>
+    <div
       v-if="!treeData?.length && !loading"
       class="flex justify-start p-2 gap-2"
     >
@@ -373,7 +366,7 @@ const showLoadOntologyPage = () => {
       v-model:selectionKeys="selectedKeys"
       :value="treeData"
       selectionMode="single"
-      class="w-full h-full pb-0"
+      class="w-full flex-auto pb-0"
       pt:wrapper:class="h-full"
       :loading="loading"
     >
@@ -395,6 +388,7 @@ const showLoadOntologyPage = () => {
           </div>
           <div>
             <Button
+              v-if="selectedOntology && (type === TreeType.Individuals || type === TreeType.Classes || type === TreeType.Properties)"
               type="button"
               icon="pi pi-ellipsis-v"
               size="small"
@@ -414,52 +408,6 @@ const showLoadOntologyPage = () => {
         </div>
       </template>
     </Tree>
-    <Dialog
-      v-model:visible="newClassDialogVisible"
-      modal
-      header="New Class"
-      :style="{ width: '25rem' }"
-    >
-      <span class="text-surface-500 dark:text-surface-400 block mb-8">Provide URI and label for new subclass of {{
-        newClassParentUri }}.</span>
-      <div class="flex items-center gap-4 mb-4">
-        <div class="flex items-center gap-4 mb-8">
-          <label
-            for="label"
-            class="font-semibold w-24"
-          >Label</label>
-          <InputText
-            id="label"
-            v-model="newClassLabel"
-            class="flex-auto"
-            autocomplete="off"
-          />
-        </div>
-        <label
-          for="uri"
-          class="font-semibold w-24"
-        >Uri</label>
-        <InputText
-          id="uri"
-          v-model="newClassUri"
-          class="flex-auto"
-          autocomplete="off"
-        />
-      </div>
-      <div class="flex justify-end gap-2">
-        <Button
-          type="button"
-          label="Cancel"
-          severity="secondary"
-          @click="newClassDialogVisible = false"
-        ></Button>
-        <Button
-          type="button"
-          label="Save"
-          @click="onNewClass"
-        ></Button>
-      </div>
-    </Dialog>
 
   </div>
 </template>

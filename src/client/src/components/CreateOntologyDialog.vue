@@ -58,7 +58,7 @@ const confirmCreation = async () => {
   // Add predicates
   predicates.value.forEach(({ predicate, value }) => {
     if (value) {
-      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value), graphNode))
+      quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(predicate), literal(value, 'en'), graphNode))
     }
   })
 
@@ -66,7 +66,7 @@ const confirmCreation = async () => {
   quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.rdf.type.value), namedNode(vocab.owl.Ontology.value), graphNode))
 
   // Add dc:created
-  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.dc.created.value), literal(new Date().toISOString()), graphNode))
+  quads.value.push(quad(namedNode(preferredNamespaceUri), namedNode(vocab.dc.created.value), literal(new Date().toISOString(), vocab.xsd.dateTime), graphNode))
 
   const scopeId = hexoid(11)()
 
@@ -83,7 +83,7 @@ const confirmCreation = async () => {
     namespace: preferredNamespaceUri,
     node: graphNode,
     prefixes: {
-      ...preferredNamespacePrefix && { [preferredNamespacePrefix]: namedNode(preferredNamespaceUri) },
+      ...preferredNamespacePrefix && { [preferredNamespacePrefix]: graphNode },
       'rdf': namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#'),
       'rdfs': namedNode('http://www.w3.org/2000/01/rdf-schema#'),
       'owl': namedNode('http://www.w3.org/2002/07/owl#'),

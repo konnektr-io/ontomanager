@@ -55,7 +55,9 @@ export const vocab = {
     onProperty: namedNode('http://www.w3.org/2002/07/owl#onProperty'),
     allValuesFrom: namedNode('http://www.w3.org/2002/07/owl#allValuesFrom'),
     someValuesFrom: namedNode('http://www.w3.org/2002/07/owl#someValuesFrom'),
-    hasValue: namedNode('http://www.w3.org/2002/07/owl#hasValue')
+    hasValue: namedNode('http://www.w3.org/2002/07/owl#hasValue'),
+    minCardinality: namedNode('http://www.w3.org/2002/07/owl#minCardinality'),
+    maxCardinality: namedNode('http://www.w3.org/2002/07/owl#maxCardinality')
   },
   skos: {
     prefLabel: namedNode('http://www.w3.org/2004/02/skos/core#prefLabel'),
