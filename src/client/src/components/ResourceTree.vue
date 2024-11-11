@@ -30,7 +30,7 @@ const {
 const scopeId = computed(() => selectedOntology.value?.scopeId)
 
 const {
-  removeClass,
+  removeNode,
   removeQuad,
   addQuad,
 } = useGraphStore()
@@ -203,9 +203,9 @@ const openNewResourceDialog = (parentUri?: string) => {
 const contextMenuRefs = ref<{ [key: string]: InstanceType<typeof Menu> }>({})
 const contextMenuItems = computed(() => [
   {
-    label: `Add ${props.type === TreeType.Classes ? 'Class' : 'Property'}`,
+    label: `Add ${props.type === TreeType.Individuals ? 'Individual' : props.type === TreeType.Classes ? 'Class' : 'Property'}`,
     icon: 'pi pi-plus',
-    visible: () => props.type === TreeType.Classes || props.type === TreeType.Properties,
+    visible: () => props.type === TreeType.Individuals || props.type === TreeType.Classes || props.type === TreeType.Properties,
     command: () => {
       openNewResourceDialog(contextMenuItemId.value)
     },
@@ -213,11 +213,11 @@ const contextMenuItems = computed(() => [
   {
     label: 'Remove',
     icon: 'pi pi-trash',
-    visible: () => (selectedOntology.value?.node?.value ? (contextMenuItemId.value.startsWith(selectedOntology.value.node.value) && (props.type === TreeType.Classes || props.type === TreeType.Properties)) : false),
+    visible: () => (selectedOntology.value?.node?.value ? (contextMenuItemId.value.startsWith(selectedOntology.value.node.value) && (props.type === TreeType.Individuals || props.type === TreeType.Classes || props.type === TreeType.Properties)) : false),
     command: () => {
       confirm.require({
-        header: `Delete ${props.type === TreeType.Classes ? 'Class' : 'Property'}`,
-        message: `Deleting ${props.type === TreeType.Classes ? 'class' : 'property'} from currently selected graph. Do you want to proceed?`,
+        header: `Delete ${props.type === TreeType.Individuals ? 'Individual' : props.type === TreeType.Classes ? 'Class' : 'Property'}`,
+        message: `Deleting ${props.type === TreeType.Individuals ? 'individual' : props.type === TreeType.Classes ? 'class' : 'property'} from currently selected graph. Do you want to proceed?`,
         icon: 'pi pi-exclamation-triangle',
         modal: false,
         rejectProps: {
@@ -238,7 +238,7 @@ const contextMenuItems = computed(() => [
             console.warn('No scopeId selected')
             return
           }
-          await removeClass(contextMenuItemId.value, selectedOntology.value.node, scopeId.value)
+          await removeNode(contextMenuItemId.value, selectedOntology.value.node, scopeId.value)
           loadByPriority()
         },
         reject: () => {

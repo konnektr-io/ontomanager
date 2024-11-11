@@ -413,10 +413,10 @@ export const useGraphStore = defineStore('graph', () => {
     return uri
   }
 
-  const removeClass = async (classUri: string, graph: NamedNode, scopeId: string) => {
+  const removeNode = async (nodeUri: string, graph: NamedNode, scopeId: string) => {
     const patterns: Pattern[] = [
-      { subject: DataFactory.namedNode(classUri), graph },
-      { object: DataFactory.namedNode(classUri), graph }
+      { subject: DataFactory.namedNode(nodeUri), graph },
+      { object: DataFactory.namedNode(nodeUri), graph }
     ]
     await Promise.all(
       patterns.map(async (pattern) => {
@@ -528,7 +528,7 @@ export const useGraphStore = defineStore('graph', () => {
 
     // getQuads,
 
-    removeClass,
+    removeNode,
 
     addQuad,
     editQuad,
