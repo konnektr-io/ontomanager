@@ -220,6 +220,12 @@ const openNewOntologyDialog = () => {
         clearable
         @filter="fetchBranchFiles"
       />
+      <Button
+        label="Import"
+        outlined
+        severity="secondary"
+        @click="importOntology(`https://github.com/${ontologyRepository}/${ontologyBranch}/${ontologyfile}`)"
+      />
     </div>
     <div
       v-if="isSignedIn"
