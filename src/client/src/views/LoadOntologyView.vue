@@ -28,9 +28,14 @@ const predefinedOntologies = [{
   urls: ['http://www.w3id.org/bot/bot.ttl'],
   visible: true
 }, {
-  name: 'RealEstateCore + Brick',
-  description: 'RealEstateCore is an ontology for building-related data and applications. Brick defines HVAC, lighting, spatial and electrical concepts and relationships.',
-  urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl', 'https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/Brick/Brick%2Bpatches.ttl'],
+  name: 'Brick',
+  description: 'Brick is an open-source effort to standardize semantic descriptions of the physical, logical and virtual assets in buildings and the relationships between them.',
+  urls: ['https://brickschema.org/schema/1.4.2/Brick.ttl'],
+  visible: true
+}, {
+  name: 'RealEstateCore',
+  description: 'RealEstateCore (REC)is an ontology for building-related data and applications.',
+  urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl'],
   visible: () => isSignedIn.value
 }, {
   name: 'ASHRAE Standard 223',
@@ -93,6 +98,7 @@ const openNewOntologyDialog = () => {
       filePath: createNewOntologyFilePath.value,
       branch: createNewOntologyBranch.value
     }
+  }).close(() => {
   })
 }
 </script>

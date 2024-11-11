@@ -262,12 +262,10 @@ class GitHubService {
         ? response.data.sha
         : undefined
 
-    console.log(sha)
     const encodedContent = new TextEncoder()
       .encode(content)
       .reduce((acc, byte) => acc + String.fromCharCode(byte), '')
     const base64EncodedContent = btoa(encodedContent)
-    console.log(base64EncodedContent)
     const commitResponse = await this.octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
@@ -277,7 +275,6 @@ class GitHubService {
       sha,
       branch
     })
-    console.log(commitResponse)
 
     return commitResponse.data
   }

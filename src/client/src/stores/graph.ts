@@ -346,58 +346,6 @@ export const useGraphStore = defineStore('graph', () => {
     }
   }
 
-  /* const getAllNamedNodes = (): NamedNode<string>[] => {
-    const namedNodeMap = graphStoreService.store
-      .getQuads(null, null, null, null)
-      .reduce((acc, quad) => {
-        if (quad.subject.termType === 'NamedNode') acc.set(quad.subject.value, quad.subject)
-        if (quad.object.termType === 'NamedNode') acc.set(quad.object.value, quad.object)
-        return acc
-      }, new Map<string, NamedNode<string>>())
-    return Array.from(namedNodeMap.values())
-  } */
-
-  /* const getSubjectQuads = (uri: string): Quad[] => {
-    const quads: Quad[] = []
-    for (const graph of [...builtinGraphs, ...userGraphs.value]) {
-      if (!graph.node) continue
-      graphStoreService.store
-        .getQuads(namedNode(uri), null, null, namedNode(graph.node.value))
-        .forEach((quad) => {
-          quads.push(quad)
-        })
-    }
-    console.log(quads)
-    return quads
-  } */
-
-  /* const getShaclPropertyQuads = (uri: string): Quad[] => {
-    return graphStoreService.store.getQuads(namedNode(uri), vocab.sh.property, null, null)
-  } */
-
-  /* const getObjectValue = (subject: string, predicate: string): string | null => {
-    const quads = graphStoreService.store.getQuads(
-      namedNode(subject),
-      namedNode(predicate),
-      null,
-      null
-    )
-    const quad =
-      quads.find(
-        (q) => q.object.termType !== 'Literal' || ['en'].includes((q.object as Literal).language)
-      ) || quads[0]
-    return quad ? quad.object.value : null
-  } */
-
-  /* const getRdfTypes = (uri: string): string[] => {
-    const quads = graphStoreService.store.getQuads(namedNode(uri), vocab.rdf.type, null, null)
-    return quads.map((quad) => getPrefixedUri(quad.object.value))
-  } */
-
-  /* const getQuads = (subject: OTerm, predicate: OTerm, object: OTerm | OTerm[], graph: OTerm) => {
-    return graphStoreService.store.getQuads(subject, predicate, object, graph)
-  } */
-
   const getPrefixedUri = (uri: string): string => {
     for (const graph of [...builtinGraphs, ...userGraphs.value]) {
       if (!graph.prefixes) continue
@@ -421,7 +369,7 @@ export const useGraphStore = defineStore('graph', () => {
     await Promise.all(
       patterns.map(async (pattern) => {
         for await (const quad of (await graphStoreService.getStream(pattern)).iterator) {
-          await graphStoreService.del(quad as Quad, scopeId)
+          await removeQuad(quad as Quad, scopeId)
         }
       })
     )
@@ -513,20 +461,7 @@ export const useGraphStore = defineStore('graph', () => {
     writeGraph,
     removeGraph,
 
-    // getProperties,
-    // getIndividuals,
-    // getRanges,
-    // getAllNamedNodes,
-    // getPropertyRangeValueRestrictions,
-    // getRestrictions,
-    // getLabel,
-    // getSubjectQuads,
-    // getShaclPropertyQuads,
     getPrefixedUri,
-
-    // getRdfTypes,
-
-    // getQuads,
 
     removeNode,
 

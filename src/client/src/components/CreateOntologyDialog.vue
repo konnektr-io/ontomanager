@@ -10,6 +10,7 @@ import type { DynamicDialogInstance } from 'primevue/dynamicdialogoptions'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import { vocab } from '@/utils/vocab'
 import gitHubService from '@/services/GitHubService'
+import { useGitHubStore } from '@/stores/github'
 
 const { namedNode, literal, quad } = DataFactory
 
@@ -28,6 +29,7 @@ const branch = computed(() => dialogRef?.value.data.branch)
 const { userGraphs, selectedOntology } = storeToRefs(useGraphStore())
 const { addQuad, saveUserGraphsToLocalStorage, writeGraph, clearUndoRedoStacks } = useGraphStore()
 const reloadTrigger = ref(0)
+const { name } = storeToRefs(useGitHubStore())
 
 interface EditableObject {
   predicate: string;
@@ -36,11 +38,11 @@ interface EditableObject {
 }
 
 const predicates = ref<EditableObject[]>([
-  { predicate: vocab.vann.preferredNamespacePrefix.value, label: 'Prefix', value: '' },
-  { predicate: vocab.vann.preferredNamespaceUri.value, label: 'Namespace URI', value: '' },
-  { predicate: vocab.dc.title.value, label: 'Title', value: '' },
-  { predicate: vocab.dc.description.value, label: 'Description', value: '' },
-  { predicate: vocab.dc.creator.value, label: 'Creator', value: '' }
+  { predicate: vocab.vann.preferredNamespacePrefix.value, label: 'Prefix', value: 'ex' },
+  { predicate: vocab.vann.preferredNamespaceUri.value, label: 'Namespace URI', value: 'https://ontologies.yourdomain.com/example#' },
+  { predicate: vocab.dc.title.value, label: 'Title', value: 'Example' },
+  { predicate: vocab.dc.description.value, label: 'Description', value: 'Example ontology description' },
+  { predicate: vocab.dc.creator.value, label: 'Creator', value: name.value || '' }
 ])
 
 const quads = ref<Quad[]>([])

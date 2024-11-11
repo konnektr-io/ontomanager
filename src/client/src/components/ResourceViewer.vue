@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
@@ -13,6 +13,7 @@ import { useDialog } from 'primevue/usedialog'
 import AddPropertyDialog from './AddPropertyDialog.vue'
 import NewResourceDialog from './NewResourceDialog.vue'
 import EditRestrictionDialog from './EditRestrictionDialog.vue'
+import { useConfirm } from 'primevue/useconfirm'
 
 const {
   editMode,
@@ -21,8 +22,10 @@ const {
   reloadTrigger,
   selectedOntology
 } = storeToRefs(useGraphStore())
+const scopeId = computed(() => selectedOntology.value?.scopeId)
 const {
-  getPrefixedUri
+  getPrefixedUri,
+  removeNode
 } = useGraphStore()
 
 const label = ref<string>('')
@@ -32,6 +35,12 @@ const properties = ref<{
   ranges: Term[]
 }[]>([])
 const restrictions = ref<{
+  label: string
+  propertyNode: NamedNode
+  blankNode: BlankNode
+  valueNodes: Term[]
+}[]>([])
+const propertyShapes = ref<{
   label: string
   propertyNode: NamedNode
   blankNode: BlankNode
@@ -47,12 +56,18 @@ watch([
     label.value = ''
     properties.value = []
     restrictions.value = []
+    propertyShapes.value = []
     individuals.value = []
   } else {
     label.value = await graphStoreService.getLabel(selectedResource.value)
     properties.value = await graphStoreService.getProperties(selectedResource.value)
     restrictions.value = await graphStoreService.getRestrictions(selectedResource.value)
     individuals.value = await graphStoreService.getIndividuals(selectedResource.value)
+    if (isNodeShape.value) {
+      propertyShapes.value = await graphStoreService.getShaclPropertyShapes(selectedResource.value)
+    } else {
+      propertyShapes.value = []
+    }
   }
 }, { immediate: true, deep: true })
 
@@ -60,6 +75,13 @@ const isClass = ref<boolean>(false)
 watch(selectedResource, async () => {
   if (selectedResource.value) {
     isClass.value = await graphStoreService.isClass(selectedResource.value)
+  }
+}, { immediate: true })
+
+const isNodeShape = ref<boolean>(false)
+watch(selectedResource, async () => {
+  if (selectedResource.value) {
+    isNodeShape.value = await graphStoreService.isShaclNodeShape(selectedResource.value)
   }
 }, { immediate: true })
 
@@ -125,6 +147,40 @@ const openEditRestrictionDialog = (restrictionNode?: BlankNode) => {
       subject: selectedResource.value,
       graphId: selectedOntology.value.node.value,
       restrictionNode
+    }
+  })
+}
+
+const confirm = useConfirm()
+const deleteRestriction = async (restrictionNode: BlankNode) => {
+  if (!selectedOntology.value?.node) return
+  confirm.require({
+    header: 'Delete restriction',
+    message: 'Are you sure you want to delete this restriction?',
+    icon: 'pi pi-exclamation-triangle',
+    modal: false,
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      text: true
+    },
+    acceptProps: {
+      label: 'Delete',
+      severity: 'secondary',
+      outlined: true
+    },
+    accept: async () => {
+      if (!selectedOntology.value?.node) {
+        console.warn('No ontology selected')
+        return
+      }
+      if (!scopeId.value) {
+        console.warn('No scopeId selected')
+        return
+      }
+      await removeNode(restrictionNode.value, selectedOntology.value.node, scopeId.value)
+
+      reloadTrigger.value++
     }
   })
 }
@@ -197,6 +253,7 @@ const openEditRestrictionDialog = (restrictionNode?: BlankNode) => {
           </div>
         </div>
 
+
         <div v-if="restrictions.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
             <h3 class="text-lg font-semibold">Restrictions</h3>
@@ -244,9 +301,69 @@ const openEditRestrictionDialog = (restrictionNode?: BlankNode) => {
                     text
                     @click="openEditRestrictionDialog(restriction.blankNode)"
                   />
+                  <Button
+                    v-if="editMode"
+                    icon="pi pi-trash"
+                    size="small"
+                    text
+                    @click="deleteRestriction(restriction.blankNode)"
+                  />
                 </div>
               </template>
               <PropertyValues :subject="restriction.blankNode.value" />
+            </Panel>
+          </div>
+        </div>
+
+        <div v-if="propertyShapes.length || (editMode && isNodeShape)">
+          <div class="flex items-center gap-2 mb-4">
+            <h3 class="text-lg font-semibold">Property Shapes (SHACL)</h3>
+            <!-- <Button
+              v-if="editMode"
+              icon="pi pi-plus"
+              size="small"
+              text
+              label="Add"
+            /> -->
+          </div>
+          <p
+            v-if="!propertyShapes.length"
+            class="text-slate-500"
+          >No property shapes defined.</p>
+          <div
+            v-else
+            class="space-y-4"
+          >
+            <Panel
+              v-for="propertyShape in propertyShapes"
+              :key="propertyShape.blankNode.value"
+              toggleable
+              collapsed
+            >
+              <template #header>
+                <div class="flex items-center gap-4">
+                  <div
+                    v-tooltip="getPrefixedUri(propertyShape.propertyNode.value)"
+                    class="font-semibold cursor-pointer"
+                    @click="selectedResource = propertyShape.propertyNode.value"
+                  >{{ propertyShape.label }}</div>
+                  <TermValue
+                    v-for="valueNode of propertyShape.valueNodes"
+                    :key="valueNode.id"
+                    :term="valueNode"
+                    class="text-sm"
+                    @click-uri="selectedResource = valueNode.value"
+                  />
+                  <!-- <Button
+                    v-if="editMode"
+                    icon="pi pi-pencil"
+                    size="small"
+                    text
+                    @click="openEditRestrictionDialog(propertyShape.blankNode)"
+                  /> -->
+                </div>
+              </template>
+              <PropertyValues :subject="propertyShape.blankNode.value" />
             </Panel>
           </div>
         </div>

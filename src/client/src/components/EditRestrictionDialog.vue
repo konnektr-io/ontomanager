@@ -22,12 +22,14 @@ const dialogRef = inject<Ref<DynamicDialogInstance & {
   }
 }>>('dialogRef')
 
+const { reloadTrigger, userGraphs } = storeToRefs(useGraphStore())
+const { addQuad, removeQuad } = useGraphStore()
+
 const restrictionNode = ref<BlankNode | null>(dialogRef?.value.data.restrictionNode || null)
 const subjectUri = computed<string>(() => dialogRef?.value.data.subject)
 const graphUri = computed<string>(() => dialogRef?.value.data.graphId)
+const scopeId = computed<string | undefined>(() => userGraphs.value.find(g => g.node?.value === graphUri.value)?.scopeId)
 
-const { reloadTrigger, userGraphs } = storeToRefs(useGraphStore())
-const { addQuad, editQuad, removeQuad } = useGraphStore()
 
 const valuePredicates = ref<{ label: string, value: string }[]>([
   { label: 'Has Value', value: vocab.owl.hasValue.value },
@@ -35,10 +37,10 @@ const valuePredicates = ref<{ label: string, value: string }[]>([
   { label: 'All Values From', value: vocab.owl.allValuesFrom.value }
 ])
 
-const cardinalityPredicates = ref<{ label: string, value: string }[]>([
+/* const cardinalityPredicates = ref<{ label: string, value: string }[]>([
   { label: 'Min Cardinality', value: vocab.owl.minCardinality.value },
   { label: 'Max Cardinality', value: vocab.owl.maxCardinality.value }
-])
+]) */
 
 const objects = ref<{ predicate: string, value: string, termType: 'NamedNode' | 'Literal' }[]>([])
 const namedNodeSuggestions = ref<string[]>([])
@@ -47,11 +49,12 @@ const fetchNamedNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent 
   namedNodeSuggestions.value = await graphStoreService.getNamedNodeSuggestions(event.value)
 }, 250, { maxWait: 1000 })
 
-onMounted(async () => {
+const originalQuads = ref<Quad[]>([])
 
+onMounted(async () => {
   if (restrictionNode.value) {
-    const quads = await graphStoreService.getSubjectQuads(restrictionNode.value.value, undefined, graphUri.value)
-    objects.value = quads.map(q => ({ predicate: q.predicate.value, value: q.object.value, termType: q.object.termType as 'NamedNode' | 'Literal' }))
+    originalQuads.value = await graphStoreService.getSubjectQuads(restrictionNode.value.value, undefined, graphUri.value)
+    objects.value = originalQuads.value.map(q => ({ predicate: q.predicate.value, value: q.object.value, termType: q.object.termType as 'NamedNode' | 'Literal' }))
   } else {
     namedNodeSuggestions.value = await graphStoreService.getPropertyNodeSuggestions([], graphUri.value)
     restrictionNode.value = blankNode()
@@ -62,17 +65,19 @@ onMounted(async () => {
 })
 
 
-const addCardinality = (type: 'min' | 'max') => {
+/* const addCardinality = (type: 'min' | 'max') => {
   const predicate = type === 'min' ? vocab.owl.minCardinality.value : vocab.owl.maxCardinality.value
   objects.value.push({ predicate, value: '', termType: 'Literal' })
-}
+} */
 
 const removeObject = (index: number) => {
   objects.value.splice(index, 1)
 }
 
 const confirmChanges = async () => {
-  if (!subjectUri.value || !graphUri.value || !restrictionNode.value) return
+  if (!subjectUri.value || !graphUri.value || !restrictionNode.value || !scopeId.value) return
+
+
 
   const newQuads = objects.value.map<Quad>(obj => {
     return quad(restrictionNode.value!, namedNode(obj.predicate), obj.termType === 'NamedNode' ? namedNode(obj.value) : literal(obj.value), namedNode(graphUri.value))
@@ -81,10 +86,14 @@ const confirmChanges = async () => {
   if (!dialogRef?.value.data.restrictionNode) {
     const subClassQuad = quad(namedNode(subjectUri.value), namedNode(vocab.rdfs.subClassOf.value), restrictionNode.value, namedNode(graphUri.value))
     newQuads.push(subClassQuad)
+  } else {
+    for (const originalQuad of originalQuads.value) {
+      await removeQuad(originalQuad, scopeId.value)
+    }
   }
 
   for (const newQuad of newQuads) {
-    await addQuad(newQuad, graphUri.value)
+    await addQuad(newQuad, scopeId.value)
   }
 
   reloadTrigger.value++
