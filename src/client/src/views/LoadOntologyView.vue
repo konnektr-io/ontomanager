@@ -4,7 +4,7 @@ import { storeToRefs } from 'pinia'
 import Button from 'primevue/button'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
-import Select from 'primevue/select'
+import Select, { type SelectFilterEvent } from 'primevue/select'
 import { useDialog } from 'primevue/usedialog'
 import { useGitHubStore } from '@/stores/github'
 import { useGraphStore } from '@/stores/graph'
@@ -34,7 +34,7 @@ const predefinedOntologies = [{
   visible: true
 }, {
   name: 'RealEstateCore',
-  description: 'RealEstateCore (REC)is an ontology for building-related data and applications.',
+  description: 'RealEstateCore (REC) is an ontology for building-related data and applications.',
   urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl'],
   visible: () => isSignedIn.value
 }, {
@@ -66,18 +66,32 @@ watch(isSignedIn, async () => {
     repositories.value = (await gitHubService.getRepositories(username.value)).filter(repo => repo.permissions?.push)
   }
 }, { immediate: true })
-const createNewOntologySelectedRepository = ref<string>()
+const ontologyRepository = ref<string>()
 const branches = ref<string[]>([])
-watch(createNewOntologySelectedRepository, async () => {
-  if (createNewOntologySelectedRepository.value) {
-    const repo = repositories.value.find(repo => repo.full_name === createNewOntologySelectedRepository.value)
+watch(ontologyRepository, async () => {
+  if (ontologyRepository.value) {
+    const repo = repositories.value.find(repo => repo.full_name === ontologyRepository.value)
     if (!repo) return
     const [owner, repoName] = repo.full_name.split('/')
     branches.value = (await gitHubService.getBranches(owner, repoName)).map(branch => branch.name)
   }
 }, { immediate: true })
+const ontologyBranch = ref<string>('main')
 const createNewOntologyFilePath = ref<string>()
-const createNewOntologyBranch = ref<string>('main')
+
+const ontologyFilesOptions = ref<string[]>([])
+const ontologyfile = ref<string>()
+const fetchBranchFiles = async (event: SelectFilterEvent) => {
+  if (ontologyBranch.value && ontologyRepository.value) {
+    const repo = repositories.value.find(repo => repo.full_name === ontologyRepository.value)
+    if (!repo) return
+    const [owner, repoName] = repo.full_name.split('/')
+    ontologyFilesOptions.value = (await gitHubService.getFiles(owner, repoName, ontologyBranch.value, event.value)).map(file => file.path)
+  }
+}
+watch(ontologyBranch, async () => {
+  await fetchBranchFiles({ value: '' } as SelectFilterEvent)
+})
 
 const dialog = useDialog()
 const openNewOntologyDialog = () => {
@@ -94,9 +108,9 @@ const openNewOntologyDialog = () => {
       modal: true
     },
     data: {
-      repository: createNewOntologySelectedRepository.value,
+      repository: ontologyRepository.value,
       filePath: createNewOntologyFilePath.value,
-      branch: createNewOntologyBranch.value
+      branch: ontologyBranch.value
     }
   }).close(() => {
   })
@@ -138,7 +152,7 @@ const openNewOntologyDialog = () => {
       class="flex items-center gap-4 mb-4"
     >
       <Select
-        v-model="createNewOntologySelectedRepository"
+        v-model="ontologyRepository"
         :options="repositories"
         option-label="full_name"
         option-value="full_name"
@@ -147,7 +161,7 @@ const openNewOntologyDialog = () => {
         class="flex-auto"
       />
       <Select
-        v-model="createNewOntologyBranch"
+        v-model="ontologyBranch"
         :options="branches"
         filter
         placeholder="Choose branch"
@@ -171,6 +185,48 @@ const openNewOntologyDialog = () => {
     >Select the repository and file path to create a new ontology.</div>
 
     <div class="text-lg font-bold text-surface-700 dark:text-surface-0/70 mb-2">Import an ontology</div>
+    <div
+      v-if="isSignedIn"
+      class="text-surface-700 dark:text-surface-0/70 mb-2"
+    >
+      From your GitHub repository
+    </div>
+    <div
+      v-if="isSignedIn"
+      class="flex items-center gap-4 mb-4"
+    >
+      <Select
+        v-model="ontologyRepository"
+        :options="repositories"
+        option-label="full_name"
+        option-value="full_name"
+        filter
+        placeholder="Choose repository"
+        class="flex-auto"
+      />
+      <Select
+        v-model="ontologyBranch"
+        :options="branches"
+        filter
+        placeholder="Choose branch"
+        class="flex-auto"
+      />
+      <Select
+        v-model="ontologyfile"
+        :options="ontologyFilesOptions"
+        filter
+        placeholder="Choose file"
+        class="flex-auto"
+        clearable
+        @filter="fetchBranchFiles"
+      />
+    </div>
+    <div
+      v-if="isSignedIn"
+      class="text-surface-700 dark:text-surface-0/70 mb-2"
+    >
+      Or by URL
+    </div>
     <div class="flex items-center gap-4 mb-4">
       <InputText
         v-model="newOntologyUrl"
@@ -184,15 +240,17 @@ const openNewOntologyDialog = () => {
         @click="importOntology(newOntologyUrl)"
       />
     </div>
-    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]">Load ontologies in .ttl format from a URL or from
-      your Github repository (eg. <span
+    <div class="text-surface-700 dark:text-surface-0/70">Load ontologies in .ttl format (eg. <span
         class="italic hover:text-surface-900 hover:underline cursor-pointer"
         @click="newOntologyUrl = 'https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl'"
-      >https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl</span>). <span
+      >https://github.com/konnektr-io/ontologies/blob/main/pizza.ttl</span>).
+    </div>
+    <div class="text-surface-700 dark:text-surface-0/70 mb-[3rem]"><span
         class="hover:text-surface-900 hover:underline cursor-pointer"
         @click="loginToGitHub"
       >Sign in</span> to load (and edit) ontologies
-      hosted on GitHub.</div>
+      hosted on GitHub.
+    </div>
     <div class="text-surface-700 dark:text-surface-0/70 mb-2">Or import one of these ontologies:</div>
     <div class="flex flex-wrap gap-4">
       <Card
