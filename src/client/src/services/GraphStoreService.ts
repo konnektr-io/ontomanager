@@ -27,14 +27,14 @@ export const propertyObjectNodes = [
 ]
 export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
-const prefixes = {
+/* const prefixes = {
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
   owl: 'http://www.w3.org/2002/07/owl#',
   skos: 'http://www.w3.org/2004/02/skos/core#',
   dc: 'http://purl.org/dc/elements/1.1/',
   shacl: 'http://www.w3.org/ns/shacl#'
-}
+} */
 
 class GraphStoreService {
   public constructor() {
@@ -728,77 +728,77 @@ class GraphStoreService {
 
     const restrictions = items.filter((quad) => quad.object.termType === 'BlankNode')
 
-    return (
-      await Promise.all(
-        restrictions.map(async (quad) => {
-          const blankNode = quad.object as BlankNode
-          const { items: propertyQuads } = await this._store.get({
-            predicate: vocab.owl.onProperty,
-            subject: blankNode
-          })
-          const propertyNode = propertyQuads[0]?.object as NamedNode
-          if (!propertyNode) return null
-          const propertyUri = propertyNode.value
-          const label = propertyUri ? await this.getLabel(propertyUri) : ''
+    const nodeRestrictions = await Promise.all(
+      restrictions.map(async (quad) => {
+        const blankNode = quad.object as BlankNode
+        const { items: propertyQuads } = await this._store.get({
+          predicate: vocab.owl.onProperty,
+          subject: blankNode
+        })
+        const propertyNode = propertyQuads[0]?.object as NamedNode
+        if (!propertyNode) return null
+        const propertyUri = propertyNode.value
+        const label = propertyUri ? await this.getLabel(propertyUri) : ''
 
-          // This is just to display the value in the UI
-          const valueNodes: Term[] = []
-          const { items: someValuesQuads } = await this._store.get({
+        // This is just to display the value in the UI
+        const valueNodes: Term[] = []
+        const { items: someValuesQuads } = await this._store.get({
+          subject: blankNode,
+          predicate: vocab.owl.someValuesFrom
+        })
+        if (someValuesQuads.length) {
+          valueNodes.push(...someValuesQuads.map((q) => q.object as Term))
+        }
+        if (!valueNodes.length) {
+          const { items: hasValueQuads } = await this._store.get({
             subject: blankNode,
-            predicate: vocab.owl.someValuesFrom
+            predicate: vocab.owl.hasValue
           })
-          if (someValuesQuads.length) {
-            valueNodes.push(...someValuesQuads.map((q) => q.object as Term))
+          if (hasValueQuads.length) {
+            valueNodes.push(...hasValueQuads.map((q) => q.object as Term))
           }
-          if (!valueNodes.length) {
-            const { items: hasValueQuads } = await this._store.get({
-              subject: blankNode,
-              predicate: vocab.owl.hasValue
-            })
-            if (hasValueQuads.length) {
-              valueNodes.push(...hasValueQuads.map((q) => q.object as Term))
-            }
-          }
-          if (!valueNodes.length) {
-            const { items: allValuesQuads } = await this._store.get({
-              subject: blankNode,
-              predicate: vocab.owl.allValuesFrom
-            })
-            if (allValuesQuads.length) {
-              for (const q of allValuesQuads) {
-                if (q.object.termType === 'NamedNode') {
-                  valueNodes.push(q.object as Term)
-                } else if (q.object.termType === 'BlankNode') {
-                  const { items: vQuads } = await this._store.get({
-                    subject: q.object as BlankNode
-                  })
-                  for (const vQuad of vQuads) {
-                    if (vQuad.object.termType === 'NamedNode') {
-                      valueNodes.push(vQuad.object as Term)
-                    } else if (vQuad.object.termType === 'BlankNode') {
-                      const { items: vvQuads } = await this._store.get({
-                        subject: vQuad.object as BlankNode
-                      })
-                      valueNodes.push(
-                        ...vvQuads
-                          .filter((q) => q.object.termType !== 'BlankNode')
-                          .map((q) => q.object as Term)
-                      )
-                    }
+        }
+        if (!valueNodes.length) {
+          const { items: allValuesQuads } = await this._store.get({
+            subject: blankNode,
+            predicate: vocab.owl.allValuesFrom
+          })
+          if (allValuesQuads.length) {
+            for (const q of allValuesQuads) {
+              if (q.object.termType === 'NamedNode') {
+                valueNodes.push(q.object as Term)
+              } else if (q.object.termType === 'BlankNode') {
+                const { items: vQuads } = await this._store.get({
+                  subject: q.object as BlankNode
+                })
+                for (const vQuad of vQuads) {
+                  if (vQuad.object.termType === 'NamedNode') {
+                    valueNodes.push(vQuad.object as Term)
+                  } else if (vQuad.object.termType === 'BlankNode') {
+                    const { items: vvQuads } = await this._store.get({
+                      subject: vQuad.object as BlankNode
+                    })
+                    valueNodes.push(
+                      ...vvQuads
+                        .filter((q) => q.object.termType !== 'BlankNode')
+                        .map((q) => q.object as Term)
+                    )
                   }
                 }
               }
             }
           }
-          return {
-            label,
-            propertyNode,
-            blankNode,
-            valueNodes
-          }
-        })
-      )
-    ).filter<{
+        }
+        return {
+          label,
+          propertyNode,
+          blankNode,
+          valueNodes
+        }
+      })
+    )
+
+    return nodeRestrictions.filter<{
       label: string
       propertyNode: NamedNode
       blankNode: BlankNode
