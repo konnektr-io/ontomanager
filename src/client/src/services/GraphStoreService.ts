@@ -798,12 +798,16 @@ class GraphStoreService {
       })
     )
 
-    return nodeRestrictions.filter<{
-      label: string
-      propertyNode: NamedNode
-      blankNode: BlankNode
-      valueNodes: Term[]
-    }>((r) => !!r)
+    return nodeRestrictions.filter(
+      (
+        r
+      ): r is {
+        label: string
+        propertyNode: NamedNode
+        blankNode: BlankNode
+        valueNodes: Term[]
+      } => !!r
+    )
   }
 
   public async getShaclPropertyShapes(uri: string): Promise<
