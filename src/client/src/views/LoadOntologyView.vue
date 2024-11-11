@@ -224,7 +224,7 @@ const openNewOntologyDialog = () => {
         label="Import"
         outlined
         severity="secondary"
-        @click="importOntology(`https://github.com/${ontologyRepository}/${ontologyBranch}/${ontologyfile}`)"
+        @click="importOntology(`https://github.com/${ontologyRepository}/blob/${ontologyBranch}/${ontologyfile}`)"
       />
     </div>
     <div
