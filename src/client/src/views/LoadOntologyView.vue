@@ -17,7 +17,12 @@ const { userGraphs } = storeToRefs(useGraphStore())
 const { addGraph } = useGraphStore()
 const newOntologyUrl = ref('')
 
-const predefinedOntologies = [{
+const predefinedOntologies: {
+  name: string
+  description: string
+  urls: string[]
+  visible: boolean | (() => boolean)
+}[] = [{
   name: 'SML',
   description: 'Building information modelling (BIM) - Semantic modelling and linking (SML) - CEN-EN 17632',
   urls: ['https://docs.crow.nl/sml/data/concat/sml.ttl'],
@@ -28,21 +33,21 @@ const predefinedOntologies = [{
   urls: ['http://www.w3id.org/bot/bot.ttl'],
   visible: true
 }, {
-  name: 'Brick',
-  description: 'Brick is an open-source effort to standardize semantic descriptions of the physical, logical and virtual assets in buildings and the relationships between them.',
-  urls: ['https://brickschema.org/schema/1.4.2/Brick.ttl'],
-  visible: true
-}, {
   name: 'RealEstateCore',
   description: 'RealEstateCore (REC) is an ontology for building-related data and applications.',
   urls: ['https://github.com/RealEstateCore/rec/blob/main/Source/SHACL/RealEstateCore/rec.ttl'],
   visible: () => isSignedIn.value
-}, {
+},/* {
+  name: 'Brick',
+  description: 'Brick is an open-source effort to standardize semantic descriptions of the physical, logical and virtual assets in buildings and the relationships between them.',
+  urls: ['https://brickschema.org/schema/1.4.2/Brick.ttl'],
+  visible: true
+}, , {
   name: 'ASHRAE Standard 223',
   description: 'Interoperable semantic framework for representing building automation and control data, and other building system information.',
   urls: ['https://open223.info/223p.ttl'],
   visible: true
-}, {
+},  */{
   name: 'DPROD + DCAT',
   description: 'The Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabulary, designed to describe Data Products. ',
   urls: ['https://ekgf.github.io/dprod/dprod.ttl', 'https://ekgf.github.io/dprod/dprod-shapes.ttl', 'https://www.w3.org/ns/dcat3.ttl'],
@@ -53,7 +58,7 @@ const predefinedOntologies = [{
   urls: ['https://international-data-spaces-association.github.io/InformationModel/docs/serializations/ontology.ttl'],
   visible: true
 }
-]
+  ]
 
 const importOntology = (urls: string | string[]) => {
   addGraph(urls)
@@ -89,6 +94,9 @@ const fetchBranchFiles = async (event: SelectFilterEvent) => {
     ontologyFilesOptions.value = (await gitHubService.getFiles(owner, repoName, ontologyBranch.value, event.value)).map(file => file.path)
   }
 }
+watch(ontologyRepository, async () => {
+  await fetchBranchFiles({ value: '' } as SelectFilterEvent)
+})
 watch(ontologyBranch, async () => {
   await fetchBranchFiles({ value: '' } as SelectFilterEvent)
 })

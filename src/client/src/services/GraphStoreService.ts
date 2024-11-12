@@ -4,6 +4,7 @@ import {
   DataFactory,
   NamedNode,
   Parser,
+  // Writer,
   Quad,
   type DataFactoryInterface,
   type Quad_Object,
@@ -39,9 +40,10 @@ export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 class GraphStoreService {
   public constructor() {
     this._datafactory = DataFactory
+    this._levelDb = new BrowserLevel('quadstore')
     this._store = new Quadstore({
       dataFactory: this._datafactory,
-      backend: new BrowserLevel('quadstore')
+      backend: this._levelDb
       /* prefixes: {
         expandTerm: (term: string) => {
           const [prefix, localName] = term.split(':')
@@ -62,6 +64,7 @@ class GraphStoreService {
   }
 
   private _datafactory: DataFactoryInterface
+  private _levelDb: BrowserLevel
   private _store: Quadstore
   private _parser: Parser
 
@@ -69,8 +72,6 @@ class GraphStoreService {
 
   public async init() {
     await this._store.open()
-
-    // console.log('scope', this._scope?.id, this._scope)
   }
 
   public async close() {
@@ -78,7 +79,10 @@ class GraphStoreService {
   }
 
   public async clear() {
-    await this._store.clear()
+    // await this._store.clear()
+    await this._store.close()
+    await BrowserLevel.destroy('quadstore')
+    await this._store.open()
   }
 
   public async getAllGraphNodes() {
@@ -100,7 +104,7 @@ class GraphStoreService {
   }
 
   public async loadGraph(ontologyContent: string, scopeId?: string) {
-    console.log('Init DB', new Date().toISOString())
+    // console.log('Init DB', new Date().toISOString())
     await this.init()
 
     let scope: Scope | undefined
@@ -114,11 +118,11 @@ class GraphStoreService {
 
     const graphPrefixes: { [prefix: string]: NamedNode<string> } = {}
 
-    console.log('Parsing graph', new Date().toISOString())
+    // console.log('Parsing graph', new Date().toISOString())
     const quads = this._parser.parse(ontologyContent, null, (prefix, ns) => {
       if (prefix && ns) graphPrefixes[prefix] = ns as NamedNode<string>
     })
-    console.log('Graph parsed', quads.length, new Date().toISOString())
+    // console.log('Graph parsed', quads.length, new Date().toISOString())
 
     // Find the owl:Ontology data, which we will use the graph node
     const ontologySubject = quads.find(
@@ -132,23 +136,23 @@ class GraphStoreService {
       throw new Error('Ontology subject not found')
     }
 
-    console.log('Delete existing graph', new Date().toISOString())
+    // console.log('Delete existing graph', new Date().toISOString())
     // Delete existing graph in case it exists in the store
     /* await new Promise((resolve, reject) =>
       this._store.deleteGraph(ontologySubject).on('end', resolve).on('error', reject)
     ) */
 
-    console.log('Get prefix', new Date().toISOString())
+    // console.log('Get prefix', new Date().toISOString())
     // Make sure that the preferred prefix is stored in the graph prefixes
     const preferredPrefixObject = quads.find(
       (quad) =>
         quad.subject.value === ontologySubject.value &&
         quad.predicate.value === vocab.vann.preferredNamespacePrefix.value
     )?.object
-    console.log('Found prefix', new Date().toISOString())
+    // console.log('Found prefix', new Date().toISOString())
     // Store the preferred prefix for the ontology
     if (preferredPrefixObject && preferredPrefixObject.termType === 'Literal') {
-      console.log('Find namespace uri prefix', new Date().toISOString())
+      // console.log('Find namespace uri prefix', new Date().toISOString())
       const preferredNamespaceUri =
         (quads.find(
           (quad) =>
@@ -163,15 +167,15 @@ class GraphStoreService {
       }
 
       graphPrefixes[preferredPrefixObject.value] = this._datafactory.namedNode(prefixValue)
-      console.log(
+      /* console.log(
         'Found namespace stuff',
         preferredPrefixObject.value,
         prefixValue,
         new Date().toISOString()
-      )
+      ) */
     }
 
-    console.log('Put quads', new Date().toISOString())
+    // console.log('Put quads', new Date().toISOString())
 
     const ontologyQuads = quads.map((quad) =>
       this._datafactory.quad(quad.subject, quad.predicate, quad.object, ontologySubject)
@@ -179,7 +183,7 @@ class GraphStoreService {
 
     await this._store.multiPut(ontologyQuads, { scope })
 
-    console.log('Import done', new Date().toISOString(), 'blankNodesMap', scope)
+    console.log(`Import of ${ontologySubject.value} done`, new Date().toISOString())
 
     return {
       node: ontologySubject,
@@ -205,13 +209,13 @@ class GraphStoreService {
       prefixes: Object.entries(prefixes || {}) as unknown as SerializerOptions['prefixes']
     }
     const serializer = new Serializer(serializerOptions)
+    // const writer = new Writer({ prefixes })
 
     let count = 0
 
     const input: Quad[] = []
 
     const { iterator } = await this._store.getStream({ graph })
-
     for await (const quad of iterator) {
       input.push(
         this._datafactory.quad(
@@ -220,8 +224,14 @@ class GraphStoreService {
           quad.object as Quad_Object
         )
       )
+      // writer.addQuad(this._datafactory.quad(quad.subject, quad.predicate, quad.object))
       count++
     }
+    // console.log('Written graph with ' + count + ' quads')
+    // return await new Promise<string>((resolve, reject) => {
+    //   writer.end((error, result) => (error ? reject(error) : resolve(result)))
+    // })
+
     console.log('Writing graph with ' + count + ' quads')
 
     return serializer.transform(input) + '\n\n ### Generated by ontomanager.konnektr.io ###'
