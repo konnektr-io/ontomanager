@@ -3,8 +3,6 @@ import { ref, computed, watch, shallowRef } from 'vue'
 import { storeToRefs } from 'pinia'
 import { DataFactory } from 'n3'
 import Button from 'primevue/button'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
 import Menu from 'primevue/menu'
 import Tree from 'primevue/tree'
 import { useConfirm } from 'primevue/useconfirm'
@@ -13,6 +11,7 @@ import graphStoreService from '@/services/GraphStoreService'
 import { vocab } from '@/utils/vocab'
 import { useDialog } from 'primevue/usedialog'
 import NewResourceDialog from './NewResourceDialog.vue'
+import type { PassThroughOptions } from 'primevue/passthrough'
 
 
 const props = defineProps<{
@@ -314,6 +313,32 @@ const onDrop = async (event: DragEvent, targetUri?: string) => {
 const showLoadOntologyPage = () => {
   selectedResource.value = null
 }
+
+const filterExpandedKeys = ref<{ [key: string]: boolean }>({})
+const filterNodes = (nodes: ResourceTreeNode[], value: string): { [key: string]: boolean } => {
+  let keys: { [key: string]: boolean } = {}
+  for (const node of nodes) {
+    if (node.label.toLowerCase().includes(value.toLowerCase())) {
+      keys[node.key] = true
+    }
+    if (node.children) {
+      const childKeys = filterNodes(node.children, value)
+      if (Object.keys(childKeys).length) {
+        keys[node.key] = true
+        keys = { ...keys, ...childKeys }
+      }
+    }
+  }
+  return keys
+}
+const onFilter = (event: { originalEvent: Event, value: string }) => {
+  if (event.value.length > 2) {
+    filterExpandedKeys.value = filterNodes(treeData.value, event.value)
+  } else {
+    filterExpandedKeys.value = {}
+  }
+}
+
 </script>
 
 <template>
@@ -369,6 +394,10 @@ const showLoadOntologyPage = () => {
       class="w-full flex-auto pb-0"
       pt:wrapper:class="h-full"
       :loading="loading"
+      filter
+      filterMode="lenient"
+      :expandedKeys="filterExpandedKeys"
+      @filter="onFilter"
     >
       <template #default="slotProps">
         <div class="flex w-full justify-between items-center">
