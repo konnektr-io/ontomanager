@@ -169,26 +169,35 @@ const discardChanges = () => {
   commitDialogVisible.value = false
   commitMessage.value = ''
 }
+const commitLoading = ref(false)
 const commitChanges = async () => {
-  if (selectedOntology.value) {
-    const content = await writeGraph(selectedOntology.value)
-    if (!content ||
-      !selectedOntology.value.owner ||
-      !selectedOntology.value.repo ||
-      !selectedOntology.value.path ||
-      !selectedOntology.value.branch ||
-      !commitMessage.value
-    ) return
-    await gitHubService.commitFile(
-      selectedOntology.value.owner,
-      selectedOntology.value.repo,
-      selectedOntology.value.path,
-      content,
-      commitMessage.value,
-      selectedOntology.value.branch)
-    clearUndoRedoStacks()
-    commitDialogVisible.value = false
-    commitMessage.value = ''
+  commitLoading.value = true
+  try {
+    if (selectedOntology.value) {
+      const content = await writeGraph(selectedOntology.value)
+      if (!content ||
+        !selectedOntology.value.owner ||
+        !selectedOntology.value.repo ||
+        !selectedOntology.value.path ||
+        !selectedOntology.value.branch ||
+        !commitMessage.value
+      ) return
+      await gitHubService.commitFile(
+        selectedOntology.value.owner,
+        selectedOntology.value.repo,
+        selectedOntology.value.path,
+        content,
+        commitMessage.value,
+        selectedOntology.value.branch)
+      clearUndoRedoStacks()
+      commitDialogVisible.value = false
+      commitMessage.value = ''
+    }
+  } catch (error) {
+    toast.add({ severity: 'error', summary: 'Error', detail: error, life: 3000 })
+    console.error(error)
+  } finally {
+    commitLoading.value = false
   }
 }
 
@@ -314,10 +323,10 @@ const commitChanges = async () => {
         </template>
       </Select>
       <Button
-        v-if="selectedOntology && selectedOntology.branch && undoStackSize"
+        v-if="selectedOntology && selectedOntology.branch"
         label="Commit"
         outlined
-        :badge="`${undoStackSize}`"
+        :badge="undoStackSize ? `${undoStackSize}` : undefined"
         @click="commitDialogVisible = true"
       ></Button>
     </div>
@@ -325,7 +334,6 @@ const commitChanges = async () => {
     <div
       class="flex items-center gap-6 text-lg font-medium md:flex md:flex-row md:items-center md:gap-5 md:text-sm lg:gap-6"
     >
-
 
       <!-- Search Box -->
       <!-- <span class="p-input-icon-left">
@@ -455,6 +463,7 @@ const commitChanges = async () => {
           outlined
           severity="secondary"
           autofocus
+          :loading="commitLoading"
           :disabled="!commitMessage || !commitMessage.length"
           @click="commitChanges"
         />

@@ -62,10 +62,10 @@ interface EditableObject {
 const objects = ref<EditableObject[]>([])
 const namedNodeSuggestions = ref<string[]>([])
 // Fetch suggestions for NamedNode URIs
-const fetchNamedNodeSuggestions = useDebounceFn(async (event: SelectFilterEvent | { value: string }) => {
+const fetchNamedNodeSuggestions = async (event: SelectFilterEvent | { value: string }) => {
   if (!currentPredicateUri.value) return
-  namedNodeSuggestions.value = await graphStoreService.getObjectNamedNodeSuggestions(currentPredicateUri.value, event.value)
-}, 250, { maxWait: 1000 })
+  namedNodeSuggestions.value = await graphStoreService.getNamedNodeSuggestions(event.value)
+}
 
 // Language options
 const languageOptions = ['en', 'fr', 'de', 'nl', 'es', 'it', 'pt']
