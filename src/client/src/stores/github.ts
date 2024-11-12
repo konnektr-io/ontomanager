@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { set as gtagSet } from 'vue-gtag'
 import githubService from '@/services/GitHubService'
 
 export const useGitHubStore = defineStore('github', () => {
@@ -36,6 +37,7 @@ export const useGitHubStore = defineStore('github', () => {
       username.value = user.login
       name.value = user.name || user.login
       avatarUrl.value = user.avatar_url
+      gtagSet({ user_id: user.login })
     }
   }
 
