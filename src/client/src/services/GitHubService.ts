@@ -297,6 +297,49 @@ class GitHubService {
 
     return commitResponse.data
   }
+
+  public async createIssue(
+    owner: string,
+    repo: string,
+    title: string,
+    body: string,
+    labels: string[]
+  ) {
+    const response = await this.octokit.issues.create({
+      owner,
+      repo,
+      title,
+      body,
+      labels
+    })
+    return response.data
+  }
+
+  public async searchIssues(owner: string, repo: string, query: string) {
+    const response = await this.octokit.search.issuesAndPullRequests({
+      q: `repo:${owner}/${repo} ${query}`
+    })
+    return response.data.items
+  }
+
+  public async getComments(owner: string, repo: string, issueNumber: number) {
+    const response = await this.octokit.issues.listComments({
+      owner,
+      repo,
+      issue_number: issueNumber
+    })
+    return response.data
+  }
+
+  public async addComment(owner: string, repo: string, issueNumber: number, body: string) {
+    const response = await this.octokit.issues.createComment({
+      owner,
+      repo,
+      issue_number: issueNumber,
+      body
+    })
+    return response.data
+  }
 }
 
 export default new GitHubService()

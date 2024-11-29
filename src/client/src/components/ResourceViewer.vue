@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
 import Tag from 'primevue/tag'
@@ -7,6 +7,7 @@ import PropertyValues from './PropertyValues.vue'
 import { storeToRefs } from 'pinia'
 import { TreeType, useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
+import gitHubService from '@/services/GitHubService'
 import type { BlankNode, NamedNode, Term } from 'n3'
 import TermValue from './TermValue.vue'
 import { useDialog } from 'primevue/usedialog'
@@ -184,6 +185,17 @@ const deleteRestriction = async (restrictionNode: BlankNode) => {
     }
   })
 }
+
+const issues = ref([])
+onMounted(async () => {
+  if (!selectedOntology.value?.node || !selectedOntology.value.owner || !selectedOntology.value.repo) return
+
+  issues.value = await gitHubService.searchIssues(
+    selectedOntology.value.owner,
+    selectedOntology.value.repo,
+    this.currentResourceUri
+  )
+})
 </script>
 
 <template>

@@ -68,10 +68,13 @@ const confirmCreation = async () => {
     ), scopeId.value)
   }
 
+  // TODO: find most appropriate label predicate
+  // If skos:prefLabel is used more than rdfs:label, then use skos:prefLabel
+
   await addQuad(quad(
     namedNode(newResourceUri.value),
     vocab.rdfs.label,
-    literal(newResourceLabel.value),
+    literal(newResourceLabel.value, 'en'),
     namedNode(graphId.value)
   ), scopeId.value)
 

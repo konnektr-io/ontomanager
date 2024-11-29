@@ -202,7 +202,7 @@ const openNewResourceDialog = (parentUri?: string) => {
 const contextMenuRefs = ref<{ [key: string]: InstanceType<typeof Menu> }>({})
 const contextMenuItems = computed(() => [
   {
-    label: `Add ${props.type === TreeType.Individuals ? 'Individual' : props.type === TreeType.Classes ? 'Class' : 'Property'}`,
+    label: `Add ${props.type === TreeType.Individuals ? 'Individual' : props.type === TreeType.Classes ? 'Subclass' : 'Subproperty'}`,
     icon: 'pi pi-plus',
     visible: () => props.type === TreeType.Individuals || props.type === TreeType.Classes || props.type === TreeType.Properties,
     command: () => {
