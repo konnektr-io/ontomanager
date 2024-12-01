@@ -15,7 +15,12 @@ import UserMenu from './UserMenu.vue'
 
 const toast = useToast()
 const confirm = useConfirm()
-const { selectedResource, userGraphs, graphsLoading, selectedOntology, undoStackSize } = storeToRefs(useGraphStore())
+const {
+  selectedResource,
+  userGraphs,
+  graphsLoading,
+  selectedOntology,
+  undoStackSize } = storeToRefs(useGraphStore())
 const {
   toggleGraphVisibility,
   addGraph,

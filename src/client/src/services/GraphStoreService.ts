@@ -895,6 +895,10 @@ class GraphStoreService {
   public async getPredicateNodeSuggestions(existingPredicates: string[], search: string) {
     await this.init()
 
+    // TODO: cache most used predicates
+    // Also search on prefixes
+    // For example, if you type skos:prefLabel, it should also suggest the full uri for skos:prefLabel
+
     const nodeMap = new Set<string>()
     for await (const quad of (await this._store.getStream({})).iterator) {
       if (
@@ -911,6 +915,12 @@ class GraphStoreService {
 
   public async getObjectNamedNodeSuggestions(predicateUri: string, search: string) {
     await this.init()
+
+    // TODO: cache most used results
+    // Also search on prefixes
+    // For example, if you type bridge:Bridge, it should also suggest the full uri for bridge:Bridge
+
+    // Maybe we should also filter on classes, because currently it's also returning properties
 
     const namedNodeMap = new Set<string>()
     for await (const quad of (await this._store.getStream({})).iterator) {
