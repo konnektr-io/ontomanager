@@ -317,12 +317,21 @@ class GitHubService {
 
   public async searchIssues(owner: string, repo: string, query: string) {
     const response = await this.octokit.search.issuesAndPullRequests({
-      q: `repo:${owner}/${repo} ${query}`
+      q: `is:issue is:open ${query}`
     })
     return response.data.items
   }
 
-  public async getComments(owner: string, repo: string, issueNumber: number) {
+  public async getIssue(owner: string, repo: string, issueNumber: number) {
+    const response = await this.octokit.issues.get({
+      owner,
+      repo,
+      issue_number: issueNumber
+    })
+    return response.data
+  }
+
+  public async getIssueComments(owner: string, repo: string, issueNumber: number) {
     const response = await this.octokit.issues.listComments({
       owner,
       repo,
@@ -331,7 +340,7 @@ class GitHubService {
     return response.data
   }
 
-  public async addComment(owner: string, repo: string, issueNumber: number, body: string) {
+  public async addIssueComment(owner: string, repo: string, issueNumber: number, body: string) {
     const response = await this.octokit.issues.createComment({
       owner,
       repo,

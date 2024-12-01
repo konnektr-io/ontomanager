@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
+import type { BlankNode, NamedNode, Term } from 'n3'
 import Button from 'primevue/button'
 import Panel from 'primevue/panel'
+import Menu from 'primevue/menu'
 import Tag from 'primevue/tag'
-import PropertyValues from './PropertyValues.vue'
-import { storeToRefs } from 'pinia'
+import { useConfirm } from 'primevue/useconfirm'
+import { useDialog } from 'primevue/usedialog'
 import { TreeType, useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import gitHubService from '@/services/GitHubService'
-import type { BlankNode, NamedNode, Term } from 'n3'
 import TermValue from './TermValue.vue'
-import { useDialog } from 'primevue/usedialog'
+import PropertyValues from './PropertyValues.vue'
 import AddPropertyDialog from './AddPropertyDialog.vue'
 import NewResourceDialog from './NewResourceDialog.vue'
 import EditRestrictionDialog from './EditRestrictionDialog.vue'
-import { useConfirm } from 'primevue/useconfirm'
+// import IssueDialog from './IssueDialog.vue'
+import NewIssueDialog from './NewIssueDialog.vue'
 
 const {
   editMode,
@@ -186,16 +189,64 @@ const deleteRestriction = async (restrictionNode: BlankNode) => {
   })
 }
 
-const issues = ref([])
-onMounted(async () => {
-  if (!selectedOntology.value?.node || !selectedOntology.value.owner || !selectedOntology.value.repo) return
+const issues = ref<Awaited<ReturnType<typeof gitHubService.searchIssues>>>([])
+const getResourceIssues = async () => {
+  issues.value = []
+  if (!selectedOntology.value?.owner ||
+    !selectedOntology.value.repo ||
+    !selectedResource.value) return
 
   issues.value = await gitHubService.searchIssues(
     selectedOntology.value.owner,
     selectedOntology.value.repo,
-    this.currentResourceUri
+    selectedResource.value
   )
-})
+}
+watch(selectedResource, getResourceIssues, { immediate: true })
+const issuesMenu = ref<InstanceType<typeof Menu>>()
+const issuesItems = computed(() => issues.value.map(issue => ({
+  label: issue.title.replace(`\`${selectedResource.value}\``, ''),
+  command: () => {
+    if (!selectedOntology.value) return
+    const issueUrl = `https://github.com/${selectedOntology.value.owner}/${selectedOntology.value.repo}/issues/${issue.number}`
+    window.open(issueUrl, '_blank')
+    /* dialog.open(IssueDialog, {
+      props: {
+        header: issue.title.replace('[' + selectedResource.value + '] ', ''),
+        style: {
+          width: '60vw',
+        },
+        breakpoints: {
+          '960px': '75vw',
+          '640px': '90vw'
+        },
+        modal: true
+      },
+      data: {
+        issueNumber: issue.number
+      }
+    }) */
+  }
+})))
+const openNewIssueDialog = () => {
+  dialog.open(NewIssueDialog, {
+    props: {
+      header: 'New Issue',
+      style: {
+        width: '60vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    },
+    data: {
+      parentUri: selectedResource.value,
+      type: TreeType.Classes
+    }
+  })
+}
 </script>
 
 <template>
@@ -211,60 +262,85 @@ onMounted(async () => {
           :value="getPrefixedUri(selectedResource)"
         ></Tag>
       </div>
+      <Button
+        v-if="editMode && issues.length"
+        icon="pi pi-comments"
+        label="Issues"
+        :badge="`${issues.length}`"
+        outlined
+        @click="issuesMenu?.toggle"
+      ></Button>
+      <Menu
+        ref="issuesMenu"
+        :model="issuesItems"
+        popup
+      />
+      <Button
+        v-if="editMode"
+        icon="pi pi-plus"
+        label="New Issue"
+        outlined
+        @click="openNewIssueDialog"
+      />
     </div>
     <div>
       <div class="mb-6">
         <PropertyValues :subject="selectedResource" />
       </div>
+
       <div class="space-y-6">
-        <div v-if="properties.length || (editMode && isClass)">
+        <div v-if="propertyShapes.length || (editMode && isNodeShape)">
           <div class="flex items-center gap-2 mb-4">
-            <h3 class="text-lg font-semibold">Properties</h3>
-            <Button
+            <h3 class="text-lg font-semibold">Property Shapes (SHACL)</h3>
+            <!-- <Button
               v-if="editMode"
               icon="pi pi-plus"
               size="small"
               text
               label="Add"
-              @click="openAddPropertyDialog"
-            />
+            /> -->
           </div>
           <p
-            v-if="!properties.length"
+            v-if="!propertyShapes.length"
             class="text-slate-500"
-          >No properties defined.</p>
+          >No property shapes defined.</p>
           <div
             v-else
             class="space-y-4"
           >
             <Panel
-              v-for="property in properties"
-              :key="property.node.value"
+              v-for="propertyShape in propertyShapes"
+              :key="propertyShape.blankNode.value"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(property.node.value)"
+                    v-tooltip="getPrefixedUri(propertyShape.propertyNode.value)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = property.node.value"
-                  >{{ property.label }}</div>
+                    @click="selectedResource = propertyShape.propertyNode.value"
+                  >{{ propertyShape.label }}</div>
                   <TermValue
-                    v-for="range of property.ranges"
-                    :key="range.id"
-                    :term="range"
+                    v-for="valueNode of propertyShape.valueNodes"
+                    :key="valueNode.id"
+                    :term="valueNode"
                     class="text-sm"
-                    @click-uri="selectedResource = range.value"
+                    @click-uri="selectedResource = valueNode.value"
                   />
+                  <!-- <Button
+                    v-if="editMode"
+                    icon="pi pi-pencil"
+                    size="small"
+                    text
+                    @click="openEditRestrictionDialog(propertyShape.blankNode)"
+                  /> -->
                 </div>
-
               </template>
-              <PropertyValues :subject="property.node.value" />
+              <PropertyValues :subject="propertyShape.blankNode.value" />
             </Panel>
           </div>
         </div>
-
 
         <div v-if="restrictions.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
@@ -327,58 +403,54 @@ onMounted(async () => {
           </div>
         </div>
 
-        <div v-if="propertyShapes.length || (editMode && isNodeShape)">
+        <div v-if="properties.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
-            <h3 class="text-lg font-semibold">Property Shapes (SHACL)</h3>
-            <!-- <Button
+            <h3 class="text-lg font-semibold">Properties</h3>
+            <Button
               v-if="editMode"
               icon="pi pi-plus"
               size="small"
               text
               label="Add"
-            /> -->
+              @click="openAddPropertyDialog"
+            />
           </div>
           <p
-            v-if="!propertyShapes.length"
+            v-if="!properties.length"
             class="text-slate-500"
-          >No property shapes defined.</p>
+          >No properties defined.</p>
           <div
             v-else
             class="space-y-4"
           >
             <Panel
-              v-for="propertyShape in propertyShapes"
-              :key="propertyShape.blankNode.value"
+              v-for="property in properties"
+              :key="property.node.value"
               toggleable
               collapsed
             >
               <template #header>
                 <div class="flex items-center gap-4">
                   <div
-                    v-tooltip="getPrefixedUri(propertyShape.propertyNode.value)"
+                    v-tooltip="getPrefixedUri(property.node.value)"
                     class="font-semibold cursor-pointer"
-                    @click="selectedResource = propertyShape.propertyNode.value"
-                  >{{ propertyShape.label }}</div>
+                    @click="selectedResource = property.node.value"
+                  >{{ property.label }}</div>
                   <TermValue
-                    v-for="valueNode of propertyShape.valueNodes"
-                    :key="valueNode.id"
-                    :term="valueNode"
+                    v-for="range of property.ranges"
+                    :key="range.id"
+                    :term="range"
                     class="text-sm"
-                    @click-uri="selectedResource = valueNode.value"
+                    @click-uri="selectedResource = range.value"
                   />
-                  <!-- <Button
-                    v-if="editMode"
-                    icon="pi pi-pencil"
-                    size="small"
-                    text
-                    @click="openEditRestrictionDialog(propertyShape.blankNode)"
-                  /> -->
                 </div>
+
               </template>
-              <PropertyValues :subject="propertyShape.blankNode.value" />
+              <PropertyValues :subject="property.node.value" />
             </Panel>
           </div>
         </div>
+
 
         <div v-if="individuals.length || (editMode && isClass)">
           <div class="flex items-center gap-2 mb-4">
