@@ -19,14 +19,21 @@ import type { ResourceTreeNode } from '@/stores/graph'
 import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
 import Serializer, { type SerializerOptions } from '@rdfjs/serializer-turtle'
 
-export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
+export const classObjectNodes = [
+  vocab.rdfs.Class,
+  vocab.owl.Class,
+  vocab.sh.NodeShape
+]
 export const propertyObjectNodes = [
   vocab.rdf.Property,
   vocab.owl.ObjectProperty,
   vocab.owl.DatatypeProperty,
   vocab.owl.AnnotationProperty
 ]
-export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
+export const labelNodes = [
+  vocab.rdfs.label,
+  vocab.skos.prefLabel
+]
 
 const prefixes = {
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
@@ -892,6 +899,15 @@ class GraphStoreService {
       })
     )
   }
+
+  public async getRangeForProperty(propertyUri: string): Promise<string | null> {
+    const { items: quads } = await this._store.get({
+      subject: this._datafactory.namedNode(propertyUri),
+      predicate: vocab.rdfs.range
+    })
+    const rangeQuad = quads[0]
+    return rangeQuad ? rangeQuad.object.value : null
+}
 
   private async _getCachedResults(
     key: string,

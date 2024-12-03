@@ -361,8 +361,12 @@ const openNewIssueDialog = () => {
               @click="openEditPropertyShapeDialog()"
             />
           </div>
+          <p
+            v-if="!restrictions.length"
+            class="text-slate-500"
+          >No property shapes defined.</p>
           <div
-            v-if="propertyShapes.length || (editMode && isClass)"
+            v-else-if="propertyShapes.length || (editMode && isClass)"
             class="space-y-4"
           >
             <Panel

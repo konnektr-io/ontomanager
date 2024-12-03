@@ -173,12 +173,11 @@ const cancelChanges = () => {
     <Select
       v-else
       v-model="predicateUri"
-      :options="predicateNodeSuggestions"
+      :options="[predicateUri, ...predicateNodeSuggestions]"
       placeholder="Edit Predicate"
       fluid
       class="grow"
       showClear
-      editable
       filter
       @filter="fetchPredicateNodeSuggestions"
     />
@@ -191,13 +190,13 @@ const cancelChanges = () => {
       <Select
         v-if="object.termType === 'NamedNode'"
         v-model="object.value"
-        :options="namedNodeSuggestions"
+        :options="[object.value, ...namedNodeSuggestions]"
         placeholder="Edit URI"
         fluid
         class="grow"
         showClear
-        editable
         filter
+        editable
         @filter="fetchNamedNodeSuggestions"
       />
 
