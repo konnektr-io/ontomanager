@@ -95,6 +95,11 @@ onMounted(async () => {
           language: (q.object as Literal).language,
           datatype: (q.object as Literal).datatype.value
         } as EditableObject)
+      } else if (q.object.termType === 'BlankNode') {
+        acc.push({
+          termType: 'BlankNode',
+          value: q.object.value
+        } as EditableObject)
       }
       return acc
     }, [] as EditableObject[])
@@ -234,6 +239,10 @@ const cancelChanges = () => {
             showClear
           />
         </div>
+      </div>
+
+      <div v-else-if="object.termType === 'BlankNode'">
+        <p>Blank Node ´{{ object.value }}´</p>
       </div>
 
       <!-- Remove Button -->
