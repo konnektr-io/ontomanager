@@ -3,7 +3,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import { NamedNode, Quad, DataFactory } from 'n3'
 import gitHubService from '@/services/GitHubService'
-import graphStoreService from '@/services/GraphStoreService'
+import graphStoreService, { labelNodes, classObjectNodes, propertyObjectNodes } from '@/services/GraphStoreService'
 import { vocab } from '../utils/vocab'
 import rdfVocab from '../assets/vocab/rdf.ttl?raw'
 import rdfsVocab from '../assets/vocab/rdfs.ttl?raw'
@@ -47,6 +47,11 @@ export interface GraphDetails {
   error?: string
   sha?: string
   scopeId?: string
+  defaults?: {
+    label?: (typeof labelNodes)[number]
+    class?: (typeof classObjectNodes)[number]
+    property?: (typeof propertyObjectNodes)[number]
+  }
 }
 
 interface BuiltinGraphDetails extends GraphDetails {

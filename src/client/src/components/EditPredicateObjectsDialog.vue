@@ -95,6 +95,11 @@ onMounted(async () => {
           language: (q.object as Literal).language,
           datatype: (q.object as Literal).datatype.value
         } as EditableObject)
+      } else if (q.object.termType === 'BlankNode') {
+        acc.push({
+          termType: 'BlankNode',
+          value: q.object.value
+        } as EditableObject)
       }
       return acc
     }, [] as EditableObject[])
@@ -173,12 +178,11 @@ const cancelChanges = () => {
     <Select
       v-else
       v-model="predicateUri"
-      :options="predicateNodeSuggestions"
+      :options="[predicateUri, ...predicateNodeSuggestions]"
       placeholder="Edit Predicate"
       fluid
       class="grow"
       showClear
-      editable
       filter
       @filter="fetchPredicateNodeSuggestions"
     />
@@ -191,13 +195,13 @@ const cancelChanges = () => {
       <Select
         v-if="object.termType === 'NamedNode'"
         v-model="object.value"
-        :options="namedNodeSuggestions"
+        :options="[object.value, ...namedNodeSuggestions]"
         placeholder="Edit URI"
         fluid
         class="grow"
         showClear
-        editable
         filter
+        editable
         @filter="fetchNamedNodeSuggestions"
       />
 
@@ -235,6 +239,10 @@ const cancelChanges = () => {
             showClear
           />
         </div>
+      </div>
+
+      <div v-else-if="object.termType === 'BlankNode'">
+        <p>Blank Node ´{{ object.value }}´</p>
       </div>
 
       <!-- Remove Button -->

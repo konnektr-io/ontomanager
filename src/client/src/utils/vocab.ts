@@ -69,6 +69,7 @@ export const vocab = {
     path: namedNode('http://www.w3.org/ns/shacl#path'),
     class: namedNode('http://www.w3.org/ns/shacl#class'),
     datatype: namedNode('http://www.w3.org/ns/shacl#datatype'),
+    node: namedNode('http://www.w3.org/ns/shacl#node'),
     nodeKind: namedNode('http://www.w3.org/ns/shacl#nodeKind'),
     IRI: namedNode('http://www.w3.org/ns/shacl#IRI'),
     minCount: namedNode('http://www.w3.org/ns/shacl#minCount'),

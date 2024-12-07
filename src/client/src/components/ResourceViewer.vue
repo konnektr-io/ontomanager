@@ -16,6 +16,7 @@ import PropertyValues from './PropertyValues.vue'
 import AddPropertyDialog from './AddPropertyDialog.vue'
 import NewResourceDialog from './NewResourceDialog.vue'
 import EditRestrictionDialog from './EditRestrictionDialog.vue'
+import EditPropertyShapeDialog from './EditPropertyShapeDialog.vue'
 // import IssueDialog from './IssueDialog.vue'
 import NewIssueDialog from './NewIssueDialog.vue'
 
@@ -155,7 +156,9 @@ const openEditRestrictionDialog = (restrictionNode?: BlankNode) => {
   })
 }
 
+
 const confirm = useConfirm()
+
 const deleteRestriction = async (restrictionNode: BlankNode) => {
   if (!selectedOntology.value?.node) return
   confirm.require({
@@ -183,6 +186,63 @@ const deleteRestriction = async (restrictionNode: BlankNode) => {
         return
       }
       await removeNode(restrictionNode.value, selectedOntology.value.node, scopeId.value)
+
+      reloadTrigger.value++
+    }
+  })
+}
+
+
+const openEditPropertyShapeDialog = (shapeNode?: BlankNode) => {
+  if (!selectedResource.value || !selectedOntology.value?.node) return
+  dialog.open(EditPropertyShapeDialog, {
+    props: {
+      header: 'Edit Property Shape',
+      style: {
+        width: '60vw',
+      },
+      breakpoints: {
+        '960px': '75vw',
+        '640px': '90vw'
+      },
+      modal: true
+    },
+    data: {
+      subject: selectedResource.value,
+      graphId: selectedOntology.value.node.value,
+      shapeNode
+    }
+  })
+}
+
+
+const deletePropertyShape = async (shapeNode: BlankNode) => {
+  if (!selectedOntology.value?.node) return
+  confirm.require({
+    header: 'Delete Property Shape',
+    message: 'Are you sure you want to delete this property shape?',
+    icon: 'pi pi-exclamation-triangle',
+    modal: false,
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      text: true
+    },
+    acceptProps: {
+      label: 'Delete',
+      severity: 'secondary',
+      outlined: true
+    },
+    accept: async () => {
+      if (!selectedOntology.value?.node) {
+        console.warn('No ontology selected')
+        return
+      }
+      if (!scopeId.value) {
+        console.warn('No scopeId selected')
+        return
+      }
+      await removeNode(shapeNode.value, selectedOntology.value.node, scopeId.value)
 
       reloadTrigger.value++
     }
@@ -291,21 +351,22 @@ const openNewIssueDialog = () => {
       <div class="space-y-6">
         <div v-if="propertyShapes.length || (editMode && isNodeShape)">
           <div class="flex items-center gap-2 mb-4">
-            <h3 class="text-lg font-semibold">Property Shapes (SHACL)</h3>
-            <!-- <Button
+            <h3 class="text-lg font-semibold">Property Shapes</h3>
+            <Button
               v-if="editMode"
               icon="pi pi-plus"
               size="small"
               text
               label="Add"
-            /> -->
+              @click="openEditPropertyShapeDialog()"
+            />
           </div>
           <p
             v-if="!propertyShapes.length"
             class="text-slate-500"
           >No property shapes defined.</p>
           <div
-            v-else
+            v-else-if="propertyShapes.length || (editMode && isClass)"
             class="space-y-4"
           >
             <Panel
@@ -328,13 +389,20 @@ const openNewIssueDialog = () => {
                     class="text-sm"
                     @click-uri="selectedResource = valueNode.value"
                   />
-                  <!-- <Button
+                  <Button
                     v-if="editMode"
                     icon="pi pi-pencil"
                     size="small"
                     text
-                    @click="openEditRestrictionDialog(propertyShape.blankNode)"
-                  /> -->
+                    @click="openEditPropertyShapeDialog(propertyShape.blankNode)"
+                  />
+                  <Button
+                    v-if="editMode"
+                    icon="pi pi-trash"
+                    size="small"
+                    text
+                    @click="deletePropertyShape(propertyShape.blankNode)"
+                  />
                 </div>
               </template>
               <PropertyValues :subject="propertyShape.blankNode.value" />

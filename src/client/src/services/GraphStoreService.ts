@@ -19,7 +19,7 @@ import type { ResourceTreeNode } from '@/stores/graph'
 import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
 import Serializer, { type SerializerOptions } from '@rdfjs/serializer-turtle'
 
-export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class]
+export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class, vocab.sh.NodeShape]
 export const propertyObjectNodes = [
   vocab.rdf.Property,
   vocab.owl.ObjectProperty,
@@ -28,14 +28,14 @@ export const propertyObjectNodes = [
 ]
 export const labelNodes = [vocab.rdfs.label, vocab.skos.prefLabel]
 
-/* const prefixes = {
+const prefixes = {
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
   rdfs: 'http://www.w3.org/2000/01/rdf-schema#',
   owl: 'http://www.w3.org/2002/07/owl#',
   skos: 'http://www.w3.org/2004/02/skos/core#',
   dc: 'http://purl.org/dc/elements/1.1/',
   shacl: 'http://www.w3.org/ns/shacl#'
-} */
+}
 
 class GraphStoreService {
   public constructor() {
@@ -69,6 +69,7 @@ class GraphStoreService {
   private _parser: Parser
 
   private _scopeMap: Map<string, Scope> = new Map()
+  private _cache: Map<string, string[]> = new Map()
 
   public async init() {
     await this._store.open()
@@ -834,10 +835,10 @@ class GraphStoreService {
       predicate: vocab.sh.property
     })
 
-    const propertyShapes = items.filter((quad) => quad.object.termType === 'BlankNode')
+    const blankPropertyShapeQuads = items.filter((quad) => quad.object.termType === 'BlankNode')
 
     return await Promise.all(
-      propertyShapes.map(async (quad) => {
+      blankPropertyShapeQuads.map(async (quad) => {
         const blankNode = quad.object as BlankNode
         const { items: propertyQuads } = await this._store.get({
           subject: blankNode,
@@ -892,91 +893,118 @@ class GraphStoreService {
     )
   }
 
+  public async getRangeForProperty(propertyUri: string): Promise<string | null> {
+    const { items: quads } = await this._store.get({
+      subject: this._datafactory.namedNode(propertyUri),
+      predicate: vocab.rdfs.range
+    })
+    const rangeQuad = quads[0]
+    return rangeQuad ? rangeQuad.object.value : null
+  }
+
+  private async _getCachedResults(
+    key: string,
+    fetchFunction: () => Promise<string[]>
+  ): Promise<string[]> {
+    if (this._cache.has(key)) {
+      return this._cache.get(key)!
+    }
+    const results = await fetchFunction()
+    this._cache.set(key, results)
+    return results
+  }
+
+  private _expandPrefix(term: string): string {
+    const [prefix, localName] = term.split(':')
+    return prefixes[prefix] ? prefixes[prefix] + localName : term
+  }
+
   public async getPredicateNodeSuggestions(existingPredicates: string[], search: string) {
     await this.init()
-
-    // TODO: cache most used predicates
-    // Also search on prefixes
-    // For example, if you type skos:prefLabel, it should also suggest the full uri for skos:prefLabel
-
-    const nodeMap = new Set<string>()
-    for await (const quad of (await this._store.getStream({})).iterator) {
-      if (
-        !existingPredicates.includes(quad.predicate.value) &&
-        quad.predicate.termType === 'NamedNode' &&
-        quad.predicate.value.toLowerCase().includes(search.toLowerCase())
-      ) {
-        nodeMap.add(quad.predicate.value)
+    const cacheKey = `predicateNodeSuggestions:${search}`
+    return this._getCachedResults(cacheKey, async () => {
+      const nodeMap = new Set<string>()
+      for await (const quad of (await this._store.getStream({})).iterator) {
+        if (
+          !existingPredicates.includes(quad.predicate.value) &&
+          quad.predicate.termType === 'NamedNode' &&
+          (quad.predicate.value.toLowerCase().includes(search.toLowerCase()) ||
+            quad.predicate.value.toLowerCase().includes(this._expandPrefix(search).toLowerCase()))
+        ) {
+          nodeMap.add(quad.predicate.value)
+        }
+        if (nodeMap.size > 20) break
       }
-      if (nodeMap.size > 20) break
-    }
-    return Array.from(nodeMap)
+      return Array.from(nodeMap)
+    })
   }
 
   public async getObjectNamedNodeSuggestions(predicateUri: string, search: string) {
     await this.init()
-
-    // TODO: cache most used results
-    // Also search on prefixes
-    // For example, if you type bridge:Bridge, it should also suggest the full uri for bridge:Bridge
-
-    // Maybe we should also filter on classes, because currently it's also returning properties
-
-    const namedNodeMap = new Set<string>()
-    for await (const quad of (await this._store.getStream({})).iterator) {
-      if (
-        quad.predicate.value === predicateUri &&
-        quad.object.termType === 'NamedNode' &&
-        quad.object.value.toLowerCase().includes(search.toLowerCase())
-      ) {
-        namedNodeMap.add(quad.object.value)
+    const cacheKey = `objectNamedNodeSuggestions:${predicateUri}:${search}`
+    return this._getCachedResults(cacheKey, async () => {
+      const namedNodeMap = new Set<string>()
+      for await (const quad of (await this._store.getStream({})).iterator) {
+        if (
+          quad.predicate.value === predicateUri &&
+          quad.object.termType === 'NamedNode' &&
+          (quad.object.value.toLowerCase().includes(search.toLowerCase()) ||
+            quad.object.value.toLowerCase().includes(this._expandPrefix(search).toLowerCase()))
+        ) {
+          namedNodeMap.add(quad.object.value)
+        }
+        if (namedNodeMap.size > 20) break
       }
-      if (namedNodeMap.size > 20) break
-    }
-    return Array.from(namedNodeMap)
+      return Array.from(namedNodeMap)
+    })
   }
 
   public async getPropertyNodeSuggestions(existingPropertyNodes: string[], search: string) {
     await this.init()
-
-    const namedNodeMap = new Set<string>()
-
-    await Promise.all(
-      propertyObjectNodes.map(async (propertyNode) => {
-        for await (const quad of (
-          await this._store.getStream({
-            predicate: vocab.rdf.type,
-            object: propertyNode
-          })
-        ).iterator) {
-          if (
-            quad.subject.termType === 'NamedNode' &&
-            !existingPropertyNodes.includes(quad.subject.value) &&
-            quad.subject.value.toLowerCase().includes(search.toLowerCase())
-          ) {
-            namedNodeMap.add(quad.subject.value)
+    const cacheKey = `propertyNodeSuggestions:${search}`
+    return this._getCachedResults(cacheKey, async () => {
+      const namedNodeMap = new Set<string>()
+      await Promise.all(
+        propertyObjectNodes.map(async (propertyNode) => {
+          for await (const quad of (
+            await this._store.getStream({
+              predicate: vocab.rdf.type,
+              object: propertyNode
+            })
+          ).iterator) {
+            if (
+              quad.subject.termType === 'NamedNode' &&
+              !existingPropertyNodes.includes(quad.subject.value) &&
+              (quad.subject.value.toLowerCase().includes(search.toLowerCase()) ||
+                quad.subject.value.toLowerCase().includes(this._expandPrefix(search).toLowerCase()))
+            ) {
+              namedNodeMap.add(quad.subject.value)
+            }
+            if (namedNodeMap.size > 20) break
           }
-          if (namedNodeMap.size > 20) break
-        }
-      })
-    )
-    return Array.from(namedNodeMap)
+        })
+      )
+      return Array.from(namedNodeMap)
+    })
   }
 
   public async getNamedNodeSuggestions(search: string) {
     await this.init()
-
-    const namedNodeMap = new Set<string>()
-    for await (const quad of (await this._store.getStream({})).iterator) {
-      if (
-        quad.object.termType === 'NamedNode' &&
-        quad.object.value.toLowerCase().includes(search.toLowerCase())
-      ) {
-        namedNodeMap.add(quad.object.value)
+    const cacheKey = `namedNodeSuggestions:${search}`
+    return this._getCachedResults(cacheKey, async () => {
+      const namedNodeMap = new Set<string>()
+      for await (const quad of (await this._store.getStream({})).iterator) {
+        if (
+          quad.object.termType === 'NamedNode' &&
+          (quad.object.value.toLowerCase().includes(search.toLowerCase()) ||
+            quad.object.value.toLowerCase().includes(this._expandPrefix(search).toLowerCase()))
+        ) {
+          namedNodeMap.add(quad.object.value)
+        }
+        if (namedNodeMap.size > 20) break
       }
-      if (namedNodeMap.size > 20) break
-    }
-    return Array.from(namedNodeMap)
+      return Array.from(namedNodeMap)
+    })
   }
 
   public async getLabel(uri: string) {

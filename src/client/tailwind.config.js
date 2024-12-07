@@ -7,9 +7,9 @@ export default {
   plugins: [primeui],
   theme: {
     extend: {
-      fontFamily: {
-        sans: ['Fira Sans', 'sans-serif']
-      },
+      /* fontFamily: {
+        sans: ['"Noto Sans"', 'sans-serif']
+      }, */
       colors: {
         'primary-50': 'rgb(var(--primary-50))',
         'primary-100': 'rgb(var(--primary-100))',

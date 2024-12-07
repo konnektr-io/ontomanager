@@ -24,7 +24,8 @@ const { addQuad } = useGraphStore()
 const parentUri = computed(() => dialogRef?.value.data.parentUri)
 const type = computed(() => dialogRef?.value.data.type)
 const graphId = computed(() => dialogRef?.value.data.graphId)
-const scopeId = computed(() => userGraphs.value.find(g => g.node?.value === graphId.value)?.scopeId)
+const graphDetails = computed(() => userGraphs.value.find(g => g.node?.value === graphId.value))
+const scopeId = computed(() => graphDetails.value?.scopeId)
 
 const newResourceLabel = ref('')
 const newResourceUri = ref('')
@@ -45,8 +46,8 @@ const confirmCreation = async () => {
   const typeUri = type.value === TreeType.Individuals
     ? vocab.owl.NamedIndividual
     : type.value === TreeType.Classes
-      ? vocab.owl.Class
-      : vocab.owl.ObjectProperty
+      ? (graphDetails.value?.defaults?.class || vocab.owl.Class)
+      : (graphDetails.value?.defaults?.property || vocab.owl.ObjectProperty)
 
   await addQuad(quad(
     namedNode(newResourceUri.value),
@@ -73,7 +74,7 @@ const confirmCreation = async () => {
 
   await addQuad(quad(
     namedNode(newResourceUri.value),
-    vocab.rdfs.label,
+    (graphDetails.value?.defaults?.label || vocab.rdfs.label),
     literal(newResourceLabel.value, 'en'),
     namedNode(graphId.value)
   ), scopeId.value)
