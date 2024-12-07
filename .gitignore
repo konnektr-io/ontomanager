@@ -6,3 +6,7 @@ local.settings.*
 .vs
 .vscode
 node_modules
+
+venv/
+
+.env
