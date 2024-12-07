@@ -32,6 +32,9 @@ COPY app/ ./
 FROM python:3.11-slim AS final
 WORKDIR /app
 
+# Install gunicorn in the final stage
+RUN pip install gunicorn
+
 # Copy the backend code and dependencies from the builder stage
 COPY --from=backend-builder /app /app
 
