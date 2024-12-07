@@ -46,9 +46,10 @@ USER appuser
 ENV FLASK_APP=app.py
 ENV FLASK_RUN_HOST=0.0.0.0
 ENV FLASK_RUN_PORT=8080
+ENV PORT=8080
 
 # Expose the port
 EXPOSE 8080
 
-# Run the Flask application
-ENTRYPOINT ["flask", "run"]
+# Run the Flask application with gunicorn
+ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
