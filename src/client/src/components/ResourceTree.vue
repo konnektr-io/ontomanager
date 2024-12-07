@@ -11,8 +11,6 @@ import graphStoreService from '@/services/GraphStoreService'
 import { vocab } from '@/utils/vocab'
 import { useDialog } from 'primevue/usedialog'
 import NewResourceDialog from './NewResourceDialog.vue'
-import type { PassThroughOptions } from 'primevue/passthrough'
-
 
 const props = defineProps<{
   type: TreeType;
@@ -400,7 +398,7 @@ const onFilter = (event: { originalEvent: Event, value: string }) => {
       @filter="onFilter"
     >
       <template #default="slotProps">
-        <div class="flex w-full justify-between items-center">
+        <div class="flex items-center">
           <div
             :id="slotProps.node.key"
             v-tooltip="slotProps.node.key"
@@ -415,25 +413,20 @@ const onFilter = (event: { originalEvent: Event, value: string }) => {
               {{ slotProps.node.label }}
             </span>
           </div>
-          <div>
-            <Button
-              v-if="selectedOntology && (type === TreeType.Individuals || type === TreeType.Classes || type === TreeType.Properties)"
-              type="button"
-              icon="pi pi-ellipsis-v"
-              size="small"
-              text
-              rounded
-              aria-haspopup="true"
-              :aria-controls="`overlay_menu_${slotProps.node.key}`"
-              @click="event => toggleMenu(event, slotProps.node.key)"
-            />
-            <Menu
-              :ref="el => { contextMenuRefs[slotProps.node.key] = el as unknown as InstanceType<typeof Menu> }"
-              :id="slotProps.node.key"
-              :model="contextMenuItems"
-              :popup="true"
-            />
-          </div>
+          <i
+            v-if="selectedOntology && (type === TreeType.Individuals || type === TreeType.Classes || type === TreeType.Properties)"
+            aria-haspopup="true"
+            :aria-controls="`overlay_menu_${slotProps.node.key}`"
+            class="pi pi-ellipsis-v cursor-pointer pl-4 justify-self-end"
+            style="color: 'var(--p-primary-color)'"
+            @click="event => toggleMenu(event, slotProps.node.key)"
+          />
+          <Menu
+            :ref="el => { contextMenuRefs[slotProps.node.key] = el as unknown as InstanceType<typeof Menu> }"
+            :id="slotProps.node.key"
+            :model="contextMenuItems"
+            :popup="true"
+          />
         </div>
       </template>
     </Tree>
