@@ -1,0 +1,8 @@
+# Ignore virtual environments
+venv/
+
+# Ignore node modules
+node_modules/
+
+# Ignore build output
+client/dist/

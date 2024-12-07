@@ -22,11 +22,11 @@ FROM python:3.11-slim AS backend-builder
 WORKDIR /app
 
 # Install dependencies
-COPY requirements.txt ./
+COPY app/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the backend code
-COPY . .
+COPY app/ ./
 
 # Stage 3: Final image
 FROM python:3.11-slim AS final
