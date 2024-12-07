@@ -351,7 +351,7 @@ const openNewIssueDialog = () => {
       <div class="space-y-6">
         <div v-if="propertyShapes.length || (editMode && isNodeShape)">
           <div class="flex items-center gap-2 mb-4">
-            <h3 class="text-lg font-semibold">Property Shapes (SHACL)</h3>
+            <h3 class="text-lg font-semibold">Property Shapes</h3>
             <Button
               v-if="editMode"
               icon="pi pi-plus"
@@ -362,7 +362,7 @@ const openNewIssueDialog = () => {
             />
           </div>
           <p
-            v-if="!restrictions.length"
+            v-if="!propertyShapes.length"
             class="text-slate-500"
           >No property shapes defined.</p>
           <div

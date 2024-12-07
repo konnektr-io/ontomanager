@@ -30,6 +30,7 @@ const getGroupedObjectValues = async () => {
   return annotations.reduce<GroupedPropertyValues>((acc, annotation) => {
     const editable = (selectedOntology.value && annotation.graph.value === selectedOntology.value.node?.value) ?? false
     const predicate = annotation.predicate.value
+    if (annotation.object.termType === 'BlankNode') return acc
     if (!acc[predicate]) {
       acc[predicate] = {
         objects: [],
