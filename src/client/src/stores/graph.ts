@@ -3,7 +3,11 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import { NamedNode, Quad, DataFactory } from 'n3'
 import gitHubService from '@/services/GitHubService'
-import graphStoreService, { labelNodes, classObjectNodes, propertyObjectNodes } from '@/services/GraphStoreService'
+import graphStoreService, {
+  labelNodes,
+  classObjectNodes,
+  propertyObjectNodes
+} from '@/services/GraphStoreService'
 import { vocab } from '../utils/vocab'
 import rdfVocab from '../assets/vocab/rdf.ttl?raw'
 import rdfsVocab from '../assets/vocab/rdfs.ttl?raw'
@@ -180,6 +184,9 @@ export const useGraphStore = defineStore('graph', () => {
               graph.branch
             )
             if (latestSha !== graph.sha) {
+              if (graph.node) {
+                await graphStoreService.deleteGraph(graph.node)
+              }
               graph.sha = latestSha
               return await loadGraph(graph)
             }
@@ -253,7 +260,7 @@ export const useGraphStore = defineStore('graph', () => {
         const response = await axios.get(graph.url)
         content = response.data
       }
-      const { node, prefixes, scopeId } = await graphStoreService.loadGraph(content)
+      const { node, prefixes, scopeId } = await graphStoreService.loadGraph(content, graph.scopeId)
       graph.node = node
       graph.prefixes = prefixes
       graph.scopeId = scopeId
