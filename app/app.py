@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 
 @app.route("/api/github/oauth/login", methods=["GET"])
@@ -86,8 +86,9 @@ def github_refresh_token():
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def catch_all(path):
-    return app.send_static_file("index.html")
+    return send_from_directory(app.static_folder, "index.html")
 
 
 if __name__ == "__main__":
-    app.run(ssl_context="adhoc")
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port, ssl_context="adhoc")
