@@ -18,31 +18,37 @@ COPY client/ ./
 RUN pnpm run build
 
 # Stage 2: Build the backend
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+FROM python:3.11-slim AS backend-builder
 WORKDIR /app
-EXPOSE 8080
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /src
-COPY OntoManager/*.csproj ./
-RUN dotnet restore
-COPY OntoManager/ ./
-RUN dotnet build -c Release -o /app/build
+# Install dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 
-FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish
+# Copy the backend code
+COPY . .
 
 # Stage 3: Final image
-FROM base AS final
+FROM python:3.11-slim AS final
 WORKDIR /app
-COPY --from=publish /app/publish .
-COPY --from=frontend-builder /app/client/dist ./wwwroot
+
+# Copy the backend code and dependencies from the builder stage
+COPY --from=backend-builder /app /app
+
+# Copy the frontend build output
+COPY --from=frontend-builder /app/client/dist /app/static
 
 # Create a non-root user and switch to it
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
 
 # Set environment variables for the backend
-ENV ASPNETCORE_URLS=http://+:8080
+ENV FLASK_APP=app.py
+ENV FLASK_RUN_HOST=0.0.0.0
+ENV FLASK_RUN_PORT=8080
 
-ENTRYPOINT ["dotnet", "OntoManager.dll"]
+# Expose the port
+EXPOSE 8080
+
+# Run the Flask application
+ENTRYPOINT ["flask", "run"]
