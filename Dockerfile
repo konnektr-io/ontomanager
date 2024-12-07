@@ -17,26 +17,17 @@ RUN pnpm install
 COPY client/ ./
 RUN pnpm run build
 
-# Stage 2: Build the backend
-FROM python:3.11-slim AS backend-builder
-WORKDIR /app
-
-# Install dependencies
-COPY app/requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the backend code
-COPY app/ ./
-
-# Stage 3: Final image
+# Stage 2: Build the final image
 FROM python:3.11-slim AS final
 WORKDIR /app
 
-# Install gunicorn in the final stage
-RUN pip install gunicorn
+# Copy the backend code and requirements
+COPY app/requirements.txt ./
+COPY app/ ./
 
-# Copy the backend code and dependencies from the builder stage
-COPY --from=backend-builder /app /app
+# Install dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install gunicorn
 
 # Copy the frontend build output
 COPY --from=frontend-builder /app/client/dist /app/static
