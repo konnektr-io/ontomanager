@@ -1,5 +1,6 @@
 from flask import Flask, request, redirect, jsonify, send_from_directory
 import os
+import openai
 import requests
 from dotenv import load_dotenv
 
