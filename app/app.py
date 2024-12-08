@@ -1,14 +1,17 @@
 from flask import Flask, request, redirect, jsonify, send_from_directory
 import os
-import openai
+from openai import OpenAI
 import requests
 from dotenv import load_dotenv
 
 load_dotenv()
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder="static")
 
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY"),  # This is the default and can be omitted
+)
+
 
 @app.route("/api/github/oauth/login", methods=["GET"])
 def github_login():
@@ -84,22 +87,31 @@ def github_refresh_token():
 
     return jsonify(response.json())
 
+
 @app.route("/api/ai/suggest-commit-message", methods=["POST"])
 def suggest_commit_message():
     changes = request.json.get("changes")
     if not changes:
         return jsonify({"error": "No changes provided"}), 400
 
-    prompt = f"Generate a concise commit message for the following changes:\n{changes}"
-
-    response = openai.Completion.create(
-        engine="o1-mini",
-        prompt=prompt,
-        max_tokens=50
+    prompt = (
+        f"Generate a concise git commit message for the following changes:\n{changes}"
     )
 
-    message = response.choices[0].text.strip()
+    chat_completion = openai_client.chat.completions.create(
+        messages=[
+            {
+                "role": "user",
+                "content": prompt,
+            }
+        ],
+        model="o1-mini",
+    )
+
+    message = chat_completion.choices[0].message.content
+
     return jsonify({"message": message})
+
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
