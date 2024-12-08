@@ -1,13 +1,13 @@
 # Stage 1: Build the frontend
-FROM node:20 AS frontend-builder
+FROM node:20-slim AS frontend-builder
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+RUN corepack enable
 WORKDIR /app/client
 
 # Set environment variables for the frontend build
 ARG GA_MEASUREMENT_ID
 ENV VITE_GA_MEASUREMENT_ID=$GA_MEASUREMENT_ID
-
-# Install pnpm globally
-RUN npm install -g pnpm
 
 # Copy package files and install dependencies
 COPY client/package*.json ./
