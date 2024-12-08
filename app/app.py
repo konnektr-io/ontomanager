@@ -94,9 +94,9 @@ def suggest_commit_message():
     if not changes:
         return jsonify({"error": "No changes provided"}), 400
 
-    prompt = (
-        f"Generate a concise git commit message for the following changes:\n{changes}"
-    )
+    prompt = f"""Generate a concise git commit message for the following changes:\n\n'''{changes}''' \n\n
+            In case quads are removed and added again, consider them as changes. Don't specify which ontology the changes belong to. 
+            Only return the message, don't include code, quotes or any other information."""
 
     chat_completion = openai_client.chat.completions.create(
         messages=[
@@ -106,9 +106,10 @@ def suggest_commit_message():
             }
         ],
         model="o1-mini",
+        max_tokens=50,
     )
 
-    message = chat_completion.choices[0].message.content
+    message = chat_completion.choices[0].message.content.strip()
 
     return jsonify({"message": message})
 
