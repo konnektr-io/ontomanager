@@ -105,7 +105,7 @@ def suggest_commit_message():
                 "content": prompt,
             }
         ],
-        model="o1-mini",
+        model="gpt-4o-mini",
         max_completion_tokens=50,
     )
 
