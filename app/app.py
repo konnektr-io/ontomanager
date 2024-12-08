@@ -7,6 +7,7 @@ load_dotenv()
 
 app = Flask(__name__, static_folder='static')
 
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/api/github/oauth/login", methods=["GET"])
 def github_login():
@@ -82,6 +83,22 @@ def github_refresh_token():
 
     return jsonify(response.json())
 
+@app.route("/api/ai/suggest-commit-message", methods=["POST"])
+def suggest_commit_message():
+    changes = request.json.get("changes")
+    if not changes:
+        return jsonify({"error": "No changes provided"}), 400
+
+    prompt = f"Generate a concise commit message for the following changes:\n{changes}"
+
+    response = openai.Completion.create(
+        engine="o1-mini",
+        prompt=prompt,
+        max_tokens=50
+    )
+
+    message = response.choices[0].text.strip()
+    return jsonify({"message": message})
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")

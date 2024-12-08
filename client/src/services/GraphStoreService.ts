@@ -16,7 +16,6 @@ import { Quadstore, type Pattern } from 'quadstore'
 // import { Engine } from 'quadstore-comunica'
 import { vocab } from '@/utils/vocab'
 import type { ResourceTreeNode } from '@/stores/graph'
-import type { Scope } from 'node_modules/quadstore/dist/esm/scope'
 import Serializer, { type SerializerOptions } from '@rdfjs/serializer-turtle'
 
 export const classObjectNodes = [vocab.rdfs.Class, vocab.owl.Class, vocab.sh.NodeShape]
@@ -68,7 +67,7 @@ class GraphStoreService {
   private _store: Quadstore
   private _parser: Parser
 
-  private _scopeMap: Map<string, Scope> = new Map()
+  private _scopeMap: Map<string, Awaited<ReturnType<typeof this._store.loadScope>>> = new Map()
   private _cache: Map<string, string[]> = new Map()
 
   public async init() {
@@ -108,7 +107,7 @@ class GraphStoreService {
     // console.log('Init DB', new Date().toISOString())
     await this.init()
 
-    let scope: Scope | undefined
+    let scope: Awaited<ReturnType<typeof this._store.loadScope>> | undefined
     if (scopeId) {
       scope = await this._store.loadScope(scopeId)
     } else if (!scopeId) {
@@ -203,6 +202,8 @@ class GraphStoreService {
       this._store.deleteGraph(graph).on('end', resolve).on('error', reject)
     )
   }
+
+
 
   public async writeGraph(graph: NamedNode, prefixes?: { [prefix: string]: NamedNode<string> }) {
     const serializerOptions: SerializerOptions = {
