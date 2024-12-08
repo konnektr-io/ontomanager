@@ -445,6 +445,14 @@ export const useGraphStore = defineStore('graph', () => {
     redoStack.value = []
   }
 
+  const serializeUndoStack = (): string => {
+  return undoStack.value.map(change => {
+    const action = change.action === 'add' ? 'Added' : 'Removed'
+    const quad = change.quad
+    return `${action} quad: ${quad.subject.value} ${quad.predicate.value} ${quad.object.value} in graph ${quad.graph.value}`
+    }).join('\n')
+  }
+
   const writeGraph = async (graph: GraphDetails) => {
     if (!graph.node) return
     const prefixes = {
@@ -480,9 +488,12 @@ export const useGraphStore = defineStore('graph', () => {
     addQuad,
     editQuad,
     removeQuad,
+
+    undoStack,
     undoStackSize,
     undo,
     redo,
-    clearUndoRedoStacks
+    clearUndoRedoStacks,
+    serializeUndoStack
   }
 })

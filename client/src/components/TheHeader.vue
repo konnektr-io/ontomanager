@@ -12,6 +12,7 @@ import { useToast } from 'primevue/usetoast'
 import gitHubService from '@/services/GitHubService'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import UserMenu from './UserMenu.vue'
+import AIService from '@/services/AIService'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -20,14 +21,16 @@ const {
   userGraphs,
   graphsLoading,
   selectedOntology,
-  undoStackSize } = storeToRefs(useGraphStore())
+  undoStackSize
+} = storeToRefs(useGraphStore())
 const {
   toggleGraphVisibility,
   addGraph,
   removeGraph,
   writeGraph,
   loadGraph,
-  clearUndoRedoStacks
+  clearUndoRedoStacks,
+  serializeUndoStack
 } = useGraphStore()
 
 const ontologySelectRef = ref<InstanceType<typeof Select>>()
@@ -162,6 +165,11 @@ const createNewBranch = async () => {
 
 const commitDialogVisible = ref(false)
 const commitMessage = ref('')
+const openCommitDialog = async () => {
+  commitDialogVisible.value = true
+  const changes = serializeUndoStack()
+  commitMessage.value = await AIService.suggestCommitMessage(changes)
+}
 const discardChanges = () => {
   // reload the graph
 
@@ -332,7 +340,7 @@ const commitChanges = async () => {
         label="Commit"
         outlined
         :badge="undoStackSize ? `${undoStackSize}` : undefined"
-        @click="commitDialogVisible = true"
+        @click="openCommitDialog"
       ></Button>
     </div>
     <!-- Right-aligned content -->
