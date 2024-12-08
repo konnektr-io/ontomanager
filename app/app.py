@@ -106,7 +106,7 @@ def suggest_commit_message():
             }
         ],
         model="o1-mini",
-        max_tokens=50,
+        max_completion_tokens=50,
     )
 
     message = chat_completion.choices[0].message.content.strip()
