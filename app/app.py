@@ -95,7 +95,7 @@ def suggest_commit_message():
         return jsonify({"error": "No changes provided"}), 400
 
     prompt = f"""Generate a concise git commit message for the following changes:\n\n'''{changes}''' \n\n
-            In case quads are removed and added again, consider them as changes. Don't specify which ontology the changes belong to. 
+            In case quads are removed and added again, consider them as changes. Don't specify which ontology the changes belong to and don't mention 'quads' or 'graphs' or any other specific linked data terminology.
             Only return the message, don't include code, quotes or any other information."""
 
     chat_completion = openai_client.chat.completions.create(
