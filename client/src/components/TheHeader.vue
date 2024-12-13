@@ -168,7 +168,8 @@ const commitMessage = ref('')
 const openCommitDialog = async () => {
   commitDialogVisible.value = true
   const changes = serializeUndoStack()
-  commitMessage.value = await AIService.suggestCommitMessage(changes)
+  commitMessage.value = selectedOntology.value?.path?.split('/').pop()?.replace('.ttl', '') + ' - '
+  commitMessage.value += await AIService.suggestCommitMessage(changes)
 }
 const discardChanges = () => {
   // reload the graph
