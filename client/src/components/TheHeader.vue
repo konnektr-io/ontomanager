@@ -13,6 +13,8 @@ import gitHubService from '@/services/GitHubService'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import UserMenu from './UserMenu.vue'
 import AIService from '@/services/AIService'
+import { NamedNode } from 'n3'
+import { labelNodes, classObjectNodes, propertyObjectNodes } from '@/services/GraphStoreService'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -30,7 +32,8 @@ const {
   writeGraph,
   loadGraph,
   clearUndoRedoStacks,
-  serializeUndoStack
+  serializeUndoStack,
+  saveUserGraphsToLocalStorage
 } = useGraphStore()
 
 const ontologySelectRef = ref<InstanceType<typeof Select>>()
@@ -215,6 +218,48 @@ const commitChanges = async () => {
   }
 }
 
+const defaultsDialogVisible = ref(false)
+const defaultsEditGraph = ref<GraphDetails | null>(null)
+const defaultsDraft = ref({ label: '', class: '', property: '' })
+
+// Helper to only allow exact allowed NamedNode types (preserves literal type)
+function toGraphAllowedNamedNode<T extends NamedNode> (value: string | NamedNode | undefined, allowed: readonly T[]): T | undefined {
+  if (!value) return undefined
+  if (typeof value === 'object' && value.termType === 'NamedNode') {
+    return allowed.find(n => n.value === value.value)
+  }
+  if (typeof value === 'string') {
+    // Try to match by value
+    return allowed.find(n => n.value === value)
+  }
+  return undefined
+}
+
+const openGraphDefaultsDialog = (graph: GraphDetails) => {
+  defaultsEditGraph.value = graph
+  defaultsDraft.value = {
+    label: typeof graph.defaults?.label === 'object' ? graph.defaults.label.value : graph.defaults?.label || '',
+    class: typeof graph.defaults?.class === 'object' ? graph.defaults.class.value : graph.defaults?.class || '',
+    property: typeof graph.defaults?.property === 'object' ? graph.defaults.property.value : graph.defaults?.property || ''
+  }
+  defaultsDialogVisible.value = true
+}
+
+const saveGraphDefaults = () => {
+  if (defaultsEditGraph.value) {
+    const label = toGraphAllowedNamedNode(defaultsDraft.value.label, labelNodes)
+    const classNode = toGraphAllowedNamedNode(defaultsDraft.value.class, classObjectNodes)
+    const property = toGraphAllowedNamedNode(defaultsDraft.value.property, propertyObjectNodes)
+    defaultsEditGraph.value.defaults = {
+      ...(label ? { label } : {}),
+      ...(classNode ? { class: classNode } : {}),
+      ...(property ? { property } : {})
+    }
+    saveUserGraphsToLocalStorage()
+  }
+  defaultsDialogVisible.value = false
+}
+
 </script>
 
 <template>
@@ -271,6 +316,14 @@ const commitChanges = async () => {
                 text
                 rounded
                 @click.stop="openUrl(slotProps.option.url)"
+              />
+              <Button
+                icon="pi pi-cog"
+                size="small"
+                text
+                rounded
+                @click.stop="openGraphDefaultsDialog(slotProps.option)"
+                v-tooltip="'Set defaults (label, class, property)'"
               />
               <Button
                 :icon="`pi pi-eye${slotProps.option.visible ? '' : '-slash'}`"
@@ -480,6 +533,59 @@ const commitChanges = async () => {
           :loading="commitLoading"
           :disabled="!commitMessage || !commitMessage.length"
           @click="commitChanges"
+        />
+      </template>
+    </Dialog>
+
+    <!-- Defaults dialog -->
+    <Dialog
+      header="Set Graph Defaults"
+      v-model:visible="defaultsDialogVisible"
+      modal
+    >
+      <span class="text-surface-500 dark:text-surface-400 block mb-8">Set default label, class, and property annotations
+        for this graph.</span>
+      <div class="flex flex-col gap-2 mb-4">
+        <label class="font-semibold">Label annotation</label>
+        <Select
+          v-model="defaultsDraft.label"
+          :options="labelNodes"
+          option-label="value"
+          option-value="value"
+          placeholder="Select label annotation"
+          class="w-full"
+        />
+        <label class="font-semibold">Class annotation</label>
+        <Select
+          v-model="defaultsDraft.class"
+          :options="classObjectNodes"
+          option-label="value"
+          option-value="value"
+          placeholder="Select class annotation"
+          class="w-full"
+        />
+        <label class="font-semibold">Property annotation</label>
+        <Select
+          v-model="defaultsDraft.property"
+          :options="propertyObjectNodes"
+          option-label="value"
+          option-value="value"
+          placeholder="Select property annotation"
+          class="w-full"
+        />
+      </div>
+      <template #footer>
+        <Button
+          label="Cancel"
+          text
+          @click="defaultsDialogVisible = false"
+        />
+        <Button
+          label="Save"
+          outlined
+          severity="secondary"
+          @click="saveGraphDefaults"
+          autofocus
         />
       </template>
     </Dialog>
