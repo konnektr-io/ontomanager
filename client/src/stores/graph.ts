@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import axios from 'axios'
 import { NamedNode, Quad, DataFactory } from 'n3'
@@ -126,7 +126,13 @@ interface QuadChange {
   scopeId: string
 }
 
+interface WorkSpaceConfig {
+  labelAnnotation?: string
+}
+
 export const useGraphStore = defineStore('graph', () => {
+  const workspaceConfig = ref<WorkSpaceConfig>({})
+
   const userGraphs = ref<GraphDetails[]>([])
 
   const visibleGraphs = computed<NamedNode[]>(() =>
@@ -151,6 +157,7 @@ export const useGraphStore = defineStore('graph', () => {
   )
 
   const initialize = async () => {
+    getWorkspaceConfigFromStorage()
     getUserGraphsFromLocalStorage()
 
     await graphStoreService.init()
@@ -226,6 +233,23 @@ export const useGraphStore = defineStore('graph', () => {
       })
     )
   }
+
+  const getWorkspaceConfigFromStorage = () => {
+    const workspaceConfigString = localStorage.getItem('workspaceConfig')
+    if (workspaceConfigString) {
+      workspaceConfig.value = JSON.parse(workspaceConfigString)
+    } else {
+      // Set default workspace config
+      workspaceConfig.value = {
+        labelAnnotation: 'http://www.w3.org/2000/01/rdf-schema#label'
+      }
+    }
+  }
+
+  const saveWorkspaceConfigToLocalStorage = () => {
+    localStorage.setItem('workspaceConfig', JSON.stringify(workspaceConfig.value))
+  }
+  watch(workspaceConfig, saveWorkspaceConfigToLocalStorage)
 
   const getUserGraphsFromLocalStorage = () => {
     const storedGraphs = localStorage.getItem('userGraphs')
@@ -465,6 +489,7 @@ export const useGraphStore = defineStore('graph', () => {
   return {
     reloadTrigger,
 
+    workspaceConfig,
     userGraphs,
     saveUserGraphsToLocalStorage,
     selectedOntology,
