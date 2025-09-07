@@ -9,12 +9,12 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Textarea from 'primevue/textarea'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
-import gitHubService from '@/services/GitHubService'
+import gitHubService from '../../../web/src/services/GitHubService'
 import { useGraphStore, type GraphDetails } from '@/stores/graph'
 import UserMenu from './UserMenu.vue'
-import AIService from '@/services/AIService'
+import AIService from '../../../web/src/services/AIService'
 import { NamedNode } from 'n3'
-import { labelNodes, classObjectNodes, propertyObjectNodes } from '@/services/GraphStoreService'
+import { labelNodes, classObjectNodes, propertyObjectNodes } from '../../../web/src/services/GraphStoreService'
 
 const toast = useToast()
 const confirm = useConfirm()

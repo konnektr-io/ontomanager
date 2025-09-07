@@ -8,7 +8,7 @@ import Select, { type SelectFilterEvent } from 'primevue/select'
 import { useDialog } from 'primevue/usedialog'
 import { useGitHubStore } from '@/stores/github'
 import { useGraphStore } from '@/stores/graph'
-import gitHubService from '@/services/GitHubService'
+import gitHubService from '../../../web/src/services/GitHubService'
 import CreateOntologyDialog from '@/components/CreateOntologyDialog.vue'
 
 const { isSignedIn, username } = storeToRefs(useGitHubStore())

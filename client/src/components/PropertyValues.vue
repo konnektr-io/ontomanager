@@ -5,7 +5,7 @@ import type { Quad_Object } from 'n3'
 import Button from 'primevue/button'
 import { useDialog } from 'primevue/usedialog'
 import { useGraphStore } from '@/stores/graph'
-import graphStoreService from '@/services/GraphStoreService'
+import graphStoreService from '../../../web/src/services/GraphStoreService'
 import PropertyValue from './PropertyValue.vue'
 import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
 
