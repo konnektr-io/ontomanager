@@ -28,6 +28,8 @@ OntoManager is a web-based RDF ontology management application that enables user
 │   ├── NewResourceDialog.vue (✅)│   ├── NewResourceDialog.vue (✅ MIGRATED)
 │   ├── NewIssueDialog.vue (✅)   │   ├── NewIssueDialog.vue (✅ MIGRATED)
 │   ├── IssueDialog.vue (✅)      │   ├── IssueDialog.vue (✅ MIGRATED)
+│   ├── PropertyValue.vue (✅)    │   ├── PropertyValue.vue (✅ MIGRATED)
+│   ├── PropertyValues.vue (✅)   │   ├── PropertyValues.vue (✅ MIGRATED)
 │   └── ... (❌ TODO)             │   └── ... (❌ TODO)
 └── views (❌ TODO)              └── views (❌ TODO)
 ```
@@ -119,12 +121,12 @@ OntoManager is a web-based RDF ontology management application that enables user
 - `NewIssueDialog.vue` (uses Dialog, InputText, Textarea, Button) ✅ **MIGRATED**
 - `IssueDialog.vue` (uses Dialog, Textarea, Button) ✅ **MIGRATED**
 
-**Phase 3 - Complex Components:**
+**Phase 3 - Complex Components:** 🔄 **IN PROGRESS**
 
-- `ResourceTree.vue` (uses Tree - needs custom implementation or collapsible)
-- `ResourceViewer.vue` (uses Panel, Menu, Tag, Button)
-- `PropertyValue.vue`, `PropertyValues.vue` (uses Panel, Divider, Button)
+- `PropertyValue.vue`, `PropertyValues.vue` (uses Panel, Divider, Button) ✅ **MIGRATED**
+- `ResourceViewer.vue` (uses Panel, Menu, Tag, Button) ⏭️ **NEXT**
 - `TheHeader.vue` (uses Select, Button, InputText, Dialog, ProgressSpinner)
+- `ResourceTree.vue` (uses Tree - needs custom implementation)
 
 **Phase 4 - Editor Dialogs:**
 
