@@ -38,14 +38,14 @@ import {
 import { TreeType, useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import gitHubService from '@/services/GitHubService'
-import { vocab } from '@/utils/vocab'
 import TermValue from './TermValue.vue'
 import PropertyValues from './PropertyValues.vue'
-// import AddPropertyDialog from './AddPropertyDialog.vue'
-// import NewResourceDialog from './NewResourceDialog.vue'
-// import EditRestrictionDialog from './EditRestrictionDialog.vue'
-// import EditPropertyShapeDialog from './EditPropertyShapeDialog.vue'
-// import NewIssueDialog from './NewIssueDialog.vue'
+import AddPropertyDialog from './AddPropertyDialog.vue'
+import NewResourceDialog from './NewResourceDialog.vue'
+import EditRestrictionDialog from './EditRestrictionDialog.vue'
+import EditPropertyShapeDialog from './EditPropertyShapeDialog.vue'
+import NewIssueDialog from './NewIssueDialog.vue'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 
 const {
     editMode,
@@ -155,24 +155,25 @@ const openIssueInGitHub = (issueNumber: number) => {
 }
 
 // Dialog handlers - TODO: Implement with Dialog pattern when components are migrated
-const openAddPropertyDialog = () => {
-    console.log('TODO: Open AddPropertyDialog')
-}
 
-const openNewIndividualDialog = (_parentUri?: string) => {
-    console.log('TODO: Open NewResourceDialog for individual')
-}
 
-const openEditRestrictionDialog = (_restrictionNode?: BlankNode) => {
-    console.log('TODO: Open EditRestrictionDialog')
-}
+// Dialog state
+const newIssueDialogOpen = ref(false)
+const addPropertyDialogOpen = ref(false)
+const addRestrictionDialogOpen = ref(false)
+const addIndividualDialogOpen = ref(false)
+const editPropertyShapeDialogOpen = ref(false)
+const editPropertyShapeNode = ref<BlankNode>()
+const editRestrictionDialogOpen = ref(false)
+const editRestrictionNode = ref<BlankNode>()
 
-const openEditPropertyShapeDialog = (_shapeNode?: BlankNode) => {
-    console.log('TODO: Open EditPropertyShapeDialog')
+const openEditPropertyShapeDialog = (shapeNode?: BlankNode) => {
+    editPropertyShapeNode.value = shapeNode
+    editPropertyShapeDialogOpen.value = true
 }
 
 const openNewIssueDialog = () => {
-    console.log('TODO: Open NewIssueDialog')
+    newIssueDialogOpen.value = true
 }
 
 const deleteRestriction = async (restrictionNode: BlankNode) => {
@@ -206,7 +207,7 @@ const individualsOpen = ref(false)
 <template>
     <div
         v-if="selectedResource"
-        class="w-full p-6 space-y-6"
+        class="w-full p-6 space-y-6 bg-background"
     >
         <!-- Header Section -->
         <div class="space-y-3">
@@ -217,8 +218,8 @@ const individualsOpen = ref(false)
                         <Tooltip>
                             <TooltipTrigger as-child>
                                 <Badge
-                                    variant="secondary"
-                                    class="font-mono text-xs cursor-help"
+                                    variant="outline"
+                                    class="font-mono text-xs cursor-help text-muted-foreground"
                                 >
                                     {{ getPrefixedUri(selectedResource) }}
                                 </Badge>
@@ -244,8 +245,8 @@ const individualsOpen = ref(false)
                                 <MessageSquare class="mr-2 h-4 w-4" />
                                 Issues
                                 <Badge
-                                    variant="secondary"
-                                    class="ml-2"
+                                    variant="outline"
+                                    class="ml-2 text-muted-foreground font-mono"
                                 >{{ issues.length }}</Badge>
                             </Button>
                         </DropdownMenuTrigger>
@@ -261,7 +262,7 @@ const individualsOpen = ref(false)
                                 <ExternalLink class="mr-2 h-4 w-4" />
                                 <span class="truncate">{{
                                     issue.title.replace(`\`${selectedResource}\``, '')
-                                    }}</span>
+                                }}</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -282,7 +283,7 @@ const individualsOpen = ref(false)
         <!-- Annotations Section -->
         <Collapsible v-model:open="annotationsOpen">
             <Card>
-                <CardHeader class="cursor-pointer hover:bg-accent/50 transition-colors">
+                <CardHeader class="cursor-pointer hover:bg-accent/50 transition-colors py-3">
                     <CollapsibleTrigger class="flex items-center justify-between w-full">
                         <div class="flex items-center gap-2">
                             <ChevronRight
@@ -294,7 +295,7 @@ const individualsOpen = ref(false)
                     </CollapsibleTrigger>
                 </CardHeader>
                 <CollapsibleContent>
-                    <CardContent class="pt-0">
+                    <CardContent class="pt-0 space-y-2">
                         <PropertyValues :subject="selectedResource" />
                     </CardContent>
                 </CollapsibleContent>
@@ -302,116 +303,132 @@ const individualsOpen = ref(false)
         </Collapsible>
 
         <!-- Property Shapes Section -->
-        <div
-            v-if="propertyShapes.length || (editMode && isNodeShape)"
-            class="space-y-3"
-        >
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <Shapes class="h-5 w-5 text-muted-foreground" />
-                    <h2 class="text-xl font-semibold">Property Shapes</h2>
-                    <Badge
-                        v-if="propertyShapes.length"
-                        variant="secondary"
-                    >{{
-                        propertyShapes.length
-                        }}</Badge>
-                </div>
-                <Button
-                    v-if="editMode"
-                    variant="outline"
-                    size="sm"
-                    @click="openEditPropertyShapeDialog()"
-                >
-                    <Plus class="mr-2 h-4 w-4" />
-                    Add Shape
-                </Button>
-            </div>
-
-            <p
-                v-if="!propertyShapes.length"
-                class="text-sm text-muted-foreground"
-            >
-                No property shapes defined.
-            </p>
-
+        <Dialog v-model:open="editPropertyShapeDialogOpen">
             <div
-                v-else
-                class="space-y-2"
+                v-if="propertyShapes.length || (editMode && isNodeShape)"
+                class="space-y-3"
             >
-                <Collapsible
-                    v-for="(propertyShape, index) in propertyShapes"
-                    :key="propertyShape.blankNode.value"
-                    v-model:open="propertyShapesOpen"
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <Shapes class="h-5 w-5 text-muted-foreground" />
+                        <h2 class="text-xl font-semibold">Property Shapes</h2>
+                        <Badge
+                            v-if="propertyShapes.length"
+                            variant="outline"
+                            class="text-muted-foreground font-mono"
+                        >{{
+                            propertyShapes.length
+                        }}</Badge>
+                    </div>
+                    <DialogTrigger
+                        v-if="editMode"
+                        as-child
+                    >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                        >
+                            <Plus class="mr-2 h-4 w-4" />
+                            Add Shape
+                        </Button>
+                    </DialogTrigger>
+                </div>
+
+                <p
+                    v-if="!propertyShapes.length"
+                    class="text-sm text-muted-foreground"
                 >
-                    <Card>
-                        <CardHeader class="cursor-pointer hover:bg-accent/50 transition-colors py-3">
-                            <CollapsibleTrigger class="flex items-center justify-between w-full">
-                                <div class="flex items-center gap-3 flex-1">
-                                    <ChevronRight
-                                        class="h-4 w-4 transition-transform duration-200 flex-shrink-0"
-                                        :class="{ 'transform rotate-90': propertyShapesOpen }"
-                                    />
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger as-child>
-                                                <span
-                                                    class="font-semibold cursor-pointer hover:text-primary"
-                                                    @click.stop="selectedResource = propertyShape.propertyNode.value"
-                                                >
-                                                    {{ propertyShape.label }}
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{{ getPrefixedUri(propertyShape.propertyNode.value) }}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                    <div class="flex flex-wrap items-center gap-1">
-                                        <TermValue
-                                            v-for="valueNode of propertyShape.valueNodes"
-                                            :key="valueNode.id"
-                                            :term="valueNode"
-                                            class="text-sm"
-                                            @click-uri="selectedResource = valueNode.value"
+                    No property shapes defined.
+                </p>
+
+                <div
+                    v-else
+                    class="space-y-2"
+                >
+                    <Collapsible
+                        v-for="propertyShape in propertyShapes"
+                        :key="propertyShape.blankNode.value"
+                        v-model:open="propertyShapesOpen"
+                    >
+                        <Card>
+                            <CardHeader class="cursor-pointer hover:bg-accent/50 transition-colors py-3">
+                                <CollapsibleTrigger class="flex items-center justify-between w-full">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <ChevronRight
+                                            class="h-4 w-4 transition-transform duration-200 flex-shrink-0"
+                                            :class="{ 'transform rotate-90': propertyShapesOpen }"
                                         />
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <span
+                                                        class="font-semibold cursor-pointer hover:text-primary"
+                                                        @click.stop="selectedResource = propertyShape.propertyNode.value"
+                                                    >
+                                                        {{ propertyShape.label }}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{{ getPrefixedUri(propertyShape.propertyNode.value) }}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <div class="flex flex-wrap items-center gap-1">
+                                            <TermValue
+                                                v-for="valueNode of propertyShape.valueNodes"
+                                                :key="valueNode.id"
+                                                :term="valueNode"
+                                                class="text-sm"
+                                                @click-uri="selectedResource = valueNode.value"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                                <div
-                                    v-if="editMode"
-                                    class="flex items-center gap-1 ml-2"
-                                    @click.stop
-                                >
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="h-8 w-8"
-                                        @click="openEditPropertyShapeDialog(propertyShape.blankNode)"
+                                    <div
+                                        v-if="editMode"
+                                        class="flex items-center gap-1 ml-2"
+                                        @click.stop
                                     >
-                                        <Pencil class="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="h-8 w-8 text-destructive hover:text-destructive"
-                                        @click="deletePropertyShape(propertyShape.blankNode)"
-                                    >
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </CollapsibleTrigger>
-                        </CardHeader>
-                        <CollapsibleContent>
-                            <CardContent class="pt-0">
-                                <PropertyValues :subject="propertyShape.blankNode.value" />
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            @click="openEditPropertyShapeDialog(propertyShape.blankNode)"
+                                        >
+                                            <Pencil class="h-4 w-4" />
+                                        </Button>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            class="h-8 w-8 text-destructive hover:text-destructive"
+                                            @click="deletePropertyShape(propertyShape.blankNode)"
+                                        >
+                                            <Trash2 class="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                </CollapsibleTrigger>
+                            </CardHeader>
+                            <CollapsibleContent>
+                                <CardContent class="pt-0 space-y-2">
+                                    <PropertyValues :subject="propertyShape.blankNode.value" />
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
+                </div>
+                <EditPropertyShapeDialog
+                    v-if="selectedOntology?.node?.value && scopeId"
+                    :shape-node="editPropertyShapeNode"
+                    :subject="selectedResource"
+                    :graph-id="selectedOntology.node.value"
+                    :scope-id="scopeId"
+                    @close="editPropertyShapeDialogOpen = false"
+                    @updated="reloadTrigger++"
+                />
             </div>
-        </div>
+        </Dialog>
 
         <!-- Restrictions Section -->
+        <Dialog v-model:open="editRestrictionDialogOpen">
         <div
             v-if="restrictions.length || (editMode && isClass)"
             class="space-y-3"
@@ -422,18 +439,32 @@ const individualsOpen = ref(false)
                     <h2 class="text-xl font-semibold">Restrictions</h2>
                     <Badge
                         v-if="restrictions.length"
-                        variant="secondary"
+                        variant="outline"
+                        class="text-muted-foreground font-mono"
                     >{{ restrictions.length }}</Badge>
                 </div>
-                <Button
-                    v-if="editMode"
-                    variant="outline"
-                    size="sm"
-                    @click="openEditRestrictionDialog()"
-                >
-                    <Plus class="mr-2 h-4 w-4" />
-                    Add Restriction
-                </Button>
+                <Dialog v-model:open="addRestrictionDialogOpen">
+                    <DialogTrigger
+                        v-if="editMode"
+                        as-child
+                    >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                        >
+                            <Plus class="mr-2 h-4 w-4" />
+                            Add Restriction
+                        </Button>
+                    </DialogTrigger>
+                    <EditRestrictionDialog
+                        v-if="selectedResource && selectedOntology?.node?.value && scopeId"
+                        :subject="selectedResource"
+                        :graph-id="selectedOntology.node.value"
+                        :scope-id="scopeId"
+                        @confirm="addRestrictionDialogOpen = false; reloadTrigger++"
+                        @cancel="addRestrictionDialogOpen = false"
+                    />
+                </Dialog>
             </div>
 
             <p
@@ -490,14 +521,16 @@ const individualsOpen = ref(false)
                                     class="flex items-center gap-1 ml-2"
                                     @click.stop
                                 >
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="h-8 w-8"
-                                        @click="openEditRestrictionDialog(restriction.blankNode)"
-                                    >
-                                        <Pencil class="h-4 w-4" />
-                                    </Button>
+                                    <DialogTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            class="h-8 w-8"
+                                            @click="editRestrictionNode = restriction.blankNode"
+                                        >
+                                            <Pencil class="h-4 w-4" />
+                                        </Button>
+                                    </DialogTrigger>
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -517,7 +550,16 @@ const individualsOpen = ref(false)
                     </Card>
                 </Collapsible>
             </div>
+            <EditRestrictionDialog
+                v-if="selectedResource && selectedOntology?.node?.value"
+                :subject="selectedResource"
+                :graph-id="selectedOntology.node.value"
+                :restriction-node="editRestrictionNode"
+                @confirm="editRestrictionDialogOpen = false; reloadTrigger++"
+                @cancel="editRestrictionDialogOpen = false"
+            />
         </div>
+        </Dialog>
 
         <!-- Properties Section -->
         <div
@@ -530,18 +572,32 @@ const individualsOpen = ref(false)
                     <h2 class="text-xl font-semibold">Properties</h2>
                     <Badge
                         v-if="properties.length"
-                        variant="secondary"
+                        variant="outline"
+                        class="text-muted-foreground font-mono"
                     >{{ properties.length }}</Badge>
                 </div>
-                <Button
-                    v-if="editMode"
-                    variant="outline"
-                    size="sm"
-                    @click="openAddPropertyDialog"
-                >
-                    <Plus class="mr-2 h-4 w-4" />
-                    Add Property
-                </Button>
+                <Dialog v-model:open="addPropertyDialogOpen">
+                    <DialogTrigger
+                        v-if="editMode"
+                        as-child
+                    >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                        >
+                            <Plus class="mr-2 h-4 w-4" />
+                            Add Property
+                        </Button>
+                    </DialogTrigger>
+                    <AddPropertyDialog
+                        v-if="selectedResource && selectedOntology?.node?.value"
+                        :existing-property-nodes="properties.map(p => p.node.value)"
+                        :domain="selectedResource"
+                        :graph-id="selectedOntology.node.value"
+                        @confirm="addPropertyDialogOpen = false; reloadTrigger++"
+                        @cancel="addPropertyDialogOpen = false"
+                    />
+                </Dialog>
             </div>
 
             <p
@@ -616,18 +672,32 @@ const individualsOpen = ref(false)
                     <h2 class="text-xl font-semibold">Individuals</h2>
                     <Badge
                         v-if="individuals.length"
-                        variant="secondary"
+                        variant="outline"
+                        class="text-muted-foreground font-mono"
                     >{{ individuals.length }}</Badge>
                 </div>
-                <Button
-                    v-if="editMode"
-                    variant="outline"
-                    size="sm"
-                    @click="openNewIndividualDialog(selectedResource)"
-                >
-                    <Plus class="mr-2 h-4 w-4" />
-                    Add Individual
-                </Button>
+                <Dialog v-model:open="addIndividualDialogOpen">
+                    <DialogTrigger
+                        v-if="editMode"
+                        as-child
+                    >
+                        <Button
+                            variant="outline"
+                            size="sm"
+                        >
+                            <Plus class="mr-2 h-4 w-4" />
+                            Add Individual
+                        </Button>
+                    </DialogTrigger>
+                    <NewResourceDialog
+                        v-if="selectedResource && selectedOntology?.node?.value"
+                        :parent-uri="selectedResource"
+                        :type="TreeType.Individuals"
+                        :graph-id="selectedOntology.node.value"
+                        @close="addIndividualDialogOpen = false"
+                        @created="reloadTrigger++"
+                    />
+                </Dialog>
             </div>
 
             <p
@@ -673,7 +743,7 @@ const individualsOpen = ref(false)
                             </CollapsibleTrigger>
                         </CardHeader>
                         <CollapsibleContent>
-                            <CardContent class="pt-0">
+                            <CardContent class="pt-0 space-y-2">
                                 <PropertyValues :subject="individual.node.value" />
                             </CardContent>
                         </CollapsibleContent>
@@ -681,5 +751,15 @@ const individualsOpen = ref(false)
                 </Collapsible>
             </div>
         </div>
+
+        <!-- Dialogs -->
+        <Dialog v-model:open="newIssueDialogOpen">
+            <NewIssueDialog
+                v-if="selectedResource"
+                :parent-uri="selectedResource"
+                @confirm="newIssueDialogOpen = false; reloadTrigger++"
+                @cancel="newIssueDialogOpen = false"
+            />
+        </Dialog>
     </div>
 </template>

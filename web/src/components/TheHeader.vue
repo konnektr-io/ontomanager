@@ -301,18 +301,37 @@ const saveGraphDefaults = () => {
     }
     defaultsDialogVisible.value = false
 }
+
+// Helper function to get display name for a graph
+const getGraphDisplayName = (graph: GraphDetails) => {
+    // If it's a GitHub URL, use the filename
+    if (graph.path) {
+        return graph.path.split('/').pop()?.replace('.ttl', '') || graph.url
+    }
+    // Otherwise, extract the last part of the URL
+    try {
+        const url = new URL(graph.url)
+        const pathParts = url.pathname.split('/').filter(Boolean)
+        if (pathParts.length > 0) {
+            return pathParts[pathParts.length - 1].replace('.ttl', '')
+        }
+    } catch {
+        // If URL parsing fails, use the full URL
+    }
+    return graph.url
+}
 </script>
 
 <template>
-    <div class="flex items-center justify-between w-full px-6 py-4 border-b bg-background">
-        <!-- Title -->
-        <div class="flex items-center gap-2 text-lg font-semibold">
-            <Network class="h-5 w-5" />
-            <span>OntoManager</span>
-        </div>
+    <div class="flex items-center justify-between w-full gap-4">
+        <!-- Left: Ontology Select & Controls -->
+        <div class="flex items-center gap-3 flex-1">
+            <!-- Product Title -->
+            <div class="flex items-center gap-2 text-lg font-semibold">
+                <Network class="h-5 w-5" />
+                <span>Konnektr Lexicon</span>
+            </div>
 
-        <!-- Ontology Select & Controls -->
-        <div class="flex items-center gap-4">
             <!-- Loading Spinner -->
             <div
                 v-if="Object.values(graphsLoading).some((l) => l)"
@@ -325,9 +344,9 @@ const saveGraphDefaults = () => {
                 :model-value="selectedOntology?.url"
                 @update:model-value="changeSelectedOntology"
             >
-                <SelectTrigger class="w-[32rem]">
+                <SelectTrigger class="w-[280px]">
                     <SelectValue placeholder="Select Ontology to Edit">
-                        <span v-if="selectedOntology">{{ selectedOntology.url }}</span>
+                        <span v-if="selectedOntology">{{ getGraphDisplayName(selectedOntology) }}</span>
                     </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
@@ -343,7 +362,10 @@ const saveGraphDefaults = () => {
                                     v-if="graphsLoading[graph.url]"
                                     class="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full flex-shrink-0"
                                 ></div>
-                                <span class="text-sm truncate">{{ graph.url }}</span>
+                                <span
+                                    class="text-sm truncate"
+                                    :title="graph.url"
+                                >{{ getGraphDisplayName(graph) }}</span>
                             </div>
 
                             <div class="flex items-center gap-1 flex-shrink-0">
@@ -445,25 +467,6 @@ const saveGraphDefaults = () => {
                 </SelectContent>
             </Select>
 
-            <!-- Error Indicator -->
-            <TooltipProvider v-if="userGraphs.some((g) => g.error)">
-                <Tooltip>
-                    <TooltipTrigger as-child>
-                        <AlertCircle class="h-5 w-5 text-destructive" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                        <div class="space-y-1">
-                            <p
-                                v-for="graph in userGraphs.filter((g) => g.error)"
-                                :key="graph.url"
-                            >
-                                {{ graph.error }}
-                            </p>
-                        </div>
-                    </TooltipContent>
-                </Tooltip>
-            </TooltipProvider>
-
             <!-- Branch Select -->
             <Select
                 v-if="userGraphs.length && selectedOntology && selectedOntology.branch"
@@ -471,7 +474,7 @@ const saveGraphDefaults = () => {
                 @update:model-value="changeBranch"
                 @click="fetchBranches(selectedOntology)"
             >
-                <SelectTrigger class="w-36">
+                <SelectTrigger class="w-[140px]">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -499,10 +502,30 @@ const saveGraphDefaults = () => {
                 </SelectContent>
             </Select>
 
+            <!-- Error Indicator -->
+            <TooltipProvider v-if="userGraphs.some((g) => g.error)">
+                <Tooltip>
+                    <TooltipTrigger as-child>
+                        <AlertCircle class="h-5 w-5 text-destructive" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                        <div class="space-y-1">
+                            <p
+                                v-for="graph in userGraphs.filter((g) => g.error)"
+                                :key="graph.url"
+                            >
+                                {{ graph.error }}
+                            </p>
+                        </div>
+                    </TooltipContent>
+                </Tooltip>
+            </TooltipProvider>
+
             <!-- Commit Button -->
             <Button
                 v-if="selectedOntology && selectedOntology.branch"
                 variant="outline"
+                size="sm"
                 @click="openCommitDialog"
             >
                 Commit
@@ -515,7 +538,7 @@ const saveGraphDefaults = () => {
         </div>
 
         <!-- Right-aligned content -->
-        <div class="flex items-center gap-4">
+        <div class="flex items-center gap-3">
             <UserMenu />
         </div>
 

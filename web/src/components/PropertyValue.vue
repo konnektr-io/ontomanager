@@ -12,10 +12,11 @@ import {
   TooltipTrigger
 } from '@/components/ui/tooltip'
 import { Pencil } from 'lucide-vue-next'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 import graphStoreService from '@/services/GraphStoreService'
 import { useGraphStore } from '@/stores/graph'
 import { vocab } from '@/utils/vocab'
-// import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
+import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
 import TermValue from './TermValue.vue'
 import PropertyValues from './PropertyValues.vue'
 
@@ -38,12 +39,7 @@ watch(
   { immediate: true }
 )
 
-// TODO: Implement dialog pattern when EditPredicateObjectsDialog is migrated
-const openDialog = (_predicate: string) => {
-  if (!selectedOntology.value) return
-  console.log('Open edit predicate objects dialog - to be implemented')
-  // Will need to use Dialog + DialogTrigger pattern with EditPredicateObjectsDialog
-}
+const editDialogOpen = ref(false)
 </script>
 
 <template>
@@ -68,15 +64,28 @@ const openDialog = (_predicate: string) => {
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
-    <Button
-      v-if="editMode && predicateObjects.editable"
-      variant="ghost"
-      size="icon"
-      class="h-6 w-6"
-      @click="() => openDialog(predicate)"
-    >
-      <Pencil class="h-3 w-3" />
-    </Button>
+    <Dialog v-model:open="editDialogOpen">
+      <DialogTrigger
+        v-if="editMode && predicateObjects.editable"
+        as-child
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          class="h-6 w-6"
+        >
+          <Pencil class="h-3 w-3" />
+        </Button>
+      </DialogTrigger>
+      <EditPredicateObjectsDialog
+        v-if="selectedOntology?.node?.value"
+        :subject-uri="subject"
+        :predicate-uri="predicate"
+        :graph-uri="selectedOntology.node.value"
+        @confirm="editDialogOpen = false"
+        @cancel="editDialogOpen = false"
+      />
+    </Dialog>
   </div>
   <div class="flex flex-wrap items-center gap-2">
     <TermValue

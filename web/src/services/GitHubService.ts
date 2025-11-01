@@ -16,23 +16,23 @@ export interface GitHubExtendedTokenData extends GitHubTokenData {
 }
 
 class GitHubService {
-  private octokit: Octokit
-  private tokenData: GitHubExtendedTokenData | null = null
+  private octokit: Octokit;
+  private tokenData: GitHubExtendedTokenData | null = null;
 
   public constructor() {
-    this.octokit = new Octokit()
-    this.loadTokenData()
+    this.octokit = new Octokit();
+    this.loadTokenData();
   }
 
   private loadTokenData() {
-    const tokenData = localStorage.getItem('githubTokenData')
+    const tokenData = localStorage.getItem("githubTokenData");
     if (tokenData) {
-      this.tokenData = JSON.parse(tokenData)
+      this.tokenData = JSON.parse(tokenData);
       if (
         this.tokenData?.access_token &&
         !this.isTokenExpired(this.tokenData.access_token_expiry)
       ) {
-        this.octokit = new Octokit({ auth: this.tokenData.access_token })
+        this.octokit = new Octokit({ auth: this.tokenData.access_token });
       }
     }
   }
@@ -41,65 +41,68 @@ class GitHubService {
     this.tokenData = {
       ...tokenData,
       access_token_expiry: Date.now() + tokenData.expires_in * 1000,
-      refresh_token_expiry: Date.now() + tokenData.refresh_token_expires_in * 1000
-    }
-    localStorage.setItem('githubTokenData', JSON.stringify(this.tokenData))
-    this.octokit = new Octokit({ auth: tokenData.access_token })
+      refresh_token_expiry:
+        Date.now() + tokenData.refresh_token_expires_in * 1000,
+    };
+    localStorage.setItem("githubTokenData", JSON.stringify(this.tokenData));
+    this.octokit = new Octokit({ auth: tokenData.access_token });
   }
 
   public async exchangeCodeForToken(code: string) {
     const response = await axios.post<GitHubTokenData>(
-      '/api/github/oauth/token',
+      "/api/github/oauth/token",
       new URLSearchParams({ code }),
       {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded'
-        }
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
       }
-    )
-    this.saveTokenData(response.data)
-    return response.data
+    );
+    this.saveTokenData(response.data);
+    return response.data;
   }
 
   private async refreshToken() {
     try {
       if (!this.tokenData) {
-        return
+        return;
       }
       const response = await axios.post<GitHubTokenData>(
-        '/api/github/oauth/refresh-token',
+        "/api/github/oauth/refresh-token",
         new URLSearchParams({
-          refresh_token: this.tokenData.refresh_token
+          refresh_token: this.tokenData.refresh_token,
         }),
         {
           headers: {
-            'Content-Type': 'application/x-www-form-urlencoded'
-          }
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
         }
-      )
-      this.saveTokenData(response.data)
-      return response.data
+      );
+      this.saveTokenData(response.data);
+      return response.data;
     } catch (error) {
-      console.error('Error refreshing token', error)
+      console.error("Error refreshing token", error);
     }
   }
 
   private isTokenExpired(tokenExpiry: number) {
-    return Date.now() > tokenExpiry
+    return Date.now() > tokenExpiry;
   }
 
   public loginToGitHub() {
-    localStorage.removeItem('githubTokenData')
-    const redirectUri = `${window.location.origin}`
-    const state = encodeURIComponent(window.location.pathname + window.location.hash)
-    const githubAuthUrl = `/api/github/oauth/login?redirect_uri=${redirectUri}&state=${state}`
-    window.location.href = githubAuthUrl
+    localStorage.removeItem("githubTokenData");
+    const redirectUri = `${window.location.origin}`;
+    const state = encodeURIComponent(
+      window.location.pathname + window.location.hash
+    );
+    const githubAuthUrl = `/api/github/oauth/login?redirect_uri=${redirectUri}&state=${state}`;
+    window.location.href = githubAuthUrl;
   }
 
   public async authenticate(token: string) {
-    this.octokit = new Octokit({ auth: token })
-    const user = await this.getUser()
-    return user
+    this.octokit = new Octokit({ auth: token });
+    const user = await this.getUser();
+    return user;
   }
 
   public async silentLogin() {
@@ -113,142 +116,272 @@ class GitHubService {
       try {
         if (this.isTokenExpired(this.tokenData.access_token_expiry)) {
           if (this.isTokenExpired(this.tokenData.refresh_token_expiry)) {
-            console.warn('Refresh token expired')
-            localStorage.removeItem('githubTokenData')
-            return false
+            console.warn("Refresh token expired");
+            localStorage.removeItem("githubTokenData");
+            return false;
           } else {
-            await this.refreshToken()
+            await this.refreshToken();
           }
         }
-        return await this.authenticate(this.tokenData.access_token)
+        return await this.authenticate(this.tokenData.access_token);
       } catch (error) {
-        console.warn('Error during silent login', error)
+        console.warn("Error during silent login", error);
       }
     }
-    return null
+    return null;
   }
 
   public async getUser() {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
-    const response = await this.octokit.users.getAuthenticated()
-    return response.data
+    const response = await this.octokit.users.getAuthenticated();
+    return response.data;
   }
 
   public async getRepositories(username: string) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
-    const response = await this.octokit.repos.listForAuthenticatedUser({ username, per_page: 100 })
-    return response.data
+    const response = await this.octokit.repos.listForAuthenticatedUser({
+      username,
+      per_page: 100,
+    });
+    return response.data;
   }
 
   public async getBranches(owner: string, repo: string) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
-    const response = await this.octokit.repos.listBranches({ owner, repo })
-    return response.data
+    const response = await this.octokit.repos.listBranches({ owner, repo });
+    return response.data;
   }
 
-  public async createNewBranch(owner: string, repo: string, sha: string, newBranch: string) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+  public async createNewBranch(
+    owner: string,
+    repo: string,
+    sha: string,
+    newBranch: string
+  ) {
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
     const response = await this.octokit.git.createRef({
       owner,
       repo,
       ref: `refs/heads/${newBranch}`,
-      sha
-    })
-    return response.data
+      sha,
+    });
+    return response.data;
   }
 
-  public async getFiles(owner: string, repo: string, ref?: string, search?: string) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+  public async getFiles(
+    owner: string,
+    repo: string,
+    ref?: string,
+    search?: string
+  ) {
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
     const response = await this.octokit.repos.getContent({
       owner,
       repo,
-      path: search || '',
-      ref
-    })
+      path: search || "",
+      ref,
+    });
     if (Array.isArray(response.data)) {
-      return response.data
+      return response.data;
     }
-    return [response.data]
+    return [response.data];
   }
 
-  public async getLatestFileSha(owner: string, repo: string, path: string, ref?: string) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+  /**
+   * Recursively fetches all .ttl files from a repository
+   */
+  public async getTurtleFiles(
+    owner: string,
+    repo: string,
+    ref?: string,
+    path: string = ""
+  ): Promise<string[]> {
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
-    const response = await this.octokit.repos.getContent({
-      owner,
-      repo,
-      path,
-      ref
-    })
-    if (Array.isArray(response.data) || !('sha' in response.data)) {
-      throw new Error('File not found or is a directory')
+
+    const turtleFiles: string[] = [];
+
+    try {
+      const response = await this.octokit.repos.getContent({
+        owner,
+        repo,
+        path,
+        ref,
+      });
+
+      const items = Array.isArray(response.data)
+        ? response.data
+        : [response.data];
+
+      for (const item of items) {
+        if (item.type === "file" && item.name.endsWith(".ttl")) {
+          turtleFiles.push(item.path);
+        } else if (item.type === "dir") {
+          // Recursively search subdirectories
+          const subFiles = await this.getTurtleFiles(
+            owner,
+            repo,
+            ref,
+            item.path
+          );
+          turtleFiles.push(...subFiles);
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching files from ${path}:`, error);
     }
-    return response.data.sha
+
+    return turtleFiles;
   }
 
-  public async getFileContent(owner: string, repo: string, path: string, ref?: string) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+  public async getLatestFileSha(
+    owner: string,
+    repo: string,
+    path: string,
+    ref?: string
+  ) {
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
     const response = await this.octokit.repos.getContent({
       owner,
       repo,
       path,
       ref,
-      mediaType: { format: 'application/vnd.github.raw+json' }
-    })
+    });
+    if (Array.isArray(response.data) || !("sha" in response.data)) {
+      throw new Error("File not found or is a directory");
+    }
+    return response.data.sha;
+  }
 
-    if (Array.isArray(response.data) || !('content' in response.data)) {
-      throw new Error('File not found or is a directory')
+  public async getFileContent(
+    owner: string,
+    repo: string,
+    path: string,
+    ref?: string
+  ) {
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
+    }
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
+    }
+    const response = await this.octokit.repos.getContent({
+      owner,
+      repo,
+      path,
+      ref,
+      mediaType: { format: "application/vnd.github.raw+json" },
+    });
+
+    if (Array.isArray(response.data) || !("content" in response.data)) {
+      throw new Error("File not found or is a directory");
     }
 
-    if (typeof response.data.content === 'string' && response.data.encoding === 'base64') {
-      const content = response.data.content
-      const decodedContent = atob(content)
-      const uint8Array = new Uint8Array(decodedContent.split('').map((char) => char.charCodeAt(0)))
-      const textDecoder = new TextDecoder('utf-8')
-      return textDecoder.decode(uint8Array)
+    if (
+      typeof response.data.content === "string" &&
+      response.data.encoding === "base64"
+    ) {
+      const content = response.data.content;
+      const decodedContent = atob(content);
+      const uint8Array = new Uint8Array(
+        decodedContent.split("").map((char) => char.charCodeAt(0))
+      );
+      const textDecoder = new TextDecoder("utf-8");
+      return textDecoder.decode(uint8Array);
     } else if (response.data.git_url) {
       // Get the raw content from the git URL usinc octokit
-      const rawDataResponse = await this.octokit.request('GET ' + response.data.git_url, {
-        headers: {
-          Accept: 'application/vnd.github.v3.raw'
+      const rawDataResponse = await this.octokit.request(
+        "GET " + response.data.git_url,
+        {
+          headers: {
+            Accept: "application/vnd.github.v3.raw",
+          },
         }
-      })
+      );
 
-      return rawDataResponse.data
+      return rawDataResponse.data;
     }
   }
 
@@ -260,11 +393,17 @@ class GitHubService {
     message: string,
     branch: string
   ) {
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      await this.silentLogin()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      await this.silentLogin();
     }
-    if (!this.tokenData || this.isTokenExpired(this.tokenData.access_token_expiry)) {
-      this.loginToGitHub()
+    if (
+      !this.tokenData ||
+      this.isTokenExpired(this.tokenData.access_token_expiry)
+    ) {
+      this.loginToGitHub();
     }
 
     const response = await this.octokit.repos
@@ -272,19 +411,19 @@ class GitHubService {
         owner,
         repo,
         path,
-        ref: branch
+        ref: branch,
       })
-      .catch(() => null)
+      .catch(() => null);
 
     const sha =
-      response && !Array.isArray(response.data) && 'sha' in response.data
+      response && !Array.isArray(response.data) && "sha" in response.data
         ? response.data.sha
-        : undefined
+        : undefined;
 
     const encodedContent = new TextEncoder()
       .encode(content)
-      .reduce((acc, byte) => acc + String.fromCharCode(byte), '')
-    const base64EncodedContent = btoa(encodedContent)
+      .reduce((acc, byte) => acc + String.fromCharCode(byte), "");
+    const base64EncodedContent = btoa(encodedContent);
     const commitResponse = await this.octokit.repos.createOrUpdateFileContents({
       owner,
       repo,
@@ -292,10 +431,10 @@ class GitHubService {
       message,
       content: base64EncodedContent,
       sha,
-      branch
-    })
+      branch,
+    });
 
-    return commitResponse.data
+    return commitResponse.data;
   }
 
   public async createIssue(
@@ -310,44 +449,53 @@ class GitHubService {
       repo,
       title,
       body,
-      labels
-    })
-    return response.data
+      labels,
+    });
+    return response.data;
   }
 
   public async searchIssues(owner: string, repo: string, query: string) {
     const response = await this.octokit.search.issuesAndPullRequests({
-      q: `is:issue is:open ${query}`
-    })
-    return response.data.items
+      q: `is:issue is:open ${query}`,
+    });
+    return response.data.items;
   }
 
   public async getIssue(owner: string, repo: string, issueNumber: number) {
     const response = await this.octokit.issues.get({
       owner,
       repo,
-      issue_number: issueNumber
-    })
-    return response.data
+      issue_number: issueNumber,
+    });
+    return response.data;
   }
 
-  public async getIssueComments(owner: string, repo: string, issueNumber: number) {
+  public async getIssueComments(
+    owner: string,
+    repo: string,
+    issueNumber: number
+  ) {
     const response = await this.octokit.issues.listComments({
       owner,
       repo,
-      issue_number: issueNumber
-    })
-    return response.data
+      issue_number: issueNumber,
+    });
+    return response.data;
   }
 
-  public async addIssueComment(owner: string, repo: string, issueNumber: number, body: string) {
+  public async addIssueComment(
+    owner: string,
+    repo: string,
+    issueNumber: number,
+    body: string
+  ) {
     const response = await this.octokit.issues.createComment({
       owner,
       repo,
       issue_number: issueNumber,
-      body
-    })
-    return response.data
+      body,
+    });
+    return response.data;
   }
 }
 

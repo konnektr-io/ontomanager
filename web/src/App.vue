@@ -1,30 +1,73 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { onMounted, ref } from 'vue'
+import { optIn } from 'vue-gtag'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Toaster } from '@/components/ui/sonner'
+import { SidebarProvider } from '@/components/ui/sidebar'
+
+const cookieDialogOpen = ref(false)
+
+const acceptCookies = () => {
+  // Enable Google Analytics tracking
+  optIn()
+  localStorage.setItem('cookie-consent', 'true')
+  cookieDialogOpen.value = false
+}
+
+const declineCookies = () => {
+  cookieDialogOpen.value = false
+}
+
+onMounted(() => {
+  if (!localStorage.getItem('cookie-consent') &&
+    typeof import.meta.env.VITE_GA_MEASUREMENT_ID === 'string' &&
+    import.meta.env.VITE_GA_MEASUREMENT_ID.length > 0) {
+    cookieDialogOpen.value = true
+  } else if (localStorage.getItem('cookie-consent') === 'true') {
+    optIn()
+  }
+})
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+  <SidebarProvider>
+    <div class="flex h-screen w-full overflow-hidden">
+      <!-- Main View with Sidebar -->
+      <RouterView class="flex flex-1 w-full" />
+
+      <!-- Cookie Consent Dialog -->
+      <AlertDialog v-model:open="cookieDialogOpen">
+        <AlertDialogContent class="fixed bottom-4 right-4 max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cookie Consent</AlertDialogTitle>
+            <AlertDialogDescription>
+              We use cookies to track usage and improve your experience. Do you consent to the use of cookies for
+              analytics?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel @click="declineCookies">
+              Decline
+            </AlertDialogCancel>
+            <AlertDialogAction @click="acceptCookies">
+              Accept
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <!-- Toast Notifications -->
+      <Toaster />
+    </div>
+  </SidebarProvider>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>

@@ -10,4 +10,14 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  assetsInclude: ["**/*.ttl"],
+  server: {
+    proxy: {
+      "/api": {
+        target: "https://ontomanager-720202460313.europe-west1.run.app",
+        secure: false,
+        changeOrigin: true,
+      },
+    },
+  },
 });
