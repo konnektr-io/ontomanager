@@ -30,6 +30,7 @@ OntoManager is a web-based RDF ontology management application that enables user
 │   ├── IssueDialog.vue (✅)      │   ├── IssueDialog.vue (✅ MIGRATED)
 │   ├── PropertyValue.vue (✅)    │   ├── PropertyValue.vue (✅ MIGRATED)
 │   ├── PropertyValues.vue (✅)   │   ├── PropertyValues.vue (✅ MIGRATED)
+│   ├── ResourceViewer.vue (✅)   │   ├── ResourceViewer.vue (✅ MIGRATED - Improved UX)
 │   └── ... (❌ TODO)             │   └── ... (❌ TODO)
 └── views (❌ TODO)              └── views (❌ TODO)
 ```
@@ -121,22 +122,25 @@ OntoManager is a web-based RDF ontology management application that enables user
 - `NewIssueDialog.vue` (uses Dialog, InputText, Textarea, Button) ✅ **MIGRATED**
 - `IssueDialog.vue` (uses Dialog, Textarea, Button) ✅ **MIGRATED**
 
-**Phase 3 - Complex Components:** 🔄 **IN PROGRESS**
+**Phase 3 - Complex Components:** ✅ **COMPLETE**
 
 - `PropertyValue.vue`, `PropertyValues.vue` (uses Panel, Divider, Button) ✅ **MIGRATED**
-- `ResourceViewer.vue` (uses Panel, Menu, Tag, Button) ⏭️ **NEXT**
-- `TheHeader.vue` (uses Select, Button, InputText, Dialog, ProgressSpinner)
-- `ResourceTree.vue` (uses Tree - needs custom implementation)
+- `ResourceViewer.vue` (uses Panel, Menu, Tag, Button) ✅ **MIGRATED - Improved UX**
 
-**Phase 4 - Editor Dialogs:**
+**Phase 4 - Editor Dialogs:** ✅ **COMPLETE**
 
-- `AddPropertyDialog.vue`
-- `EditPredicateObjectsDialog.vue`
-- `EditPropertyShapeDialog.vue`
-- `EditRestrictionDialog.vue`
-- `CreateOntologyDialog.vue`
+- `AddPropertyDialog.vue` ✅ **MIGRATED**
+- `EditPredicateObjectsDialog.vue` ✅ **MIGRATED** (complex with dynamic objects, language/datatype selection)
+- `EditPropertyShapeDialog.vue` ✅ **MIGRATED** (SHACL constraints)
+- `EditRestrictionDialog.vue` ✅ **MIGRATED** (OWL restrictions)
+- `CreateOntologyDialog.vue` ✅ **MIGRATED** (ontology metadata + GitHub commit)
 
-**Phase 5 - Views:**
+**Phase 5 - Large Components:** 🔄 **IN PROGRESS**
+
+- `TheHeader.vue` (uses Select, Button, InputText, Dialog, ProgressSpinner) ✅ **MIGRATED**
+- `ResourceTree.vue` (uses Tree - needs custom implementation) ⏭️ **NEXT**
+
+**Phase 6 - Views:** ❌ **TODO**
 
 - `TheOntologyManagerView.vue` (uses Splitter → resizable)
 - `LoadOntologyView.vue` (uses Card, Button, Select)
