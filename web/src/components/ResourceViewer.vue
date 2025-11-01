@@ -262,7 +262,7 @@ const individualsOpen = ref(false)
                                 <ExternalLink class="mr-2 h-4 w-4" />
                                 <span class="truncate">{{
                                     issue.title.replace(`\`${selectedResource}\``, '')
-                                }}</span>
+                                    }}</span>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -318,7 +318,7 @@ const individualsOpen = ref(false)
                             class="text-muted-foreground font-mono"
                         >{{
                             propertyShapes.length
-                        }}</Badge>
+                            }}</Badge>
                     </div>
                     <DialogTrigger
                         v-if="editMode"
@@ -429,136 +429,136 @@ const individualsOpen = ref(false)
 
         <!-- Restrictions Section -->
         <Dialog v-model:open="editRestrictionDialogOpen">
-        <div
-            v-if="restrictions.length || (editMode && isClass)"
-            class="space-y-3"
-        >
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <Box class="h-5 w-5 text-muted-foreground" />
-                    <h2 class="text-xl font-semibold">Restrictions</h2>
-                    <Badge
-                        v-if="restrictions.length"
-                        variant="outline"
-                        class="text-muted-foreground font-mono"
-                    >{{ restrictions.length }}</Badge>
-                </div>
-                <Dialog v-model:open="addRestrictionDialogOpen">
-                    <DialogTrigger
-                        v-if="editMode"
-                        as-child
-                    >
-                        <Button
-                            variant="outline"
-                            size="sm"
-                        >
-                            <Plus class="mr-2 h-4 w-4" />
-                            Add Restriction
-                        </Button>
-                    </DialogTrigger>
-                    <EditRestrictionDialog
-                        v-if="selectedResource && selectedOntology?.node?.value && scopeId"
-                        :subject="selectedResource"
-                        :graph-id="selectedOntology.node.value"
-                        :scope-id="scopeId"
-                        @confirm="addRestrictionDialogOpen = false; reloadTrigger++"
-                        @cancel="addRestrictionDialogOpen = false"
-                    />
-                </Dialog>
-            </div>
-
-            <p
-                v-if="!restrictions.length"
-                class="text-sm text-muted-foreground"
-            >
-                No restrictions defined.
-            </p>
-
             <div
-                v-else
-                class="space-y-2"
+                v-if="restrictions.length || (editMode && isClass)"
+                class="space-y-3"
             >
-                <Collapsible
-                    v-for="restriction in restrictions"
-                    :key="restriction.blankNode.value"
-                    v-model:open="restrictionsOpen"
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <Box class="h-5 w-5 text-muted-foreground" />
+                        <h2 class="text-xl font-semibold">Restrictions</h2>
+                        <Badge
+                            v-if="restrictions.length"
+                            variant="outline"
+                            class="text-muted-foreground font-mono"
+                        >{{ restrictions.length }}</Badge>
+                    </div>
+                    <Dialog v-model:open="addRestrictionDialogOpen">
+                        <DialogTrigger
+                            v-if="editMode"
+                            as-child
+                        >
+                            <Button
+                                variant="outline"
+                                size="sm"
+                            >
+                                <Plus class="mr-2 h-4 w-4" />
+                                Add Restriction
+                            </Button>
+                        </DialogTrigger>
+                        <EditRestrictionDialog
+                            v-if="selectedResource && selectedOntology?.node?.value && scopeId"
+                            :subject="selectedResource"
+                            :graph-id="selectedOntology.node.value"
+                            :scope-id="scopeId"
+                            @confirm="addRestrictionDialogOpen = false; reloadTrigger++"
+                            @cancel="addRestrictionDialogOpen = false"
+                        />
+                    </Dialog>
+                </div>
+
+                <p
+                    v-if="!restrictions.length"
+                    class="text-sm text-muted-foreground"
                 >
-                    <Card>
-                        <CardHeader class="cursor-pointer hover:bg-accent/50 transition-colors py-3">
-                            <CollapsibleTrigger class="flex items-center justify-between w-full">
-                                <div class="flex items-center gap-3 flex-1">
-                                    <ChevronRight
-                                        class="h-4 w-4 transition-transform duration-200 flex-shrink-0"
-                                        :class="{ 'transform rotate-90': restrictionsOpen }"
-                                    />
-                                    <TooltipProvider>
-                                        <Tooltip>
-                                            <TooltipTrigger as-child>
-                                                <span
-                                                    class="font-semibold cursor-pointer hover:text-primary"
-                                                    @click.stop="selectedResource = restriction.propertyNode.value"
-                                                >
-                                                    {{ restriction.label }}
-                                                </span>
-                                            </TooltipTrigger>
-                                            <TooltipContent>
-                                                <p>{{ getPrefixedUri(restriction.propertyNode.value) }}</p>
-                                            </TooltipContent>
-                                        </Tooltip>
-                                    </TooltipProvider>
-                                    <div class="flex flex-wrap items-center gap-1">
-                                        <TermValue
-                                            v-for="valueNode of restriction.valueNodes"
-                                            :key="valueNode.id"
-                                            :term="valueNode"
-                                            class="text-sm"
-                                            @click-uri="selectedResource = valueNode.value"
+                    No restrictions defined.
+                </p>
+
+                <div
+                    v-else
+                    class="space-y-2"
+                >
+                    <Collapsible
+                        v-for="restriction in restrictions"
+                        :key="restriction.blankNode.value"
+                        v-model:open="restrictionsOpen"
+                    >
+                        <Card>
+                            <CardHeader class="cursor-pointer hover:bg-accent/50 transition-colors py-3">
+                                <CollapsibleTrigger class="flex items-center justify-between w-full">
+                                    <div class="flex items-center gap-3 flex-1">
+                                        <ChevronRight
+                                            class="h-4 w-4 transition-transform duration-200 flex-shrink-0"
+                                            :class="{ 'transform rotate-90': restrictionsOpen }"
                                         />
+                                        <TooltipProvider>
+                                            <Tooltip>
+                                                <TooltipTrigger as-child>
+                                                    <span
+                                                        class="font-semibold cursor-pointer hover:text-primary"
+                                                        @click.stop="selectedResource = restriction.propertyNode.value"
+                                                    >
+                                                        {{ restriction.label }}
+                                                    </span>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    <p>{{ getPrefixedUri(restriction.propertyNode.value) }}</p>
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        </TooltipProvider>
+                                        <div class="flex flex-wrap items-center gap-1">
+                                            <TermValue
+                                                v-for="valueNode of restriction.valueNodes"
+                                                :key="valueNode.id"
+                                                :term="valueNode"
+                                                class="text-sm"
+                                                @click-uri="selectedResource = valueNode.value"
+                                            />
+                                        </div>
                                     </div>
-                                </div>
-                                <div
-                                    v-if="editMode"
-                                    class="flex items-center gap-1 ml-2"
-                                    @click.stop
-                                >
-                                    <DialogTrigger as-child>
+                                    <div
+                                        v-if="editMode"
+                                        class="flex items-center gap-1 ml-2"
+                                        @click.stop
+                                    >
+                                        <DialogTrigger as-child>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                class="h-8 w-8"
+                                                @click="editRestrictionNode = restriction.blankNode"
+                                            >
+                                                <Pencil class="h-4 w-4" />
+                                            </Button>
+                                        </DialogTrigger>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            class="h-8 w-8"
-                                            @click="editRestrictionNode = restriction.blankNode"
+                                            class="h-8 w-8 text-destructive hover:text-destructive"
+                                            @click="deleteRestriction(restriction.blankNode)"
                                         >
-                                            <Pencil class="h-4 w-4" />
+                                            <Trash2 class="h-4 w-4" />
                                         </Button>
-                                    </DialogTrigger>
-                                    <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        class="h-8 w-8 text-destructive hover:text-destructive"
-                                        @click="deleteRestriction(restriction.blankNode)"
-                                    >
-                                        <Trash2 class="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            </CollapsibleTrigger>
-                        </CardHeader>
-                        <CollapsibleContent>
-                            <CardContent class="pt-0">
-                                <PropertyValues :subject="restriction.blankNode.value" />
-                            </CardContent>
-                        </CollapsibleContent>
-                    </Card>
-                </Collapsible>
+                                    </div>
+                                </CollapsibleTrigger>
+                            </CardHeader>
+                            <CollapsibleContent>
+                                <CardContent class="pt-0">
+                                    <PropertyValues :subject="restriction.blankNode.value" />
+                                </CardContent>
+                            </CollapsibleContent>
+                        </Card>
+                    </Collapsible>
+                </div>
+                <EditRestrictionDialog
+                    v-if="selectedResource && selectedOntology?.node?.value"
+                    :subject="selectedResource"
+                    :graph-id="selectedOntology.node.value"
+                    :restriction-node="editRestrictionNode"
+                    @confirm="editRestrictionDialogOpen = false; reloadTrigger++"
+                    @cancel="editRestrictionDialogOpen = false"
+                />
             </div>
-            <EditRestrictionDialog
-                v-if="selectedResource && selectedOntology?.node?.value"
-                :subject="selectedResource"
-                :graph-id="selectedOntology.node.value"
-                :restriction-node="editRestrictionNode"
-                @confirm="editRestrictionDialogOpen = false; reloadTrigger++"
-                @cancel="editRestrictionDialogOpen = false"
-            />
-        </div>
         </Dialog>
 
         <!-- Properties Section -->
