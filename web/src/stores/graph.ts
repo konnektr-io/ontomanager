@@ -16,13 +16,15 @@ import skosVocab from '../assets/vocab/skos.ttl?raw'
 import shaclVocab from '../assets/vocab/shacl.ttl?raw'
 import type { Pattern } from 'quadstore'
 
-export enum TreeType {
-  Classes = 'classes',
-  Decomposition = 'decomposition',
-  Properties = 'properties',
-  Individuals = 'individuals',
-  Ontologies = 'ontologies'
-}
+export const TreeType = {
+  Classes: 'classes',
+  Decomposition: 'decomposition',
+  Properties: 'properties',
+  Individuals: 'individuals',
+  Ontologies: 'ontologies'
+} as const
+
+export type TreeType = typeof TreeType[keyof typeof TreeType]
 
 export interface ResourceTreeNode {
   key: string
@@ -49,6 +51,7 @@ export interface GraphDetails {
   node?: NamedNode<string>
   prefixes?: { [prefix: string]: NamedNode<string> }
   error?: string
+  // sha of the file in the repository
   sha?: string
   scopeId?: string
   defaults?: {

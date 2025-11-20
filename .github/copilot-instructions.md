@@ -13,7 +13,7 @@ OntoManager is a web-based RDF ontology management application that enables user
 
 ## ✅ MIGRATION COMPLETE: PrimeVue → shadcn-vue
 
-**STATUS**: Migration complete! All components and views have been migrated to shadcn-vue.
+**STATUS**: Migration complete! All components and views have been migrated to shadcn-vue. Ready for finalization.
 
 ### Migration Architecture
 
@@ -374,11 +374,105 @@ Editing only enabled when:
 
 ## Final Migration Steps
 
-Once all components are migrated and working:
+Once production build is tested and verified:
 
-1. Update `/Dockerfile` to build from `/web` instead of `/client`
-2. Update root `README.md` references
-3. Delete `/client` folder
-4. Rename `/web` → `/client`
-5. Update all documentation
-6. Clean up this migration section from copilot-instructions.md
+1. **Update Dockerfile** - Change from `/client` to `/web` (lines 6, 13, 17, 33)
+2. **Update README.md** - Reflect shadcn-vue and new features
+3. **Delete `/client` folder** - Remove old PrimeVue implementation
+4. **Clean up this section** - Remove migration-specific instructions
+
+---
+
+## 🚀 Feature Development Priorities
+
+### Priority 1: Incremental Loading (Biggest User Pain Point)
+
+**Problem**: Full .ttl file reloads cause poor performance for large ontologies.
+
+**Solution**: Implement git diff detection and differential quadstore updates.
+
+**Implementation Guidelines**:
+
+- **GitDiffService** (`web/src/services/GitDiffService.ts`):
+  - Use Octokit to fetch commit comparisons
+  - Parse unified diff format to extract added/removed lines
+  - Filter for `.ttl` files only
+  - Parse Turtle diffs to extract changed triples
+
+- **GraphStoreService updates** (`web/src/services/GraphStoreService.ts`):
+  - Add `applyDiff()` method for incremental updates
+  - Add `syncGraph()` method with commit SHA tracking
+  - Only update affected quads, not entire graph
+
+- **Selective Tree Rebuilding** (`web/src/components/ResourceTree.vue`):
+  - Track which resources were modified
+  - Update only affected nodes in tree
+  - Don't regenerate entire tree on sync
+
+- **Auto-sync**: Add background sync every N minutes (configurable)
+
+**Testing**:
+- Test with large ontologies (>5k triples)
+- Verify sync time is <10% of initial load time
+- Ensure tree updates smoothly without flicker
+
+### Priority 2: AI Text-Based Editing
+
+**Goal**: Allow users to describe changes in natural language.
+
+**Implementation Guidelines**:
+
+- **OntologyContextService** (`web/src/services/OntologyContextService.ts`):
+  - Extract selected resource metadata
+  - Include related resources (superclasses, subclasses, etc.)
+  - Provide ontology prefix and base IRI
+
+- **Backend LLM Integration** (`app/app.py`):
+  - Add `/api/ai/suggest-edit` endpoint
+  - Use GPT-4 for structured RDF edit generation
+  - Return operations as JSON (add/remove quads)
+  - Include explanation of changes
+
+- **AIEditDialog** (`web/src/components/AIEditDialog.vue`):
+  - Text input for natural language instruction
+  - Preview diff of suggested operations
+  - Accept/reject flow with undo stack integration
+
+**Prompt Engineering**:
+- System prompt: Explain OWL, RDFS, SKOS vocabularies
+- User prompt: Include context + instruction
+- Response format: Structured JSON with operations array
+
+### Priority 3: Export Functionality
+
+**Goal**: Convert ontologies to usable formats (JSON-LD, CSV, etc.).
+
+**Implementation Guidelines**:
+
+- **Browser-Based Single Exports** (`web/src/services/ExportService.ts`):
+  - Export class with options (include subclasses/instances)
+  - Formats: JSON-LD, CSV, Turtle, N-Triples
+  - Use existing quadstore, no backend needed
+  - Trigger download via `URL.createObjectURL()`
+
+- **Backend Batch Exports** (`app/app.py`):
+  - Add job-based export endpoints
+  - Queue jobs (use threading for MVP, Celery for production)
+  - Download from GitHub, convert, zip results
+  - Return download URL when complete
+
+- **UI Integration**:
+  - Add "Export" to ResourceViewer context menu
+  - Add "Export Workspace" to TheHeader menu
+  - Show progress for batch jobs
+
+---
+
+## Future Enhancements
+
+- **Konnektr Backend Integration**: Cloud workspace storage and sharing
+- **Collaborative Editing**: Multi-user ontology editing
+- **Advanced TTL Editing**: Monaco editor with syntax highlighting
+- **Graph Visualization**: Visual ontology browser (vis.js/cytoscape.js)
+- **SHACL Validation**: Real-time validation UI
+- **SPARQL Interface**: Query loaded ontologies

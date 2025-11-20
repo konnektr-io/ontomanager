@@ -16,7 +16,7 @@ import ResourceViewer from '@/components/ResourceViewer.vue'
 import LoadOntologyView from '@/views/LoadOntologyView.vue'
 import TheHeader from '@/components/TheHeader.vue'
 
-const props = defineProps<{
+defineProps<{
     type: TreeType
 }>()
 

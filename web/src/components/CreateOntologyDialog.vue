@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { DataFactory, type Quad } from 'n3'
 import { storeToRefs } from 'pinia'
 import { hexoid } from 'hexoid'

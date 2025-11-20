@@ -456,7 +456,7 @@ class GitHubService {
 
   public async searchIssues(owner: string, repo: string, query: string) {
     const response = await this.octokit.search.issuesAndPullRequests({
-      q: `is:issue is:open ${query}`,
+      q: `repo:${owner}/${repo} is:issue is:open ${query}`,
     });
     return response.data.items;
   }
