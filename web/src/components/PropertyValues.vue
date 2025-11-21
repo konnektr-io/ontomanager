@@ -7,7 +7,8 @@ import { Plus } from 'lucide-vue-next'
 import { useGraphStore } from '@/stores/graph'
 import graphStoreService from '@/services/GraphStoreService'
 import PropertyValue from './PropertyValue.vue'
-// import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
+import EditPredicateObjectsDialog from './EditPredicateObjectsDialog.vue'
+import { Dialog, DialogTrigger } from '@/components/ui/dialog'
 
 const props = defineProps<{
   subject: string
@@ -51,27 +52,33 @@ watch(
   { immediate: true }
 )
 
-// TODO: Implement dialog pattern when EditPredicateObjectsDialog is migrated
-const openDialog = () => {
-  if (!selectedOntology.value) return
-  console.log('Open add annotation dialog - to be implemented')
-  // Will need to use Dialog + DialogTrigger pattern with EditPredicateObjectsDialog
-}
+
+const addAnnotationDialogOpen = ref(false)
 </script>
 
 <template>
   <div class="flex-col">
-    <div>
-      <Button
+    <Dialog v-model:open="addAnnotationDialogOpen">
+      <DialogTrigger
         v-if="editMode"
-        variant="ghost"
-        size="sm"
-        @click="openDialog"
+        as-child
       >
-        <Plus class="mr-2 h-4 w-4" />
-        Add Annotation
-      </Button>
-    </div>
+        <Button
+          variant="ghost"
+          size="sm"
+        >
+          <Plus class="mr-2 h-4 w-4" />
+          Add Annotation
+        </Button>
+      </DialogTrigger>
+      <EditPredicateObjectsDialog
+        v-if="selectedOntology?.node?.value"
+        :subject-uri="subject"
+        :graph-uri="selectedOntology.node.value"
+        @confirm="addAnnotationDialogOpen = false; reloadTrigger++"
+        @cancel="addAnnotationDialogOpen = false"
+      />
+    </Dialog>
     <div
       v-for="(predicateObjects, predicate) in groupedObjectValues"
       :key="`${predicate}`"
