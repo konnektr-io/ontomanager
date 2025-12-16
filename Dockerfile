@@ -25,9 +25,9 @@ WORKDIR /app
 COPY app/requirements.txt ./
 COPY app/ ./
 
+
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install gunicorn
 
 # Copy the frontend build output
 COPY --from=frontend-builder /app/frontend/dist /app/static
@@ -36,14 +36,12 @@ COPY --from=frontend-builder /app/frontend/dist /app/static
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
 USER appuser
 
+
 # Set environment variables for the backend
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=8080
 ENV PORT=8080
 
 # Expose the port
 EXPOSE 8080
 
-# Run the Flask application with gunicorn
-ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+# Run the FastAPI application with uvicorn
+ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]

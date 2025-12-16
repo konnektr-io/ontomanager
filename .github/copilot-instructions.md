@@ -278,12 +278,6 @@ docker build -t ontomanager .
 
 ## Project-Specific Conventions
 
-### Import Paths
-
-- Services and stores imported from `/web/src/`: Use `@/services/`, `@/stores/`
-- During migration, `/client` components reference `/web` services: `../../../web/src/services/`
-- After migration, all imports will use `@/` alias
-
 ### RDF Vocabulary Utilities
 
 **Location**: `web/src/utils/vocab.ts`

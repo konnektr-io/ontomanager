@@ -1,41 +1,50 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { optIn } from 'vue-gtag'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { Toaster } from '@/components/ui/sonner'
 import { SidebarProvider } from '@/components/ui/sidebar'
+import CookieConsent from '@/components/CookieConsent.vue'
 
-const cookieDialogOpen = ref(false)
-
-const acceptCookies = () => {
-  // Enable Google Analytics tracking
-  optIn()
-  localStorage.setItem('cookie-consent', 'true')
-  cookieDialogOpen.value = false
-}
-
-const declineCookies = () => {
-  cookieDialogOpen.value = false
-}
-
-onMounted(() => {
-  if (!localStorage.getItem('cookie-consent') &&
-    typeof import.meta.env.VITE_GA_MEASUREMENT_ID === 'string' &&
-    import.meta.env.VITE_GA_MEASUREMENT_ID.length > 0) {
-    cookieDialogOpen.value = true
-  } else if (localStorage.getItem('cookie-consent') === 'true') {
-    optIn()
+// GTM/Clarity consent logic (matches React)
+const setConsent = (consent: 'accepted' | 'declined') => {
+  if (typeof window !== 'undefined') {
+    // gtag
+    const gtag = (window as typeof window & { gtag?: Function }).gtag
+    if (gtag) {
+      if (consent === 'accepted') {
+        gtag('consent', 'update', {
+          ad_storage: 'granted',
+          analytics_storage: 'granted',
+        })
+      } else {
+        gtag('consent', 'update', {
+          ad_storage: 'denied',
+          analytics_storage: 'denied',
+        })
+      }
+    }
+    // clarity
+    const clarity = (window as typeof window & { clarity?: Function }).clarity
+    if (clarity) {
+      if (consent === 'accepted') {
+        clarity('consentv2', {
+          ad_Storage: 'granted',
+          analytics_Storage: 'granted',
+        })
+      } else {
+        clarity('consentv2', {
+          ad_Storage: 'denied',
+          analytics_Storage: 'denied',
+        })
+      }
+    }
   }
-})
+}
+
+const handleAccept = () => {
+  setConsent('accepted')
+}
+const handleDecline = () => {
+  setConsent('declined')
+}
 </script>
 
 <template>
@@ -44,30 +53,15 @@ onMounted(() => {
       <!-- Main View with Sidebar -->
       <RouterView class="flex flex-1 w-full" />
 
-      <!-- Cookie Consent Dialog -->
-      <AlertDialog v-model:open="cookieDialogOpen">
-        <AlertDialogContent class="fixed bottom-4 right-4 max-w-md">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Cookie Consent</AlertDialogTitle>
-            <AlertDialogDescription>
-              We use cookies to track usage and improve your experience. Do you consent to the use of cookies for
-              analytics?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel @click="declineCookies">
-              Decline
-            </AlertDialogCancel>
-            <AlertDialogAction @click="acceptCookies">
-              Accept
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <!-- Cookie Consent Dialog (minimal variant, React-style) -->
+      <CookieConsent
+        variant="minimal"
+        :onAcceptCallback="handleAccept"
+        :onDeclineCallback="handleDecline"
+      />
 
       <!-- Toast Notifications -->
       <Toaster />
     </div>
   </SidebarProvider>
 </template>
-

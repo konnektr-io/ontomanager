@@ -1,30 +1,51 @@
-from flask import Flask, request, redirect, jsonify, send_from_directory
 import os
+from fastapi import FastAPI, Request, Form, HTTPException
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse, Response
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 from openai import OpenAI
 import requests
 from dotenv import load_dotenv
+from starlette.responses import RedirectResponse as StarletteRedirectResponse
+from starlette.responses import FileResponse as StarletteFileResponse
+from starlette.responses import JSONResponse as StarletteJSONResponse
+from starlette.requests import Request as StarletteRequest
+from starlette.staticfiles import StaticFiles as StarletteStaticFiles
 
 load_dotenv()
 
-app = Flask(__name__, static_folder="static")
+app = FastAPI()
+
+# Allow CORS for local dev
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 openai_client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),  # This is the default and can be omitted
+    api_key=os.environ.get("OPENAI_API_KEY"),
 )
 
 
-@app.route("/api/github/oauth/login", methods=["GET"])
-def github_login():
+@app.get("/api/github/oauth/login")
+async def github_login(request: Request):
     client_id = os.getenv("GITHUB_CLIENT_ID")
     if not client_id:
-        return "GitHub client ID not configured.", 500
+        raise HTTPException(status_code=500, detail="GitHub client ID not configured.")
 
-    state = request.args.get("state", "")
-    scopes = request.args.get("scopes", "")
-    redirect_uri = request.args.get("redirect_uri", os.getenv("GITHUB_REDIRECT_URI"))
+    state = request.query_params.get("state", "")
+    scopes = request.query_params.get("scopes", "")
+    redirect_uri = request.query_params.get(
+        "redirect_uri", os.getenv("GITHUB_REDIRECT_URI")
+    )
 
     if not redirect_uri:
-        return "GitHub redirect URI not configured.", 500
+        raise HTTPException(
+            status_code=500, detail="GitHub redirect URI not configured."
+        )
 
     url = f"https://github.com/login/oauth/authorize?client_id={client_id}&redirect_uri={redirect_uri}"
     if state:
@@ -32,21 +53,25 @@ def github_login():
     if scopes:
         url += f"&scope={scopes}"
 
-    return redirect(url)
+    return RedirectResponse(url)
 
 
-@app.route("/api/github/oauth/token", methods=["POST"])
-def github_token():
+@app.post("/api/github/oauth/token")
+async def github_token(code: str = Form(...)):
     client_id = os.getenv("GITHUB_CLIENT_ID")
     client_secret = os.getenv("GITHUB_CLIENT_SECRET")
     redirect_uri = os.getenv("GITHUB_REDIRECT_URI")
 
     if not client_id or not client_secret or not redirect_uri:
-        return "GitHub client ID, secret or redirect URI not configured.", 500
+        raise HTTPException(
+            status_code=500,
+            detail="GitHub client ID, secret or redirect URI not configured.",
+        )
 
-    code = request.form.get("code")
     if not code:
-        return "GitHub authorization code not provided.", 400
+        raise HTTPException(
+            status_code=400, detail="GitHub authorization code not provided."
+        )
 
     response = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -58,21 +83,23 @@ def github_token():
         },
         headers={"Accept": "application/json"},
     )
+    return JSONResponse(response.json())
 
-    return jsonify(response.json())
 
-
-@app.route("/api/github/oauth/refresh-token", methods=["POST"])
-def github_refresh_token():
+@app.post("/api/github/oauth/refresh-token")
+async def github_refresh_token(refresh_token: str = Form(...)):
     client_id = os.getenv("GITHUB_CLIENT_ID")
     client_secret = os.getenv("GITHUB_CLIENT_SECRET")
 
     if not client_id or not client_secret:
-        return "GitHub client ID or secret not configured.", 500
+        raise HTTPException(
+            status_code=500, detail="GitHub client ID or secret not configured."
+        )
 
-    refresh_token = request.form.get("refresh_token")
     if not refresh_token:
-        return "GitHub refresh token not provided.", 400
+        raise HTTPException(
+            status_code=400, detail="GitHub refresh token not provided."
+        )
 
     response = requests.post(
         "https://github.com/login/oauth/access_token",
@@ -84,18 +111,25 @@ def github_refresh_token():
         },
         headers={"Accept": "application/json"},
     )
+    return JSONResponse(response.json())
 
-    return jsonify(response.json())
+
+from pydantic import BaseModel
 
 
-@app.route("/api/ai/suggest-commit-message", methods=["POST"])
-def suggest_commit_message():
-    changes = request.json.get("changes")
+class CommitMessageRequest(BaseModel):
+    changes: str
+
+
+@app.post("/api/ai/suggest-commit-message")
+async def suggest_commit_message(body: CommitMessageRequest):
+    changes = body.changes
     if not changes:
-        return jsonify({"error": "No changes provided"}), 400
+        return JSONResponse({"error": "No changes provided"}, status_code=400)
 
     prompt = f"""Generate a concise git commit message for the following changes:\n\n'''{changes}''' \n\n
-            In case quads are removed and added again, consider them as changes. Don't specify which ontology the changes belong to and don't mention 'quads' or 'graphs' or any other specific linked data terminology.
+            In case quads are removed and added again, consider them as changes. Don't specify which ontology
+            the changes belong to and don't mention 'quads' or 'graphs' or any other specific linked data terminology.
             Only return the message, don't include code, quotes or any other information."""
 
     chat_completion = openai_client.chat.completions.create(
@@ -109,19 +143,22 @@ def suggest_commit_message():
         max_completion_tokens=50,
     )
 
-    message = chat_completion.choices[0].message.content.strip()
-
-    return jsonify({"message": message})
-
-
-@app.route("/", defaults={"path": ""})
-@app.route("/<path:path>")
-def catch_all(path):
-    if path and os.path.exists(os.path.join(app.static_folder, path)):
-        return send_from_directory(app.static_folder, path)
-    return send_from_directory(app.static_folder, "index.html")
+    content = chat_completion.choices[0].message.content
+    message = content.strip() if content is not None else ""
+    return JSONResponse({"message": message})
 
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port, ssl_context="adhoc")
+# Serve static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+
+@app.get("/{full_path:path}")
+async def catch_all(full_path: str):
+    static_path = os.path.join("static", full_path)
+    if full_path and os.path.exists(static_path):
+        return FileResponse(static_path)
+    index_path = os.path.join("static", "index.html")
+    return FileResponse(index_path)
+
+
+# For local dev: run with `uvicorn app:app --host 0.0.0.0 --port 8080 --reload`
