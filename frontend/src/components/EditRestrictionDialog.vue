@@ -57,9 +57,6 @@ const valuePredicates = ref<{ label: string; value: string }[]>([
 const objects = ref<{ predicate: string; value: string; termType: 'NamedNode' | 'Literal' }[]>([])
 const namedNodeSuggestions = ref<string[]>([])
 
-const fetchNamedNodeSuggestions = async (_searchValue: string = '') => {
-    namedNodeSuggestions.value = await graphStoreService.getNamedNodeSuggestions(_searchValue)
-}
 
 const originalQuads = ref<Quad[]>([])
 

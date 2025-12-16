@@ -139,15 +139,15 @@ const dragOverVariants = 'bg-primary/20 text-primary-foreground'
                 :default-leaf-icon="defaultLeafIcon"
                 :default-node-icon="defaultNodeIcon"
                 :dragged-item="draggedItem"
-                @select-change="(e: TData | undefined) => emit('selectChange', e)"
-                @drag-start="(e: TData) => emit('dragStart', e)"
-                @drop="(e: TData) => emit('drop', e)"
+               @select-change="(item: TreeDataItem | undefined) => emit('selectChange', item as TData | undefined)"
+                @drag-start="(item: TreeDataItem) => emit('dragStart', item as TData)"
+                @drop="(item: TreeDataItem) => emit('drop', item as TData)"
             >
-                <template #actions="{ item, isSelected }">
+               <template #actions="slotProps as { item: TData, isSelected: boolean }">
                     <slot
                         name="actions"
-                        :item="item"
-                        :is-selected="isSelected"
+                       :item="slotProps.item as TData"
+                        :is-selected="slotProps.isSelected"
                     />
                 </template>
             </TreeItem>

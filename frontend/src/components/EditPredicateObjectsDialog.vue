@@ -54,12 +54,6 @@ const fetchExistingPredicates = async (subjUri: string) => {
 }
 
 const predicateNodeSuggestions = ref<string[]>([])
-const fetchPredicateNodeSuggestions = async (_searchValue: string = '') => {
-    predicateNodeSuggestions.value = await graphStoreService.getPredicateNodeSuggestions(
-        existingPredicates.value,
-        _searchValue
-    )
-}
 
 const newPredicateUri = ref<string>()
 const currentPredicateUri = computed(() => props.predicateUri || newPredicateUri.value)
