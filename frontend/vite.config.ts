@@ -26,7 +26,7 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "https://ontomanager-720202460313.europe-west1.run.app",
+        target: "https://ontomanager.konnektr.io",
         secure: false,
         changeOrigin: true,
       },
