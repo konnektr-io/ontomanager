@@ -6,8 +6,8 @@ RUN corepack enable
 WORKDIR /app/client
 
 # Set environment variables for the frontend build
-ARG GA_MEASUREMENT_ID
-ENV VITE_GA_MEASUREMENT_ID=$GA_MEASUREMENT_ID
+ARG GTM_ID
+ENV VITE_GTM_ID=$GTM_ID
 
 # Copy package files and install dependencies
 COPY client/package*.json ./
@@ -18,7 +18,7 @@ COPY client/ ./
 RUN pnpm run build
 
 # Stage 2: Build the final image
-FROM python:3.11-slim AS final
+FROM python:3.12-slim AS final
 WORKDIR /app
 
 # Copy the backend code and requirements
