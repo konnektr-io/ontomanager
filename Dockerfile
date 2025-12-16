@@ -3,18 +3,18 @@ FROM node:20-slim AS frontend-builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 RUN corepack enable
-WORKDIR /app/client
+WORKDIR /app/frontend
 
 # Set environment variables for the frontend build
 ARG GTM_ID
 ENV VITE_GTM_ID=$GTM_ID
 
 # Copy package files and install dependencies
-COPY client/package*.json ./
+COPY frontend/package*.json ./
 RUN pnpm install
 
 # Copy the rest of the frontend code and build it
-COPY client/ ./
+COPY frontend/ ./
 RUN pnpm run build
 
 # Stage 2: Build the final image
@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 RUN pip install gunicorn
 
 # Copy the frontend build output
-COPY --from=frontend-builder /app/client/dist /app/static
+COPY --from=frontend-builder /app/frontend/dist /app/static
 
 # Create a non-root user and switch to it
 RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
