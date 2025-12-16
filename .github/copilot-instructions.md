@@ -31,7 +31,7 @@ OntoManager is a web-based RDF ontology management application that enables user
 │   ├── PropertyValue.vue (✅)    │   ├── PropertyValue.vue (✅ MIGRATED)
 │   ├── PropertyValues.vue (✅)   │   ├── PropertyValues.vue (✅ MIGRATED)
 │   ├── ResourceViewer.vue (✅)   │   ├── ResourceViewer.vue (✅ MIGRATED - Improved UX)
-│   ├── TheHeader.vue (✅)        │   ├── TheHeader.vue (✅ MIGRATED)
+│   ├── AppHeader.vue (✅)        │   ├── AppHeader.vue (✅ MIGRATED)
 │   ├── ResourceTree.vue (✅)     │   ├── ResourceTree.vue (✅ MIGRATED - Custom tree)
 │   └── All editor dialogs (✅)   │   └── ui/tree/ (✅ Custom tree component built)
 └── views (✅ COMPLETE)          └── views (✅ COMPLETE)

@@ -14,7 +14,7 @@ import AppSidebar from '@/components/AppSidebar.vue'
 import ResourceTree from '@/components/ResourceTree.vue'
 import ResourceViewer from '@/components/ResourceViewer.vue'
 import LoadOntologyView from '@/views/LoadOntologyView.vue'
-import TheHeader from '@/components/TheHeader.vue'
+import AppHeader from '@/components/AppHeader.vue'
 
 defineProps<{
     type: TreeType
@@ -57,7 +57,7 @@ onMounted(initialize)
                 orientation="vertical"
                 class="mr-2 h-4"
             />
-            <TheHeader />
+           <AppHeader />
         </header>
         <div class="flex-1 overflow-hidden bg-background">
             <ResizablePanelGroup
