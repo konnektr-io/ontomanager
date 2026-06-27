@@ -2,7 +2,7 @@
 FROM node:20-slim AS frontend-builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm install -g pnpm@10.20.0
 WORKDIR /app/frontend
 
 # Set environment variables for the frontend build
