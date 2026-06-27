@@ -33,7 +33,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --from=frontend-builder /app/frontend/dist /app/static
 
 # Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
+RUN adduser --disabled-password --uid 1001 --gecos "" appuser && chown -R appuser /app
 USER appuser
 
 

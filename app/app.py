@@ -25,9 +25,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-openai_client = OpenAI(
-    api_key=os.environ.get("OPENAI_API_KEY"),
-)
+
+def get_openai_client():
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if api_key:
+        return OpenAI(api_key=api_key)
+    return None
+
+
+openai_client = get_openai_client()
 
 
 @app.get("/api/github/oauth/login")
@@ -131,6 +137,9 @@ async def suggest_commit_message(body: CommitMessageRequest):
             In case quads are removed and added again, consider them as changes. Don't specify which ontology
             the changes belong to and don't mention 'quads' or 'graphs' or any other specific linked data terminology.
             Only return the message, don't include code, quotes or any other information."""
+
+    if not openai_client:
+        return JSONResponse({"error": "OpenAI API key not configured"}, status_code=500)
 
     chat_completion = openai_client.chat.completions.create(
         messages=[
