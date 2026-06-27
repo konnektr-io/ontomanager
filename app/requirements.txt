@@ -4,3 +4,4 @@ starlette
 requests
 python-dotenv
 openai
+python-multipart
