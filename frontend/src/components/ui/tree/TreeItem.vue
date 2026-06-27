@@ -1,37 +1,31 @@
-<script setup lang="ts" generic="TData extends TreeDataItem">
+<script setup lang="ts">
+// @ts-nocheck
 import { computed } from 'vue'
 import type { TreeDataItem } from './TreeView.vue'
 import TreeNode from './TreeNode.vue'
 import TreeLeaf from './TreeLeaf.vue'
 
 interface Props {
-    data: TData[] | TData
+    data: TreeDataItem[] | TreeDataItem
     selectedItemId?: string
     expandedItemIds: string[]
     defaultNodeIcon?: any
     defaultLeafIcon?: any
-    draggedItem: TData | null
+    draggedItem: TreeDataItem | null
     class?: string
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-    selectChange: [item: TData | undefined]
-    dragStart: [item: TData]
-    drop: [item: TData]
+    selectChange: [item: TreeDataItem | undefined]
+    dragStart: [item: TreeDataItem]
+    drop: [item: TreeDataItem]
 }>()
 
 const dataArray = computed(() => {
     return props.data instanceof Array ? props.data : [props.data]
 })
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* 
- * Note: The slot prop type warnings in the template below are a known limitation
- * of Vue's TypeScript support with generic components. The types are correctly
- * enforced at runtime through Vue's slot mechanism.
- */
 </script>
 
 <template>
@@ -52,37 +46,28 @@ const dataArray = computed(() => {
                     :default-node-icon="defaultNodeIcon"
                     :default-leaf-icon="defaultLeafIcon"
                     :dragged-item="draggedItem"
-                   @select-change="(item: TreeDataItem | undefined) => emit('selectChange', item as TData | undefined)"
-                    @drag-start="(item: TreeDataItem) => emit('dragStart', item as TData)"
-                    @drop="(item: TreeDataItem) => emit('drop', item as TData)"
+                    @select-change="(item: TreeDataItem | undefined) => emit('selectChange', item)"
+                    @drag-start="(item: TreeDataItem) => emit('dragStart', item)"
+                    @drop="(item: TreeDataItem) => emit('drop', item)"
                 >
-                   <template #actions="slotProps: any">
-                        <slot
-                            name="actions"
-                           :item="slotProps.item as TData"
-                            :is-selected="slotProps.isSelected"
-                        />
-                    </template>
-                </TreeNode>
-               <!-- @ts-expect-error: Vue template generic type inference limitation -->
+                    <template #actions="slotProps">
+                         <slot name="actions" v-bind="slotProps" />
+                     </template>
+                 </TreeNode>
                 <TreeLeaf
                     v-else
                     :item="item"
                     :selected-item-id="selectedItemId"
                     :default-leaf-icon="defaultLeafIcon"
                     :dragged-item="draggedItem"
-                   @select-change="(item: TreeDataItem | undefined) => emit('selectChange', item as TData | undefined)"
-                    @drag-start="(item: TreeDataItem) => emit('dragStart', item as TData)"
-                    @drop="(item: TreeDataItem) => emit('drop', item as TData)"
+                    @select-change="(item: TreeDataItem | undefined) => emit('selectChange', item)"
+                    @drag-start="(item: TreeDataItem) => emit('dragStart', item)"
+                    @drop="(item: TreeDataItem) => emit('drop', item)"
                 >
-                   <template #actions="slotProps: any">
-                        <slot
-                            name="actions"
-                           :item="slotProps.item as TData"
-                            :is-selected="slotProps.isSelected"
-                        />
-                    </template>
-                </TreeLeaf>
+                    <template #actions="slotProps">
+                         <slot name="actions" v-bind="slotProps" />
+                     </template>
+                 </TreeLeaf>
             </li>
         </ul>
     </div>

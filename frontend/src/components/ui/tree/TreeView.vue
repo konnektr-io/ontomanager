@@ -99,14 +99,14 @@ watch(
             :default-node-icon="defaultNodeIcon"
             :default-leaf-icon="defaultLeafIcon"
             :dragged-item="draggedItem as TData | null"
-            @select-change="handleSelectChange"
-            @drag-start="handleDragStart"
-            @drop="handleDrop"
+            @select-change="(item: TreeDataItem | undefined) => handleSelectChange(item as TData | undefined)"
+            @drag-start="(item: TreeDataItem) => handleDragStart(item as TData)"
+            @drop="(item: TreeDataItem) => handleDrop(item as TData)"
         >
             <template #actions="{ item, isSelected }">
                 <slot
                     name="actions"
-                    :item="item"
+                    :item="item as TData"
                     :is-selected="isSelected"
                 />
             </template>

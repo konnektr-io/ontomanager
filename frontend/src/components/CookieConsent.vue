@@ -4,13 +4,6 @@ import { CookieIcon } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-defineProps<{
-  variant?: 'default' | 'small' | 'minimal',
-  mode?: boolean,
-  onAcceptCallback?: () => void,
-  onDeclineCallback?: () => void,
-}>()
-
 const props = withDefaults(defineProps<{
   variant?: 'default' | 'small' | 'minimal',
   mode?: boolean,

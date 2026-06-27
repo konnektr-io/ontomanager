@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="TData extends TreeDataItem">
+<script setup lang="ts">
 import { ref } from 'vue'
 import { cn } from '@/lib/utils'
 import type { TreeDataItem } from './TreeView.vue'
@@ -6,19 +6,19 @@ import TreeIcon from './TreeIcon.vue'
 import TreeActions from './TreeActions.vue'
 
 interface Props {
-    item: TData
+    item: TreeDataItem
     selectedItemId?: string
     defaultLeafIcon?: any
-    draggedItem: TData | null
+    draggedItem: TreeDataItem | null
     class?: string
 }
 
 const props = defineProps<Props>()
 
 const emit = defineEmits<{
-    selectChange: [item: TData | undefined]
-    dragStart: [item: TData]
-    drop: [item: TData]
+    selectChange: [item: TreeDataItem | undefined]
+    dragStart: [item: TreeDataItem]
+    drop: [item: TreeDataItem]
 }>()
 
 const isDragOver = ref(false)
