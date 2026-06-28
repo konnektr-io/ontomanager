@@ -1,0 +1,151 @@
+@prefix : <http://example.org/test-ontology#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+:TestOntology a owl:Ontology ;
+    rdfs:label "Test Ontology"@en ;
+    rdfs:comment "A comprehensive test ontology for smoke testing"@en .
+
+#################################################################
+# Classes
+#################################################################
+
+:Vehicle a rdfs:Class, owl:Class ;
+    rdfs:label "Vehicle"@en ;
+    rdfs:comment "A means of transportation"@en .
+
+:Car a rdfs:Class, owl:Class ;
+    rdfs:label "Car"@en ;
+    rdfs:subClassOf :Vehicle ;
+    rdfs:comment "A four-wheeled motor vehicle"@en .
+
+:Truck a rdfs:Class, owl:Class ;
+    rdfs:label "Truck"@en ;
+    rdfs:subClassOf :Vehicle ;
+    rdfs:comment "A large motor vehicle for carrying goods"@en .
+
+:ElectricCar a rdfs:Class, owl:Class ;
+    rdfs:label "Electric Car"@en ;
+    rdfs:subClassOf :Car ;
+    rdfs:comment "A car powered by electric motors"@en .
+
+:DieselCar a rdfs:Class, owl:Class ;
+    rdfs:label "Diesel Car"@en ;
+    rdfs:subClassOf :Car ;
+    rdfs:comment "A car powered by a diesel engine"@en .
+
+:Bicycle a rdfs:Class, owl:Class ;
+    rdfs:label "Bicycle"@en ;
+    rdfs:subClassOf :Vehicle ;
+    rdfs:comment "A two-wheeled vehicle powered by pedaling"@en .
+
+#################################################################
+# Properties
+#################################################################
+
+:hasSpeed a rdf:Property, owl:DatatypeProperty ;
+    rdfs:label "has speed"@en ;
+    rdfs:domain :Vehicle ;
+    rdfs:range xsd:integer ;
+    rdfs:comment "The maximum speed of the vehicle in km/h"@en .
+
+:hasColor a rdf:Property, owl:DatatypeProperty ;
+    rdfs:label "has color"@en ;
+    rdfs:domain :Vehicle ;
+    rdfs:range xsd:string ;
+    rdfs:comment "The color of the vehicle"@en .
+
+:hasWeight a rdf:Property, owl:DatatypeProperty ;
+    rdfs:label "has weight"@en ;
+    rdfs:domain :Vehicle ;
+    rdfs:range xsd:decimal ;
+    rdfs:comment "The weight of the vehicle in kg"@en .
+
+:hasManufacturer a rdf:Property, owl:ObjectProperty ;
+    rdfs:label "has manufacturer"@en ;
+    rdfs:domain :Vehicle ;
+    rdfs:range :Manufacturer ;
+    rdfs:comment "The manufacturer of the vehicle"@en .
+
+:hasModel a rdf:Property, owl:DatatypeProperty ;
+    rdfs:label "has model"@en ;
+    rdfs:domain :Vehicle ;
+    rdfs:range xsd:string .
+
+:manufactures a rdf:Property, owl:ObjectProperty ;
+    rdfs:label "manufactures"@en ;
+    rdfs:domain :Manufacturer ;
+    rdfs:range :Vehicle ;
+    rdfs:comment "Inverse of hasManufacturer"@en .
+
+#################################################################
+# Additional Classes
+#################################################################
+
+:Manufacturer a rdfs:Class, owl:Class ;
+    rdfs:label "Manufacturer"@en ;
+    rdfs:comment "A company that manufactures vehicles"@en .
+
+:Part a rdfs:Class, owl:Class ;
+    rdfs:label "Part"@en ;
+    rdfs:comment "A component of a vehicle"@en .
+
+:Engine a rdfs:Class, owl:Class ;
+    rdfs:label "Engine"@en ;
+    rdfs:subClassOf :Part ;
+    rdfs:comment "The engine component"@en .
+
+:Wheel a rdfs:Class, owl:Class ;
+    rdfs:label "Wheel"@en ;
+    rdfs:subClassOf :Part ;
+    rdfs:comment "The wheel component"@en .
+
+:Battery a rdfs:Class, owl:Class ;
+    rdfs:label "Battery"@en ;
+    rdfs:subClassOf :Part ;
+    rdfs:comment "The battery component"@en .
+
+#################################################################
+# SHACL Shapes
+#################################################################
+
+:VehicleShape a sh:NodeShape ;
+    rdfs:label "Vehicle shape"@en ;
+    sh:targetClass :Vehicle ;
+    sh:property [
+        sh:path :hasSpeed ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+    ] ;
+    sh:property [
+        sh:path :hasColor ;
+        sh:datatype xsd:string ;
+        sh:minCount 0 ;
+    ] ;
+    sh:property [
+        sh:path :hasManufacturer ;
+        sh:class :Manufacturer ;
+        sh:minCount 0 ;
+    ] .
+
+#################################################################
+# SKOS Concept Scheme
+#################################################################
+
+:VehicleCategories a skos:ConceptScheme ;
+    rdfs:label "Vehicle Categories"@en .
+
+:PassengerVehicle a skos:Concept ;
+    skos:prefLabel "Passenger Vehicle"@en ;
+    skos:inScheme :VehicleCategories ;
+    skos:broader :Vehicle .
+
+:CommercialVehicle a skos:Concept ;
+    skos:prefLabel "Commercial Vehicle"@en ;
+    skos:inScheme :VehicleCategories ;
+    skos:broader :Vehicle .

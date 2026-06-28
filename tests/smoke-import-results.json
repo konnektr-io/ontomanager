@@ -1,0 +1,91 @@
+{
+  "passed": 16,
+  "failed": 1,
+  "tests": [
+    {
+      "name": "Page loaded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Typed URL into import input",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Clicked Import button",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "URL after import",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/classes"
+    },
+    {
+      "name": "Screenshot after import saved",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "No more 'No data' state",
+      "passed": true,
+      "detail": "Data loaded!"
+    },
+    {
+      "name": "Pizza ontology content visible",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Class names visible (Pizza, Topping, etc.)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Ontology appears in sidebar",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "Navigated to Properties",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/properties"
+    },
+    {
+      "name": "Navigated to Individuals",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/individuals"
+    },
+    {
+      "name": "Navigated to Decomposition",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/decomposition"
+    },
+    {
+      "name": "Navigated to Classes",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/classes"
+    },
+    {
+      "name": "Screenshot in Classes view",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Screenshot in Properties view",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "No console errors throughout test",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "No API errors for import",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "name": "ontomanager",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "@rdfjs/serializer-turtle": "^1.1.5",
+    "@tailwindcss/vite": "^4.1.13",
+    "@vueuse/core": "^14.0.0",
+    "axios": "^1.11.0",
+    "browser-level": "^3.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "hexoid": "^2.0.0",
+    "lucide-vue-next": "^0.548.0",
+    "n3": "^1.26.0",
+    "pinia": "^3.0.3",
+    "quadstore": "^15.4.0",
+    "reka-ui": "^2.6.0",
+    "tailwind-merge": "^3.3.1",
+    "tailwindcss": "^4.1.13",
+    "tw-animate-css": "^1.3.8",
+    "vue": "^3.5.18",
+    "vue-gtag": "^3.6.2",
+    "vue-router": "^4.5.1",
+    "vue-sonner": "^2.0.9",
+    "vue3-simple-icons": "^15.6.0"
+  },
+  "devDependencies": {
+    "@rdfjs/prefix-map": "^0.1.2",
+    "@rdfjs/types": "^2.0.1",
+    "@types/n3": "^1.26.0",
+    "@types/node": "^24.3.1",
+    "@types/rdfjs__data-model": "^2.0.9",
+    "@types/rdfjs__serializer-turtle": "^1.1.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2",
+    "vite-plugin-radar": "^0.10.1",
+    "vue-tsc": "^3.0.5"
+  },
+  "packageManager": "pnpm@10.20.0+sha512.cf9998222162dd85864d0a8102e7892e7ba4ceadebbf5a31f9c2fce48dfce317a9c53b9f6464d1ef9042cba2e02ae02a9f7c143a2b438cd93c91840f0192b9dd"
+}

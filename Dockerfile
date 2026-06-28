@@ -1,49 +1,47 @@
 # Stage 1: Build the frontend
-FROM node:20-slim AS frontend-builder
+FROM node:22-slim AS frontend-builder
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
-WORKDIR /app/client
+RUN npm install -g pnpm@10.20.0
+WORKDIR /app/frontend
 
 # Set environment variables for the frontend build
-ARG GA_MEASUREMENT_ID
-ENV VITE_GA_MEASUREMENT_ID=$GA_MEASUREMENT_ID
+ARG GTM_ID
+ENV VITE_GTM_ID=$GTM_ID
 
 # Copy package files and install dependencies
-COPY client/package*.json ./
+COPY frontend/package*.json ./
 RUN pnpm install
 
 # Copy the rest of the frontend code and build it
-COPY client/ ./
+COPY frontend/ ./
 RUN pnpm run build
 
 # Stage 2: Build the final image
-FROM python:3.11-slim AS final
+FROM python:3.12-slim AS final
 WORKDIR /app
 
 # Copy the backend code and requirements
 COPY app/requirements.txt ./
 COPY app/ ./
 
+
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install gunicorn
 
 # Copy the frontend build output
-COPY --from=frontend-builder /app/client/dist /app/static
+COPY --from=frontend-builder /app/frontend/dist /app/static
 
 # Create a non-root user and switch to it
-RUN adduser --disabled-password --gecos "" appuser && chown -R appuser /app
+RUN adduser --disabled-password --uid 1001 --gecos "" appuser && chown -R appuser /app
 USER appuser
 
+
 # Set environment variables for the backend
-ENV FLASK_APP=app.py
-ENV FLASK_RUN_HOST=0.0.0.0
-ENV FLASK_RUN_PORT=8080
 ENV PORT=8080
 
 # Expose the port
 EXPOSE 8080
 
-# Run the Flask application with gunicorn
-ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:8080", "app:app"]
+# Run the FastAPI application with uvicorn
+ENTRYPOINT ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080"]

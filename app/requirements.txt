@@ -1,5 +1,7 @@
-Flask
+fastapi
+uvicorn[standard]
+starlette
 requests
 python-dotenv
 openai
-gunicorn
+python-multipart
