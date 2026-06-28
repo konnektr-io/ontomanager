@@ -1,0 +1,36 @@
+{
+  "passed": 5,
+  "failed": 1,
+  "tests": [
+    {
+      "name": "Clicked on a class name",
+      "passed": true,
+      "detail": "Clicked: CheesyPizza"
+    },
+    {
+      "name": "Screenshot after class click saved",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Class name still visible in page",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Detail panel with properties/restrictions visible",
+      "passed": false,
+      "detail": ""
+    },
+    {
+      "name": "Tree structure visible (DomainThing/ValuePartition)",
+      "passed": true,
+      "detail": "DomainThing found"
+    },
+    {
+      "name": "No console errors",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

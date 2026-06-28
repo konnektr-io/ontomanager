@@ -4,12 +4,13 @@ on:
   push:
     branches:
       - main
-      - shadcn
     tags:
       - "v*"
   pull_request:
     branches:
       - main
+  release:
+    types: [published]
   workflow_dispatch:
 
 env:

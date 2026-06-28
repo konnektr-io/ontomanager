@@ -1,0 +1,96 @@
+{
+  "passed": 18,
+  "failed": 0,
+  "tests": [
+    {
+      "name": "Page loaded",
+      "passed": true,
+      "detail": "Status: 200"
+    },
+    {
+      "name": "Nav item: Classes",
+      "passed": true,
+      "detail": "Found in: ['Classes']"
+    },
+    {
+      "name": "Nav item: Properties",
+      "passed": true,
+      "detail": "Found in: ['Properties']"
+    },
+    {
+      "name": "Nav item: Individuals",
+      "passed": true,
+      "detail": "Found in: ['Individuals']"
+    },
+    {
+      "name": "Nav item: Decomposition",
+      "passed": true,
+      "detail": "Found in: ['Decomposition']"
+    },
+    {
+      "name": "Nav item: Ontologies",
+      "passed": true,
+      "detail": "Found in: ['Ontologies']"
+    },
+    {
+      "name": "Navigated to Properties",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/properties"
+    },
+    {
+      "name": "Navigated to Ontologies",
+      "passed": true,
+      "detail": "URL: https://ontomanager.local.raes.konnektr.io/ontologies"
+    },
+    {
+      "name": "Cookie notice visible",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Accept cookie button clickable",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Cookie consent accepted (no error)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Pre-built ontology cards present",
+      "passed": true,
+      "detail": "Found 9 cards: ['SMLBuilding information modelling (BIM) - Semantic modelling and linking (SML) - CEN-EN 17632', 'SML', 'BOTThe Building Topology Ontology (BOT) is a minimal ontology for describing the core topological co', 'BOT', 'DPROD + DCATThe Data Product (DPROD) specification is a profile of the Data Catalog (DCAT) Vocabular']"
+    },
+    {
+      "name": "Ontology card clickable",
+      "passed": true,
+      "detail": "Clicked: SMLBuilding information modelling (BIM) - Semantic modelling and linking (SML) -"
+    },
+    {
+      "name": "Import URL input exists",
+      "passed": true,
+      "detail": "Placeholder: Enter ontology URL"
+    },
+    {
+      "name": "Import button visible",
+      "passed": true,
+      "detail": "Button text: Import"
+    },
+    {
+      "name": "GitHub sign-in button visible",
+      "passed": true,
+      "detail": "Button text: GitHub Sign in"
+    },
+    {
+      "name": "Screenshot saved",
+      "passed": true,
+      "detail": "/opt/data/home/ontomanager/tests/smoke-after-interaction.png"
+    },
+    {
+      "name": "No console errors throughout test",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}
